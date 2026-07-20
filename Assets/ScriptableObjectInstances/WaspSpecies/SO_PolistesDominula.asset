@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb8f4be7e82c0634e8fafb14b6e59247, type: 3}
+  m_Name: SO_PolistesDominula
+  m_EditorClassIdentifier: Assembly-CSharp::SB_Wasps_Info
+  speciesId: polistes_dominula
+  commonName: European paper wasp
+  scientificName: Polistes dominula
+  classification: 1
+  scopeRole: 1
+  isPlayable: 1
+  portrait: {fileID: 0}
+  accentColor: {r: 0.91, g: 0.48, b: 0.18, a: 1}
+  gameplaySummary: The primary invasive colony expands into contested habitat and
+    competes for prey and nesting opportunities.
+  nestType: Exposed, above-ground paper nest in warm, sunny, sheltered locations.
+  habitatCue: Warm exposed urban and agricultural edges advancing toward fynbos.
+  threatResponse: Localised aggressive defence when workers or nest sites are threatened.
+  learningLesson: 'Appearance alone is not enough: compare antennae, markings, legs,
+    nest, habitat, and behaviour before intervening.'
+  availableFunctions: []

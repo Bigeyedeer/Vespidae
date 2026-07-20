@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eb8f4be7e82c0634e8fafb14b6e59247, type: 3}
+  m_Name: SO_PolistesMarginalis
+  m_EditorClassIdentifier: Assembly-CSharp::SB_Wasps_Info
+  speciesId: polistes_marginalis
+  commonName: South African paper wasp
+  scientificName: Polistes marginalis
+  classification: 0
+  scopeRole: 0
+  isPlayable: 1
+  portrait: {fileID: 0}
+  accentColor: {r: 0.84, g: 0.66, b: 0.29, a: 1}
+  gameplaySummary: The native player colony protects an exposed paper nest, raises
+    brood, gathers nectar and prey, and prevents invasive establishment.
+  nestType: Exposed, single-layer paper comb.
+  habitatCue: Native fynbos habitat and local strongholds.
+  threatResponse: Usually docile when undisturbed and organised around nest defence
+    when threatened.
+  learningLesson: 'Identify before intervening: native paper wasps are ecologically
+    valuable and should not be removed indiscriminately.'
+  availableFunctions:
+  - function: 0
+    displayName: Scout
+    description: Search adjacent territory and return with visual, nest, and habitat
+      evidence.
+    startingBenefit: Reveal one additional identification clue at the start.
+    icon: {fileID: 0}
+  - function: 1
+    displayName: Forager
+    description: Collect nectar for adult energy and hunt soft-bodied prey for larvae.
+    startingBenefit: Begin with a small nectar and prey gathering bonus.
+    icon: {fileID: 0}
+  - function: 2
+    displayName: Builder
+    description: Gather plant fibre and expand or repair the exposed paper comb.
+    startingBenefit: Begin with improved nest repair speed.
+    icon: {fileID: 0}
+  - function: 3
+    displayName: Brood Caretaker
+    description: Feed larvae and convert delivered prey into healthy colony growth.
+    startingBenefit: Begin with increased brood progress.
+    icon: {fileID: 0}
+  - function: 4
+    displayName: Guard
+    description: Respond to alarm and protect the Queen, brood, and nest entrance.
+    startingBenefit: Begin with faster defensive readiness.
+    icon: {fileID: 0}
+  - function: 5
+    displayName: Containment
+    description: Intercept invasive workers, slow their spread, and hold contested
+      territory.
+    startingBenefit: Begin with reduced invasion pressure in the first contested
+      area.
+    icon: {fileID: 0}
