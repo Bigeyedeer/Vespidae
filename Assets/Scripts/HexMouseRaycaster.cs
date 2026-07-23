@@ -10,7 +10,7 @@ public class HexMouseRaycaster : MonoBehaviour
     [SerializeField] private float rayDistance = 1000f;
 
     [Header("Selection")]
-    [SerializeField] private HexCameraFocus cameraFocus;
+    [SerializeField] private C_MainWorldCameraFocus cameraFocus;
     [SerializeField] private HexOptionsPanel optionsPanel;
 
     [Header("Debug")]
@@ -27,8 +27,6 @@ public class HexMouseRaycaster : MonoBehaviour
         if (targetCamera == null)
             targetCamera = Camera.main;
 
-        if (cameraFocus == null)
-            cameraFocus = GetComponent<HexCameraFocus>();
     }
 
     private void Update()
@@ -100,8 +98,10 @@ public class HexMouseRaycaster : MonoBehaviour
         if (currentHexTile == null)
             return;
 
-        cameraFocus.FocusOnHex(currentHexTile);
-        optionsPanel.Open(currentHexTile);
+        cameraFocus?.FocusOnHex(currentHexTile);
+
+        if (optionsPanel != null)
+            optionsPanel.Open(currentHexTile);
     }
 
     private void ClearCurrentHover()

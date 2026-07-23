@@ -3,29 +3,18 @@ using UnityEngine;
 public class WaspInfo : MonoBehaviour
 {
     [Header("Species Information")]
-    [SerializeField] private string commonName = "Cape Paper Wasp";
-    [SerializeField] private string scientificName = "Polistes marginalis";
-
-    [TextArea(3, 6)]
-    [SerializeField] private string description =
-        "A native South African wasp species that plays an important role in controlling insect populations.";
-
-    [TextArea(2, 4)]
-    [SerializeField] private string ecologicalRole =
-        "Predates on caterpillars and other small insects, helping maintain ecological balance.";
-
-    [Header("Classification")]
-    [SerializeField] private bool isNative = true;
+    [SerializeField] private SB_Wasps_Info speciesInfo;
 
     [Header("Camera Focus")]
     [SerializeField] private Transform cameraPoint;
     [SerializeField] private Transform lookPoint;
 
-    public string CommonName => commonName;
-    public string ScientificName => scientificName;
-    public string Description => description;
-    public string EcologicalRole => ecologicalRole;
-    public bool IsNative => isNative;
+    public SB_Wasps_Info SpeciesInfo => speciesInfo;
+    public string CommonName => speciesInfo != null ? speciesInfo.CommonName : string.Empty;
+    public string ScientificName => speciesInfo != null ? speciesInfo.ScientificName : string.Empty;
+    public string Description => speciesInfo != null ? speciesInfo.GameplaySummary : string.Empty;
+    public string EcologicalRole => speciesInfo != null ? speciesInfo.EcologicalRole : string.Empty;
+    public bool IsNative => speciesInfo != null && speciesInfo.Classification == WaspClassification.Native;
 
     public Transform CameraPoint => cameraPoint;
 

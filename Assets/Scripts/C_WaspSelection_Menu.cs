@@ -12,7 +12,7 @@ public class C_WaspSelection_Menu : MonoBehaviour
 
     [Header("Navigation")]
     [SerializeField] private C_MainMenu_Ctrl mainMenuController;
-    [SerializeField] private string mainWorldSceneName = "MainWorld";
+    [SerializeField] private string mainWorldSceneName = "wasp RTS Lvl";
 
     [Header("Species Cards")]
     [SerializeField] private Transform cardContainer;
@@ -88,12 +88,12 @@ public class C_WaspSelection_Menu : MonoBehaviour
 
         if (speciesHeader != null)
         {
-            speciesHeader.text = "Select a species to command";
+            speciesHeader.text = "Select a native species to command";
         }
 
         foreach (SB_Wasps_Info wasp in selectableWasps)
         {
-            if (wasp == null)
+            if (wasp == null || !wasp.IsPlayable || wasp.Classification != WaspClassification.Native)
             {
                 continue;
             }
@@ -116,12 +116,12 @@ public class C_WaspSelection_Menu : MonoBehaviour
         {
             if (detailsTitle != null)
             {
-                detailsTitle.text = "Choose a wasp species";
+                detailsTitle.text = "Choose a native wasp species";
             }
 
             if (detailsDescription != null)
             {
-                detailsDescription.text = "Select the species you want to command in the opening scenario.";
+                detailsDescription.text = "Select the native species you want to command in the opening scenario.";
             }
 
             if (detailsBenefit != null)

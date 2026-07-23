@@ -22,6 +22,8 @@ MonoBehaviour:
   accentColor: {r: 0.84, g: 0.66, b: 0.29, a: 1}
   gameplaySummary: The native player colony protects an exposed paper nest, raises
     brood, gathers nectar and prey, and prevents invasive establishment.
+  ecologicalRole: Predates on caterpillars and other small insects, helping maintain
+    ecological balance.
   nestType: Exposed, single-layer paper comb.
   habitatCue: Native fynbos habitat and local strongholds.
   threatResponse: Usually docile when undisturbed and organised around nest defence

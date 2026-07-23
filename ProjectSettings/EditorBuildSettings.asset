@@ -9,8 +9,8 @@ EditorBuildSettings:
     path: Assets/Scenes/Menu.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
-    path: Assets/Scenes/MainWorld.unity
-    guid: 55ebfc775ddb0644fa734fb10fda2d78
+    path: Assets/Scenes/wasp RTS Lvl.unity
+    guid: 56e2b3b0d3716804e916b4721fb0e836
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0

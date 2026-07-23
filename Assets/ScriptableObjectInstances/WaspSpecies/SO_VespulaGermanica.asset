@@ -17,11 +17,13 @@ MonoBehaviour:
   scientificName: Vespula germanica
   classification: 1
   scopeRole: 2
-  isPlayable: 1
+  isPlayable: 0
   portrait: {fileID: 0}
   accentColor: {r: 0.95, g: 0.76, b: 0.18, a: 1}
   gameplaySummary: An aggressive invasive colony that uses cool, moist habitat, defends
     its enclosed nest, and creates high-pressure territory contests.
+  ecologicalRole: Creates high ecological pressure through aggressive defence and
+    competition in suitable habitat.
   nestType: Commonly underground or enclosed rather than an exposed Polistes comb.
   habitatCue: Cooler, moister, river, irrigated, or human-modified habitat.
   threatResponse: High aggression with strong nest defence, chasing, and a shorter

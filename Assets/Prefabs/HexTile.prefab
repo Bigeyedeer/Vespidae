@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &659003104025176902
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2016398901899795257}
+  m_Layer: 0
+  m_Name: HexCameraPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2016398901899795257
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 659003104025176902}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 4, z: -3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1532954783644190756}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1354632674578558927
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -51,10 +82,10 @@ PrefabInstance:
     - target: {fileID: -7511558181221131132, guid: 9b91373c844f0b14f8935a86745b0a32, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: 0850e5843bcc473489968124ba89a797, type: 2}
+      objectReference: {fileID: 2100000, guid: b887df67fc04da34e84210deb77cd093, type: 2}
     - target: {fileID: 919132149155446097, guid: 9b91373c844f0b14f8935a86745b0a32, type: 3}
       propertyPath: m_Name
-      value: Owned Hex tile
+      value: HexTile
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 9b91373c844f0b14f8935a86745b0a32, type: 3}
       propertyPath: m_Layer
@@ -62,7 +93,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9b91373c844f0b14f8935a86745b0a32, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2016398901899795257}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9b91373c844f0b14f8935a86745b0a32, type: 3}
       insertIndex: -1
@@ -77,6 +111,11 @@ PrefabInstance:
 --- !u!23 &363958811557819211 stripped
 MeshRenderer:
   m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 9b91373c844f0b14f8935a86745b0a32, type: 3}
+  m_PrefabInstance: {fileID: 1354632674578558927}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1532954783644190756 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9b91373c844f0b14f8935a86745b0a32, type: 3}
   m_PrefabInstance: {fileID: 1354632674578558927}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &2165658491143410334 stripped
@@ -132,8 +171,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37bffb90bb3cc534d8ab6dbe819a9799, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HexTile
-  hexName: Native Nesting Territory
-  state: 0
+  hexName: Unexplored Grassland
+  state: 1
   content: 0
   antGroup: {fileID: 0}
   proteinPerGather: 0
@@ -142,4 +181,4 @@ MonoBehaviour:
   unknownMaterial: {fileID: 2100000, guid: b887df67fc04da34e84210deb77cd093, type: 2}
   lockedMaterial: {fileID: 2100000, guid: 1c42d58960c5df0429c4bb6a6e862251, type: 2}
   proteinMaterial: {fileID: 2100000, guid: f62c8ed212a346047ab5bbfe5f0e3fd4, type: 2}
-  focusPoint: {fileID: 0}
+  focusPoint: {fileID: 2016398901899795257}

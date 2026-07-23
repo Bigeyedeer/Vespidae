@@ -10,7 +10,7 @@ public class WaspMouseRaycaster : MonoBehaviour
     [SerializeField] private float rayDistance = 1000f;
 
     [Header("Selection")]
-    [SerializeField] private WaspCameraSwitcher cameraSwitcher;
+    [SerializeField] private C_MainWorldCameraFocus cameraFocus;
 
     private void Awake()
     {
@@ -59,6 +59,6 @@ public class WaspMouseRaycaster : MonoBehaviour
         if (wasp == null)
             return;
 
-        cameraSwitcher.ShowWaspCamera(wasp);
+        cameraFocus?.FocusOnWasp(wasp);
     }
 }

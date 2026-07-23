@@ -61,6 +61,12 @@ public class HexTile : MonoBehaviour
         RefreshHexMaterial();
     }
 
+    private void OnValidate()
+    {
+        RefreshContentVisuals();
+        RefreshHexMaterial();
+    }
+
     public void Scout()
     {
         if (state != HexState.Unknown)
@@ -167,14 +173,14 @@ public class HexTile : MonoBehaviour
             case HexState.Locked:
 
                 if (lockedMaterial != null)
-                    hexRenderer.material = lockedMaterial;
+                    hexRenderer.sharedMaterial = lockedMaterial;
 
                 break;
 
             case HexState.Owned:
 
                 if (ownedMaterial != null)
-                    hexRenderer.material = ownedMaterial;
+                    hexRenderer.sharedMaterial = ownedMaterial;
 
                 break;
 
@@ -183,12 +189,12 @@ public class HexTile : MonoBehaviour
                 if (content == HexContent.Protein)
                 {
                     if (proteinMaterial != null)
-                        hexRenderer.material = proteinMaterial;
+                        hexRenderer.sharedMaterial = proteinMaterial;
                 }
                 else
                 {
                     if (unknownMaterial != null)
-                        hexRenderer.material = unknownMaterial;
+                        hexRenderer.sharedMaterial = unknownMaterial;
                 }
 
                 break;
@@ -196,7 +202,7 @@ public class HexTile : MonoBehaviour
             case HexState.Unknown:
 
                 if (unknownMaterial != null)
-                    hexRenderer.material = unknownMaterial;
+                    hexRenderer.sharedMaterial = unknownMaterial;
 
                 break;
 

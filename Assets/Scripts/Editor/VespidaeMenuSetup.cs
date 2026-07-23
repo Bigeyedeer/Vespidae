@@ -13,7 +13,7 @@ using UnityEngine.UI;
 public static class VespidaeMenuSetup
 {
     private const string MenuScenePath = "Assets/Scenes/Menu.unity";
-    private const string MainWorldScenePath = "Assets/Scenes/MainWorld.unity";
+    private const string MainWorldScenePath = "Assets/Scenes/wasp RTS Lvl.unity";
     private const string SpeciesFolder = "Assets/ScriptableObjectInstances/WaspSpecies";
     private const string RuntimeFolder = "Assets/ScriptableObjectInstances/Runtime";
     private const string PrefabFolder = "Assets/Prefabs/UI";
@@ -49,7 +49,6 @@ public static class VespidaeMenuSetup
         C_WaspSelectionCard cardPrefab = cardPrefabRoot.GetComponent<C_WaspSelectionCard>();
 
         BuildMenuScene(nativeWasp, europeanPaperWasp, germanWasp, selectionState, cardPrefab);
-        BuildMainWorldScene(selectionState);
         ConfigureBuildScenes();
 
         AssetDatabase.SaveAssets();
@@ -83,12 +82,6 @@ public static class VespidaeMenuSetup
         EditorSceneManager.MarkSceneDirty(menuScene);
         EditorSceneManager.SaveScene(menuScene);
 
-        Scene mainWorldScene = EditorSceneManager.OpenScene(MainWorldScenePath, OpenSceneMode.Single);
-        C_MainWorldSelectionDisplay display = GameObject.Find("SelectionDisplayController").GetComponent<C_MainWorldSelectionDisplay>();
-        SetPrivateField(display, "selectionState", selectionState);
-        EditorSceneManager.MarkSceneDirty(mainWorldScene);
-        EditorSceneManager.SaveScene(mainWorldScene);
-
         EditorSceneManager.OpenScene(MenuScenePath, OpenSceneMode.Single);
     }
 
@@ -104,6 +97,7 @@ public static class VespidaeMenuSetup
             true,
             new Color(0.84f, 0.66f, 0.29f, 1f),
             "The native player colony protects an exposed paper nest, raises brood, gathers nectar and prey, and prevents invasive establishment.",
+            "Predates on caterpillars and other small insects, helping maintain ecological balance.",
             "Exposed, single-layer paper comb.",
             "Native fynbos habitat and local strongholds.",
             "Usually docile when undisturbed and organised around nest defence when threatened.",
@@ -133,6 +127,7 @@ public static class VespidaeMenuSetup
             true,
             new Color(0.91f, 0.48f, 0.18f, 1f),
             "The primary invasive colony expands into contested habitat and competes for prey and nesting opportunities.",
+            "Competes with native colonies for prey, nest sites, and territory at warm habitat edges.",
             "Exposed, above-ground paper nest in warm, sunny, sheltered locations.",
             "Warm exposed urban and agricultural edges advancing toward fynbos.",
             "Localised aggressive defence when workers or nest sites are threatened.",
@@ -154,6 +149,7 @@ public static class VespidaeMenuSetup
             true,
             new Color(0.95f, 0.76f, 0.18f, 1f),
             "An aggressive invasive colony that uses cool, moist habitat, defends its enclosed nest, and creates high-pressure territory contests.",
+            "Creates high ecological pressure through aggressive defence and competition in suitable habitat.",
             "Commonly underground or enclosed rather than an exposed Polistes comb.",
             "Cooler, moister, river, irrigated, or human-modified habitat.",
             "High aggression with strong nest defence, chasing, and a shorter reaction window.",
@@ -561,10 +557,7 @@ public static class VespidaeMenuSetup
             cubeRenderer.sharedMaterial = CreateWorldMaterial($"WaspMaterial_{index + 1}", Color.Lerp(color, Color.white, 0.45f));
         }
 
-        C_MainWorldHexNode node = cube.AddComponent<C_MainWorldHexNode>();
-        string resources = index % 3 == 0 ? "High nectar / medium prey" : index % 3 == 1 ? "Medium nectar / low prey" : "Low nectar / high prey";
-        string nest = index % 2 == 0 ? "Exposed paper comb" : "Sheltered paper comb";
-        node.Configure(navigation, habitat, status, resources, nest);
+        cube.AddComponent<HexTile>();
     }
 
     private static Mesh CreateHexMesh(string name, float radius, float height)

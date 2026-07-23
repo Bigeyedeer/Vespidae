@@ -17,11 +17,13 @@ MonoBehaviour:
   scientificName: Polistes dominula
   classification: 1
   scopeRole: 1
-  isPlayable: 1
+  isPlayable: 0
   portrait: {fileID: 0}
   accentColor: {r: 0.91, g: 0.48, b: 0.18, a: 1}
   gameplaySummary: The primary invasive colony expands into contested habitat and
     competes for prey and nesting opportunities.
+  ecologicalRole: Competes with native colonies for prey, nest sites, and territory
+    at warm habitat edges.
   nestType: Exposed, above-ground paper nest in warm, sunny, sheltered locations.
   habitatCue: Warm exposed urban and agricultural edges advancing toward fynbos.
   threatResponse: Localised aggressive defence when workers or nest sites are threatened.

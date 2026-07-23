@@ -72,6 +72,7 @@ public class SB_Wasps_Info : ScriptableObject
 
     [Header("Species Reference")]
     [SerializeField, TextArea(2, 5)] private string gameplaySummary;
+    [SerializeField, TextArea(2, 5)] private string ecologicalRole;
     [SerializeField, TextArea(1, 3)] private string nestType;
     [SerializeField, TextArea(1, 3)] private string habitatCue;
     [SerializeField, TextArea(1, 3)] private string threatResponse;
@@ -89,6 +90,7 @@ public class SB_Wasps_Info : ScriptableObject
     public Sprite Portrait => portrait;
     public Color AccentColor => accentColor;
     public string GameplaySummary => gameplaySummary;
+    public string EcologicalRole => ecologicalRole;
     public string NestType => nestType;
     public string HabitatCue => habitatCue;
     public string ThreatResponse => threatResponse;
@@ -118,6 +120,7 @@ public class SB_Wasps_Info : ScriptableObject
         bool playable,
         Color color,
         string summary,
+        string role,
         string nest,
         string habitat,
         string threat,
@@ -132,6 +135,7 @@ public class SB_Wasps_Info : ScriptableObject
         isPlayable = playable;
         accentColor = color;
         gameplaySummary = summary;
+        ecologicalRole = role;
         nestType = nest;
         habitatCue = habitat;
         threatResponse = threat;
