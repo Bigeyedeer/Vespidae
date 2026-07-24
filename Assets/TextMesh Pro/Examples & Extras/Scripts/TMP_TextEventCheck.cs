@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 
 namespace TMPro.Examples
@@ -14,7 +14,7 @@ namespace TMPro.Examples
         {
             if (TextEventHandler != null)
             {
-                // Get a reference to the text component
+                                                        
                 m_TextComponent = TextEventHandler.GetComponent<TMP_Text>();
                 
                 TextEventHandler.onCharacterSelection.AddListener(OnCharacterSelection);

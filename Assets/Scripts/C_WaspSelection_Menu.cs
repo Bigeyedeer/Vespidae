@@ -60,8 +60,6 @@ public class C_WaspSelection_Menu : MonoBehaviour
             return;
         }
 
-        // Colony functions are selected later in the gameplay flow. Scout is
-        // only the temporary runtime default needed by the existing HUD/state.
         selectionState.SetSelection(pendingWasp, WaspFunction.Scout);
         SceneManager.LoadScene(mainWorldSceneName);
     }

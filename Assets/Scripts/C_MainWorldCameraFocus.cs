@@ -25,6 +25,9 @@ public class C_MainWorldCameraFocus : MonoBehaviour
     private bool closeUpActive;
     private bool isTransitioning;
 
+    public bool IsCloseUpActive => closeUpActive;
+    public bool IsTransitioning => isTransitioning;
+
     private void Start()
     {
         if (mainCamera == null)
@@ -84,11 +87,13 @@ public class C_MainWorldCameraFocus : MonoBehaviour
             return;
         }
 
-        BeginFocus(
-            wasp.CameraPoint.position,
-            wasp.LookPosition,
-            wasp
-        );
+        if (closeUpActive)
+        {
+            StartCoroutine(BlendCloseUpToWasp(wasp));
+            return;
+        }
+
+        BeginFocus(wasp.CameraPoint.position, wasp.LookPosition, wasp);
     }
 
     public void ReturnToMap()
@@ -193,6 +198,66 @@ public class C_MainWorldCameraFocus : MonoBehaviour
         isTransitioning = false;
 
         if (waspInfoPanel != null && wasp != null)
+            waspInfoPanel.Open(wasp);
+    }
+
+    private IEnumerator BlendCloseUpToWasp(WaspInfo wasp)
+    {
+        if (wasp == null || closeUpCamera == null || isTransitioning)
+            yield break;
+
+        isTransitioning = true;
+
+        Vector3 startPosition = closeUpCamera.transform.position;
+        Quaternion startRotation = closeUpCamera.transform.rotation;
+        Vector3 targetPosition = wasp.CameraPoint.position;
+        Vector3 lookDirection = wasp.LookPosition - targetPosition;
+        Quaternion targetRotation = startRotation;
+
+        if (lookDirection.sqrMagnitude > 0.0001f)
+        {
+            targetRotation = Quaternion.LookRotation(
+                lookDirection.normalized,
+                Vector3.up
+            );
+        }
+
+        float elapsedTime = 0f;
+
+        if (hexOptionsPanel != null)
+            hexOptionsPanel.Close();
+
+        while (elapsedTime < blendDuration)
+        {
+            elapsedTime += Time.deltaTime;
+
+            float progress = Mathf.Clamp01(
+                elapsedTime / Mathf.Max(0.01f, blendDuration)
+            );
+
+            float smoothProgress = Mathf.SmoothStep(0f, 1f, progress);
+
+            closeUpCamera.transform.position = Vector3.Lerp(
+                startPosition,
+                targetPosition,
+                smoothProgress
+            );
+
+            closeUpCamera.transform.rotation = Quaternion.Slerp(
+                startRotation,
+                targetRotation,
+                smoothProgress
+            );
+
+            yield return null;
+        }
+
+        closeUpCamera.transform.position = targetPosition;
+        closeUpCamera.transform.rotation = targetRotation;
+
+        isTransitioning = false;
+
+        if (waspInfoPanel != null)
             waspInfoPanel.Open(wasp);
     }
 

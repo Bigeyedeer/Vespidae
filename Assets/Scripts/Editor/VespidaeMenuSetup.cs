@@ -34,9 +34,6 @@ public static class VespidaeMenuSetup
         SB_PlayerSelection_State selectionState = CreateOrUpdateSelectionState(nativeWasp);
         CreateOrUpdateFunctionCardPrefab();
 
-        // Reload the saved prefab from the AssetDatabase before assigning it to a
-        // scene component. The object returned while SaveAsPrefabAsset is importing
-        // can otherwise become a missing reference after the temporary root is destroyed.
         AssetDatabase.SaveAssets();
         AssetDatabase.ImportAsset(
             $"{PrefabFolder}/WaspFunctionCard.prefab",
@@ -209,8 +206,6 @@ public static class VespidaeMenuSetup
         SB_PlayerSelection_State selectionState,
         C_WaspSelectionCard cardPrefab)
     {
-        // Resolve persistent asset instances at the point where the scene is
-        // serialized. AssetDatabase refreshes can invalidate earlier handles.
         nativeWasp = AssetDatabase.LoadAssetAtPath<SB_Wasps_Info>($"{SpeciesFolder}/SO_PolistesMarginalis.asset");
         europeanPaperWasp = AssetDatabase.LoadAssetAtPath<SB_Wasps_Info>($"{SpeciesFolder}/SO_PolistesDominula.asset");
         germanWasp = AssetDatabase.LoadAssetAtPath<SB_Wasps_Info>($"{SpeciesFolder}/SO_VespulaGermanica.asset");

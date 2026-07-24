@@ -61,8 +61,6 @@ public class CameraCursorMovement : MonoBehaviour
                 forwardDirection.y = 0f;
                 forwardDirection.Normalize();
 
-                // Dragging left (negative X delta) moves the camera/world
-                // anchor to the right.
                 Vector3 dragOffset =
                     (-rightDirection * dragDelta.x -
                      forwardDirection * dragDelta.y) * dragSensitivity;
@@ -70,12 +68,9 @@ public class CameraCursorMovement : MonoBehaviour
                 startingPosition += dragOffset;
                 transform.position += dragOffset;
 
-                // Middle-mouse drag has exclusive control over the camera.
                 return;
             }
 
-            // Release ends the drag. Panning is allowed to resume below on
-            // this frame because middle mouse is no longer held.
             isDragging = false;
             movementVelocity = Vector3.zero;
         }
@@ -148,8 +143,6 @@ public class CameraCursorMovement : MonoBehaviour
             movementVelocity = Vector3.zero;
     }
 
-    // Kept for compatibility with older focus scripts that may still exist
-    // elsewhere in the project. The rebuilt camera has no separate anchor.
     public void ResetCameraPosition()
     {
         startingPosition = transform.position;
