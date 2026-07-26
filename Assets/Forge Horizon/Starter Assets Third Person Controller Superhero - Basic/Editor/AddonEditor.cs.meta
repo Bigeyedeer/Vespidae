@@ -1,0 +1,10 @@
+fileFormatVersion: 2
+guid: 75735ef59b3c4464aade65e4a6670dfd
+AssetOrigin:
+  serializedVersion: 1
+  productId: 323395
+  packageName: Starter Assets Third Person Controller Superhero - Basic
+  packageVersion: 1.1.0
+  assetPath: Assets/Forge Horizon/Starter Assets Third Person Controller Superhero
+    - Basic/Editor/AddonEditor.cs
+  uploadId: 840746
