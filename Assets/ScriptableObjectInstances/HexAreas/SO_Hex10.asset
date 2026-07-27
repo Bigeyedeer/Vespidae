@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f2ad1f2c99d4a22b4c02b9d3a7b1e61, type: 3}
+  m_Name: SO_Hex10
+  m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
+  areaId: hex_10
+  areaName: Hex 10
+  areaDescription: Area details not assigned yet.
+  habitatCue: Habitat not assigned yet.
+  territoryState: 0
+  riskState: 0
+  visibilityState: 0
+  connectedHexIds: []
+  resourceType: 0
+  startingPrey: 0
+  startingNectar: 0
+  startingFibre: 0
+  waspsPresent: []

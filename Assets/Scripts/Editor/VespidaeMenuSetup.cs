@@ -173,15 +173,16 @@ public static class VespidaeMenuSetup
             new Vector2(0.5f, 0.5f),
             new Vector2(0.5f, 0.5f),
             Vector2.zero,
-            new Vector2(410f, 155f));
+            new Vector2(760f, 160f));
         Image background = root.AddComponent<Image>();
         background.color = new Color(0.12f, 0.18f, 0.16f, 1f);
+        ApplyRoundedSprite(background);
         Button button = root.AddComponent<Button>();
         button.targetGraphic = background;
 
-        Image icon = CreateImage("Icon", root.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(54f, 0f), new Vector2(70f, 70f), Color.white);
-        TMP_Text title = CreateText("Title", root.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(25f, -70f), new Vector2(-25f, -15f), 26f, FontStyles.Bold, TextAlignmentOptions.TopLeft);
-        TMP_Text description = CreateText("Description", root.transform, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(25f, 16f), new Vector2(-25f, -65f), 16f, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        Image icon = CreateImage("Icon", root.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(54f, 0f), new Vector2(70f, 76f), Color.white);
+        TMP_Text title = CreateText("Title", root.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(25f, -66f), new Vector2(-25f, -14f), 26f, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        TMP_Text description = CreateText("Description", root.transform, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(25f, 16f), new Vector2(-25f, -64f), 16f, FontStyles.Normal, TextAlignmentOptions.TopLeft);
         description.textWrappingMode = TextWrappingModes.Normal;
 
         C_WaspSelectionCard card = root.AddComponent<C_WaspSelectionCard>();
@@ -245,31 +246,44 @@ public static class VespidaeMenuSetup
         Toggle fullscreenToggle = CreateToggle("FullscreenToggle", optionsPanel.transform, "Fullscreen", new Vector2(0f, -40f));
         Button optionsBackButton = CreateButton("BackButton", optionsPanel.transform, "BACK", new Vector2(0f, -210f), new Vector2(300f, 72f));
 
-        GameObject selectionPanel = CreatePanel("WaspSelectionPanel", canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(1740f, 940f));
-        TMP_Text selectionTitle = CreateText("SelectionTitle", selectionPanel.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(40f, -95f), new Vector2(-40f, -20f), 42f, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        GameObject selectionPanel = CreatePanel("WaspSelectionPanel", canvas.transform, new Vector2(0.5f, 0.5f), new Vector2(1740f, 960f));
+        RectTransform selectionRect = selectionPanel.GetComponent<RectTransform>();
+        selectionRect.anchorMin = Vector2.zero;
+        selectionRect.anchorMax = Vector2.one;
+        selectionRect.offsetMin = Vector2.zero;
+        selectionRect.offsetMax = Vector2.zero;
+        Image selectionBackground = selectionPanel.GetComponent<Image>();
+        Sprite selectionSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/UI/MainMenu_waspSelectionScreen.png");
+        if (selectionSprite != null)
+        {
+            selectionBackground.sprite = selectionSprite;
+            selectionBackground.type = Image.Type.Simple;
+            selectionBackground.color = Color.white;
+        }
+        TMP_Text selectionTitle = CreateText("SelectionTitle", selectionPanel.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(60f, -85f), new Vector2(-60f, -15f), 42f, FontStyles.Bold, TextAlignmentOptions.TopLeft);
         selectionTitle.text = "CHOOSE YOUR WASP SPECIES";
-        TMP_Text speciesHeader = CreateText("SpeciesHeader", selectionPanel.transform, new Vector2(0f, 1f), new Vector2(0.55f, 1f), new Vector2(40f, -175f), new Vector2(-20f, -90f), 24f, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        TMP_Text speciesHeader = CreateText("SpeciesHeader", selectionPanel.transform, new Vector2(0f, 1f), new Vector2(0.5f, 1f), new Vector2(60f, -145f), new Vector2(-30f, -95f), 22f, FontStyles.Normal, TextAlignmentOptions.TopLeft);
 
-        GameObject cardContainerObject = CreateRectObject("FunctionCardContainer", selectionPanel.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(40f, -45f), new Vector2(900f, 555f));
+        GameObject cardContainerObject = CreateRectObject("FunctionCardContainer", selectionPanel.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(60f, -35f), new Vector2(790f, 570f));
         cardContainerObject.GetComponent<RectTransform>().pivot = new Vector2(0f, 0.5f);
         GridLayoutGroup grid = cardContainerObject.AddComponent<GridLayoutGroup>();
-        grid.cellSize = new Vector2(410f, 155f);
-        grid.spacing = new Vector2(20f, 20f);
+        grid.cellSize = new Vector2(760f, 160f);
+        grid.spacing = new Vector2(0f, 18f);
         grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-        grid.constraintCount = 2;
+        grid.constraintCount = 1;
         grid.childAlignment = TextAnchor.UpperLeft;
 
-        GameObject detailPanel = CreatePanel("SelectionDetails", selectionPanel.transform, new Vector2(0.78f, 0.52f), new Vector2(610f, 540f));
+        GameObject detailPanel = CreatePanel("SelectionDetails", selectionPanel.transform, new Vector2(0.78f, 0.51f), new Vector2(650f, 570f));
         Image detailBackground = detailPanel.GetComponent<Image>();
         detailBackground.color = new Color(0.075f, 0.12f, 0.105f, 0.98f);
-        TMP_Text detailsTitle = CreateText("DetailsTitle", detailPanel.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(35f, -35f), new Vector2(-35f, 70f), 32f, FontStyles.Bold, TextAlignmentOptions.TopLeft);
-        TMP_Text detailsDescription = CreateText("DetailsDescription", detailPanel.transform, new Vector2(0f, 0.35f), new Vector2(1f, 0.85f), new Vector2(35f, 0f), new Vector2(-35f, 0f), 21f, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        TMP_Text detailsTitle = CreateText("DetailsTitle", detailPanel.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(35f, -95f), new Vector2(-35f, -5f), 30f, FontStyles.Bold, TextAlignmentOptions.TopLeft);
+        TMP_Text detailsDescription = CreateText("DetailsDescription", detailPanel.transform, new Vector2(0f, 0.38f), new Vector2(1f, 0.78f), new Vector2(35f, 0f), new Vector2(-35f, 0f), 20f, FontStyles.Normal, TextAlignmentOptions.TopLeft);
         detailsDescription.textWrappingMode = TextWrappingModes.Normal;
-        TMP_Text detailsBenefit = CreateText("DetailsBenefit", detailPanel.transform, new Vector2(0f, 0f), new Vector2(1f, 0.32f), new Vector2(35f, 25f), new Vector2(-35f, -10f), 20f, FontStyles.Italic, TextAlignmentOptions.TopLeft);
+        TMP_Text detailsBenefit = CreateText("DetailsBenefit", detailPanel.transform, new Vector2(0f, 0.08f), new Vector2(1f, 0.32f), new Vector2(35f, 0f), new Vector2(-35f, 0f), 19f, FontStyles.Italic, TextAlignmentOptions.TopLeft);
         detailsBenefit.textWrappingMode = TextWrappingModes.Normal;
 
-        Button selectionBackButton = CreateButton("BackButton", selectionPanel.transform, "BACK", new Vector2(500f, -380f), new Vector2(270f, 70f));
-        Button confirmButton = CreateButton("ConfirmButton", selectionPanel.transform, "CONFIRM", new Vector2(700f, -380f), new Vector2(300f, 70f));
+        Button selectionBackButton = CreateButton("BackButton", selectionPanel.transform, "BACK", new Vector2(480f, -400f), new Vector2(270f, 72f));
+        Button confirmButton = CreateButton("ConfirmButton", selectionPanel.transform, "CONFIRM", new Vector2(770f, -400f), new Vector2(290f, 72f));
         confirmButton.interactable = false;
 
         CreateEventSystem();
@@ -665,6 +679,7 @@ public static class VespidaeMenuSetup
         GameObject panel = CreateRectObject(name, parent, anchor, anchor, Vector2.zero, size);
         Image image = panel.AddComponent<Image>();
         image.color = new Color(0.055f, 0.095f, 0.08f, 0.97f);
+        ApplyRoundedSprite(image);
         return panel;
     }
 
@@ -673,6 +688,7 @@ public static class VespidaeMenuSetup
         GameObject buttonObject = CreateRectObject(name, parent, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), position, size);
         Image image = buttonObject.AddComponent<Image>();
         image.color = new Color(0.20f, 0.30f, 0.24f, 1f);
+        ApplyRoundedSprite(image);
         Button button = buttonObject.AddComponent<Button>();
         button.targetGraphic = image;
         ColorBlock colors = button.colors;
@@ -685,6 +701,24 @@ public static class VespidaeMenuSetup
         TMP_Text text = CreateText("Label", buttonObject.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, 24f, FontStyles.Bold, TextAlignmentOptions.Center);
         text.text = label;
         return button;
+    }
+
+    private static void ApplyRoundedSprite(Image image)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        Sprite sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/UISprite.psd");
+        if (sprite == null)
+        {
+            sprite = AssetDatabase.GetBuiltinExtraResource<Sprite>("UI/Skin/Background.psd");
+        }
+
+        image.sprite = sprite;
+        image.type = Image.Type.Sliced;
+        image.fillCenter = true;
     }
 
     private static Slider CreateSlider(string name, Transform parent, Vector2 position, Vector2 size)

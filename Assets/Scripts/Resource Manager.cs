@@ -1,17 +1,23 @@
-using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class ResourceManager : MonoBehaviour
 {
     public static ResourceManager Instance { get; private set; }
 
     [Header("Resources")]
-    [SerializeField] private float protein;
+    [FormerlySerializedAs("sugar")]
+    [SerializeField, Min(0f)] private float nectar;
+    [FormerlySerializedAs("protein")]
+    [SerializeField, Min(0f)] private float prey;
+    [SerializeField, Min(0f)] private float fibre;
 
     [Header("UI")]
-    [SerializeField] private TMP_Text proteinText;
+    [SerializeField] private C_MainWorldHUD hud;
 
-    public float Protein => protein;
+    public float Nectar => nectar;
+    public float Prey => prey;
+    public float Fibre => fibre;
 
     private void Awake()
     {
@@ -26,21 +32,80 @@ public class ResourceManager : MonoBehaviour
 
     private void Start()
     {
-        UpdateUI();
+        HiveManagement.GetOrCreate();
+        hud = ResolveHud();
+        NotifyChanged();
     }
 
-    public void AddProtein(float amount)
+    private void OnDestroy()
     {
-        protein += amount;
-
-        Debug.Log($"Protein increased by {amount}. Total protein: {protein}");
-
-        UpdateUI();
+        if (Instance == this)
+            Instance = null;
     }
 
-    private void UpdateUI()
+    public void AddNectar(float amount)
     {
-        if (proteinText != null)
-            proteinText.text = $"Protein: {protein:0.0}";
+        nectar = Mathf.Max(0f, nectar + amount);
+        NotifyChanged();
+    }
+
+    public void AddPrey(float amount)
+    {
+        prey = Mathf.Max(0f, prey + amount);
+        NotifyChanged();
+    }
+
+    public void AddFibre(float amount)
+    {
+        fibre = Mathf.Max(0f, fibre + amount);
+        NotifyChanged();
+    }
+
+    public bool CanAfford(float nectarCost, float preyCost, float fibreCost)
+    {
+        return nectar >= Mathf.Max(0f, nectarCost) &&
+               prey >= Mathf.Max(0f, preyCost) &&
+               fibre >= Mathf.Max(0f, fibreCost);
+    }
+
+    public bool TrySpend(float nectarCost, float preyCost, float fibreCost)
+    {
+        nectarCost = Mathf.Max(0f, nectarCost);
+        preyCost = Mathf.Max(0f, preyCost);
+        fibreCost = Mathf.Max(0f, fibreCost);
+
+        if (!CanAfford(nectarCost, preyCost, fibreCost))
+            return false;
+
+        nectar -= nectarCost;
+        prey -= preyCost;
+        fibre -= fibreCost;
+        NotifyChanged();
+        return true;
+    }
+
+    public void SetResources(float newNectar, float newPrey, float newFibre)
+    {
+        nectar = Mathf.Max(0f, newNectar);
+        prey = Mathf.Max(0f, newPrey);
+        fibre = Mathf.Max(0f, newFibre);
+        NotifyChanged();
+    }
+
+    public void NotifyChanged()
+    {
+        if (HiveManagement.Instance != null)
+            HiveManagement.Instance.RecalculateFromResources();
+
+        hud = ResolveHud();
+        hud?.RefreshAll();
+    }
+
+    private C_MainWorldHUD ResolveHud()
+    {
+        if (hud != null)
+            return hud;
+
+        return C_MainWorldHUD.GetOrCreate();
     }
 }

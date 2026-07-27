@@ -27,6 +27,7 @@ public class C_MainWorldNavigation : MonoBehaviour
         selectedHex = hex;
         cameraFocus?.FocusOnHex(hex);
         hexOptionsPanel?.Open(hex);
+        C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(hex);
     }
 
     public void SelectWasp(WaspInfo wasp)

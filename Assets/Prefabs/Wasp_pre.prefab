@@ -441,6 +441,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WaspInfo
   speciesInfo: {fileID: 11400000, guid: 3db323cae97ce9943979dc7efce607cd, type: 2}
+  assignedSkill: {fileID: 11400000, guid: b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6, type: 2}
   cameraPoint: {fileID: 5393332245072595844}
   lookPoint: {fileID: 3451548229250454022}
 --- !u!4 &2895589484755418127 stripped

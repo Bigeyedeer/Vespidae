@@ -171,14 +171,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37bffb90bb3cc534d8ab6dbe819a9799, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HexTile
-  hexName: Unexplored Grassland
+  areaInfo: {fileID: 11400000, guid: 5c7e9a1b3d4f6082a6c8e0b2d5f71934, type: 2}
+  gatheringRules: {fileID: 11400000, guid: 6d8f0a2b4c5e7193b7d9f1a3c6e8b025, type: 2}
   state: 1
-  content: 0
   antGroup: {fileID: 0}
-  proteinPerGather: 0
   hexRenderer: {fileID: 363958811557819211}
   ownedMaterial: {fileID: 2100000, guid: 0850e5843bcc473489968124ba89a797, type: 2}
   unknownMaterial: {fileID: 2100000, guid: b887df67fc04da34e84210deb77cd093, type: 2}
   lockedMaterial: {fileID: 2100000, guid: 1c42d58960c5df0429c4bb6a6e862251, type: 2}
-  proteinMaterial: {fileID: 2100000, guid: f62c8ed212a346047ab5bbfe5f0e3fd4, type: 2}
+  enemyMaterial: {fileID: 2100000, guid: 86df118db61ca2642882a9643f34dc74, type: 2}
+  preyMaterial: {fileID: 2100000, guid: f62c8ed212a346047ab5bbfe5f0e3fd4, type: 2}
   focusPoint: {fileID: 2016398901899795257}

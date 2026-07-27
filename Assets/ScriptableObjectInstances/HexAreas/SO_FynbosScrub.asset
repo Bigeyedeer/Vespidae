@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f2ad1f2c99d4a22b4c02b9d3a7b1e61, type: 3}
+  m_Name: SO_FynbosScrub
+  m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
+  areaId: fynbos_scrub
+  areaName: Fynbos Scrub
+  areaDescription: Native fynbos scrub and local stronghold territory with exposed
+    paper nests, nectar, and soft-bodied prey.
+  habitatCue: Native fynbos and local stronghold
+  territoryState: 0
+  riskState: 0
+  visibilityState: 0
+  connectedHexIds: []
+  resourceType: 3
+  startingPrey: 1000
+  startingNectar: 2000
+  startingFibre: 0
+  waspsPresent:
+  - {fileID: 11400000, guid: 3db323cae97ce9943979dc7efce607cd, type: 2}
+  - {fileID: 11400000, guid: f0f696179b489db4488048beada73544, type: 2}
+  - {fileID: 11400000, guid: 15593acbb997b6e49a0791b6e1931855, type: 2}

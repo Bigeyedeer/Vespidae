@@ -1,4 +1,7 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class HexTile : MonoBehaviour
 {
@@ -11,52 +14,55 @@ public class HexTile : MonoBehaviour
         Locked
     }
 
-    public enum HexContent
-    {
-        Safe,
-        Protein
-    }
-
-    [Header("Hex Information")]
-    [SerializeField] private string hexName = "Unexplored Grassland";
+    [Header("Hex Data")]
+    [SerializeField] private SB_Hex_Area_Info areaInfo;
+    [SerializeField] private SB_Hex_Gathering_Rules gatheringRules;
 
     [Header("Territory State")]
     [SerializeField] private HexState state = HexState.Unknown;
-
-    [Header("Hidden Content")]
-    [SerializeField] private HexContent content = HexContent.Safe;
-
-    [Header("Protein Content")]
     [SerializeField] private GameObject antGroup;
-    [SerializeField] private float proteinPerGather = 0.5f;
+
+    private float currentPrey;
+    private float currentNectar;
+    private float currentFibre;
+    private bool resourcesInitialized;
 
     [Header("Hex Materials")]
     [SerializeField] private Renderer hexRenderer;
     [SerializeField] private Material ownedMaterial;
     [SerializeField] private Material unknownMaterial;
     [SerializeField] private Material lockedMaterial;
-    [SerializeField] private Material proteinMaterial;
+    [SerializeField] private Material enemyMaterial;
+    [FormerlySerializedAs("proteinMaterial")]
+    [SerializeField] private Material preyMaterial;
 
     [Header("Camera")]
     [SerializeField] private Transform focusPoint;
 
-    public string HexName => hexName;
+    public SB_Hex_Area_Info AreaInfo => areaInfo;
+    public SB_Hex_Gathering_Rules GatheringRules => gatheringRules;
+    public string HexName => areaInfo != null ? areaInfo.AreaName : gameObject.name;
     public HexState State => state;
-    public HexContent Content => content;
+    public HexResourceType Content => areaInfo != null ? areaInfo.ResourceType : HexResourceType.None;
+    public string AreaDescription => areaInfo != null ? areaInfo.AreaDescription : string.Empty;
+    public string HabitatCue => areaInfo != null ? areaInfo.HabitatCue : string.Empty;
+    public HexTerritoryState TerritoryState => areaInfo != null ? areaInfo.TerritoryState : HexTerritoryState.Neutral;
+    public HexRiskState RiskState => areaInfo != null ? areaInfo.RiskState : HexRiskState.SafeNativeHabitat;
+    public int ConnectedSiteCount => areaInfo != null ? areaInfo.ConnectedSiteCount : 0;
+    public IReadOnlyList<SB_Wasps_Info> WaspsPresent => areaInfo != null ? areaInfo.WaspsPresent : Array.Empty<SB_Wasps_Info>();
+    public bool HasPrey => areaInfo != null && areaInfo.HasPrey;
+    public bool HasNectar => areaInfo != null && areaInfo.HasNectar;
+    public bool HasFibre => areaInfo != null && areaInfo.HasFibre;
+    public float PreyRemaining => currentPrey;
+    public float NectarRemaining => currentNectar;
+    public float FibreRemaining => currentFibre;
+    public float GatheringTickIntervalSeconds => gatheringRules != null ? gatheringRules.GatheringTickIntervalSeconds : 0f;
 
-    public Vector3 FocusPosition
-    {
-        get
-        {
-            if (focusPoint != null)
-                return focusPoint.position;
-
-            return transform.position;
-        }
-    }
+    public Vector3 FocusPosition => focusPoint != null ? focusPoint.position : transform.position;
 
     private void Start()
     {
+        InitializeRuntimeResources();
         RefreshContentVisuals();
         RefreshHexMaterial();
     }
@@ -71,143 +77,164 @@ public class HexTile : MonoBehaviour
     {
         if (state != HexState.Unknown)
         {
-            Debug.LogWarning(
-                $"{hexName} cannot be scouted because its state is {state}."
-            );
-
+            Debug.LogWarning($"{HexName} cannot be scouted because its state is {state}.");
             return;
         }
 
         state = HexState.Scouted;
-
         RefreshContentVisuals();
         RefreshHexMaterial();
-
-        if (content == HexContent.Protein)
-        {
-            Debug.Log($"{hexName} contains protein.");
-        }
-        else
-        {
-            Debug.Log($"{hexName} is safe.");
-        }
+        Debug.Log(HasResources ? $"{HexName} contains {Content}." : $"{HexName} is safe.");
     }
 
     public void Claim()
     {
         if (state != HexState.Scouted)
         {
-            Debug.LogWarning(
-                $"{hexName} cannot be claimed because it has not been scouted."
-            );
-
+            Debug.LogWarning($"{HexName} cannot be claimed because it has not been scouted.");
             return;
         }
 
         state = HexState.Owned;
-
         RefreshContentVisuals();
         RefreshHexMaterial();
-
-        Debug.Log($"{hexName} has been claimed.");
+        Debug.Log($"{HexName} has been claimed.");
     }
 
-    public void GatherProtein()
+    public void GatherPrey()
+    {
+        GatherPrey(1);
+    }
+
+    public float GatherPrey(int waspCount)
+    {
+        if (!CanGather(HasPrey))
+            return 0f;
+
+        EnsureRuntimeResourcesInitialized();
+        float requestedAmount = gatheringRules != null ? gatheringRules.GetPreyAmount(waspCount) : 0f;
+        float gatheredAmount = Mathf.Min(requestedAmount, currentPrey);
+        currentPrey -= gatheredAmount;
+        ResourceManager.Instance.AddPrey(gatheredAmount);
+        return gatheredAmount;
+    }
+
+    public float GatherNectar(int waspCount)
+    {
+        if (!CanGather(HasNectar))
+            return 0f;
+
+        EnsureRuntimeResourcesInitialized();
+        float requestedAmount = gatheringRules != null ? gatheringRules.GetNectarAmount(waspCount) : 0f;
+        float gatheredAmount = Mathf.Min(requestedAmount, currentNectar);
+        currentNectar -= gatheredAmount;
+        ResourceManager.Instance.AddNectar(gatheredAmount);
+        return gatheredAmount;
+    }
+
+    public float GatherFibre(int waspCount)
+    {
+        if (!CanGather(HasFibre))
+            return 0f;
+
+        EnsureRuntimeResourcesInitialized();
+        float requestedAmount = gatheringRules != null ? gatheringRules.GetFibreAmount(waspCount) : 0f;
+        float gatheredAmount = Mathf.Min(requestedAmount, currentFibre);
+        currentFibre -= gatheredAmount;
+        ResourceManager.Instance.AddFibre(gatheredAmount);
+        return gatheredAmount;
+    }
+
+    public float GetPreyGatherAmount(int waspCount)
+    {
+        return gatheringRules != null ? Mathf.Min(gatheringRules.GetPreyAmount(waspCount), PreyRemaining) : 0f;
+    }
+
+    public float GetNectarGatherAmount(int waspCount)
+    {
+        return gatheringRules != null ? Mathf.Min(gatheringRules.GetNectarAmount(waspCount), NectarRemaining) : 0f;
+    }
+
+    public float GetFibreGatherAmount(int waspCount)
+    {
+        return gatheringRules != null ? Mathf.Min(gatheringRules.GetFibreAmount(waspCount), FibreRemaining) : 0f;
+    }
+
+    private bool CanGather(bool hasResource)
     {
         if (state != HexState.Owned)
         {
-            Debug.LogWarning(
-                $"{hexName} must be owned before gathering resources."
-            );
-
-            return;
+            Debug.LogWarning($"{HexName} must be owned before gathering resources.");
+            return false;
         }
 
-        if (content != HexContent.Protein)
+        if (!hasResource)
         {
-            Debug.LogWarning(
-                $"{hexName} does not contain protein."
-            );
-
-            return;
+            Debug.LogWarning($"{HexName} does not contain the requested resource.");
+            return false;
         }
 
         if (ResourceManager.Instance == null)
         {
-            Debug.LogWarning(
-                "No ResourceManager exists in the scene."
-            );
-
-            return;
+            Debug.LogWarning("No ResourceManager exists in the scene.");
+            return false;
         }
 
-        ResourceManager.Instance.AddProtein(proteinPerGather);
+        return true;
     }
+
+    private void InitializeRuntimeResources()
+    {
+        currentPrey = areaInfo != null ? areaInfo.StartingPrey : 0f;
+        currentNectar = areaInfo != null ? areaInfo.StartingNectar : 0f;
+        currentFibre = areaInfo != null ? areaInfo.StartingFibre : 0f;
+        resourcesInitialized = true;
+    }
+
+    private void EnsureRuntimeResourcesInitialized()
+    {
+        if (!resourcesInitialized)
+            InitializeRuntimeResources();
+    }
+
+    private bool HasResources => HasPrey || HasNectar || HasFibre;
 
     private void RefreshContentVisuals()
     {
         if (antGroup == null)
             return;
 
-        bool showAnts =
-            content == HexContent.Protein &&
-            state != HexState.Unknown &&
-            state != HexState.Locked;
-
-        antGroup.SetActive(showAnts);
+        antGroup.SetActive(HasResources && state != HexState.Unknown && state != HexState.Locked);
     }
 
     private void RefreshHexMaterial()
     {
         if (hexRenderer == null)
-        {
-            Debug.LogWarning(
-                $"{hexName} does not have a Hex Renderer assigned."
-            );
-
             return;
-        }
 
         switch (state)
         {
             case HexState.Locked:
-
                 if (lockedMaterial != null)
                     hexRenderer.sharedMaterial = lockedMaterial;
-
                 break;
-
             case HexState.Owned:
-
                 if (ownedMaterial != null)
                     hexRenderer.sharedMaterial = ownedMaterial;
-
                 break;
-
             case HexState.Scouted:
-
-                if (content == HexContent.Protein)
-                {
-                    if (proteinMaterial != null)
-                        hexRenderer.sharedMaterial = proteinMaterial;
-                }
-                else
-                {
-                    if (unknownMaterial != null)
-                        hexRenderer.sharedMaterial = unknownMaterial;
-                }
-
+                if (HasResources && preyMaterial != null)
+                    hexRenderer.sharedMaterial = preyMaterial;
+                else if (unknownMaterial != null)
+                    hexRenderer.sharedMaterial = unknownMaterial;
                 break;
-
             case HexState.Unknown:
-
                 if (unknownMaterial != null)
                     hexRenderer.sharedMaterial = unknownMaterial;
-
                 break;
-
             case HexState.Enemy:
-                
+                if (enemyMaterial != null)
+                    hexRenderer.sharedMaterial = enemyMaterial;
                 break;
         }
     }

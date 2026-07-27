@@ -10,6 +10,8 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     [SerializeField] private GameObject skillsPanel;
     [SerializeField] private Key skillsKey = Key.K;
 
+    private C_HiveSkillsPanel skillsController;
+
     private void Awake()
     {
         Instance = this;
@@ -83,6 +85,10 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         if (skillsPanel != null)
         {
             skillsPanel.SetActive(true);
+            skillsController = skillsPanel.GetComponent<C_HiveSkillsPanel>();
+            if (skillsController == null)
+                skillsController = skillsPanel.AddComponent<C_HiveSkillsPanel>();
+            skillsController.Refresh();
         }
     }
 

@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae3f5a6b7c8d9e0f4a5b6c7d8e9f0a1b, type: 3}
+  m_Name: SO_Wasp_Skill_Builder
+  m_EditorClassIdentifier: 
+  function: 2
+  displayName: Builder
+  description: Builds and repairs paper nest cells.
+  effectSummary: Improves fibre construction and repair.
+  maximumLevel: 3
+  upgradeCost:
+    nectar: 0
+    prey: 0
+    fibre: 50
+    skillPoints: 0
+  baseScoutingRange: 1
+  baseMovementSpeed: 1
+  baseGatheringMultiplier: 1
+  baseBuildSpeed: 1
+  baseBroodCare: 1
+  baseDefence: 1
+  baseAttackSpeed: 1
+  baseIdentification: 1
+  scoutingRangePerLevel: 0.25
+  movementSpeedPerLevel: 0.05
+  gatheringMultiplierPerLevel: 0.1
+  buildSpeedPerLevel: 0.1
+  broodCarePerLevel: 0.1
+  defencePerLevel: 0.1
+  attackSpeedPerLevel: 0.1
+  identificationPerLevel: 0.1
