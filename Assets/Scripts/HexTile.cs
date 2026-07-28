@@ -26,6 +26,8 @@ public class HexTile : MonoBehaviour
     private float currentNectar;
     private float currentFibre;
     private bool resourcesInitialized;
+    private readonly HashSet<WaspControl> friendlyWasps = new HashSet<WaspControl>();
+    private Collider formationCollider;
 
     [Header("Hex Materials")]
     [SerializeField] private Renderer hexRenderer;
@@ -38,6 +40,15 @@ public class HexTile : MonoBehaviour
 
     [Header("Camera")]
     [SerializeField] private Transform focusPoint;
+
+    [Header("Hive Spawning")]
+    [SerializeField] private Transform hiveSpawnPoint;
+
+    [Header("Scouting")]
+    [SerializeField, Min(0.1f)] private float scoutingDuration = 10f;
+
+    private bool scoutingInProgress;
+    private float scoutingTimeRemaining;
 
     public SB_Hex_Area_Info AreaInfo => areaInfo;
     public SB_Hex_Gathering_Rules GatheringRules => gatheringRules;
@@ -59,12 +70,58 @@ public class HexTile : MonoBehaviour
     public float GatheringTickIntervalSeconds => gatheringRules != null ? gatheringRules.GatheringTickIntervalSeconds : 0f;
 
     public Vector3 FocusPosition => focusPoint != null ? focusPoint.position : transform.position;
+    public Transform HiveSpawnPoint => hiveSpawnPoint != null ? hiveSpawnPoint : transform.Find("HiveSpawnpoint") ?? transform;
+    public bool HasFriendlyScout => GetFriendlyWaspCount(WaspFunction.Scout) > 0;
+    public IReadOnlyCollection<WaspControl> FriendlyWasps => friendlyWasps;
+    public bool IsScouting => scoutingInProgress;
+    public float ScoutingDuration => scoutingDuration;
+    public float ScoutingTimeRemaining => scoutingTimeRemaining;
+
+    public Vector3 GetWaspFormationPosition(
+        int spawnIndex,
+        float horizontalSpacing,
+        float rowSpacing)
+    {
+        Vector3 center = transform.position;
+        if (spawnIndex <= 0)
+            return center;
+
+        horizontalSpacing = Mathf.Max(0.05f, horizontalSpacing);
+        rowSpacing = Mathf.Max(0.05f, rowSpacing);
+        List<Vector3> positions = new List<Vector3>();
+        AddFormationPositions(positions, center, -1f, 0, -1f, 0, horizontalSpacing, rowSpacing);
+        AddFormationPositions(positions, center, 1f, 1, -1f, 0, horizontalSpacing, rowSpacing);
+        AddFormationPositions(positions, center, -1f, 0, 1f, 1, horizontalSpacing, rowSpacing);
+        AddFormationPositions(positions, center, 1f, 1, 1f, 1, horizontalSpacing, rowSpacing);
+
+        return spawnIndex < positions.Count ? positions[spawnIndex] : center;
+    }
 
     private void Start()
     {
         InitializeRuntimeResources();
         RefreshContentVisuals();
         RefreshHexMaterial();
+    }
+
+    private void Update()
+    {
+        if (!scoutingInProgress)
+            return;
+
+        if (state != HexState.Unknown || !HasFriendlyScout)
+        {
+            CancelScoutingCountdown();
+            return;
+        }
+
+        scoutingTimeRemaining = Mathf.Max(0f, scoutingTimeRemaining - Time.deltaTime);
+        if (scoutingTimeRemaining > 0f)
+            return;
+
+        scoutingInProgress = false;
+        Scout();
+        C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(this);
     }
 
     private void OnValidate()
@@ -81,6 +138,8 @@ public class HexTile : MonoBehaviour
             return;
         }
 
+        scoutingInProgress = false;
+        scoutingTimeRemaining = 0f;
         state = HexState.Scouted;
         RefreshContentVisuals();
         RefreshHexMaterial();
@@ -99,6 +158,43 @@ public class HexTile : MonoBehaviour
         RefreshContentVisuals();
         RefreshHexMaterial();
         Debug.Log($"{HexName} has been claimed.");
+    }
+
+    public void RegisterFriendlyWasp(WaspControl wasp)
+    {
+        if (wasp == null)
+            return;
+
+        friendlyWasps.Add(wasp);
+        if (wasp.AssignedFunction == WaspFunction.Scout &&
+            state == HexState.Unknown &&
+            !scoutingInProgress)
+        {
+            scoutingInProgress = true;
+            scoutingTimeRemaining = scoutingDuration;
+        }
+    }
+
+    public void UnregisterFriendlyWasp(WaspControl wasp)
+    {
+        if (wasp != null)
+            friendlyWasps.Remove(wasp);
+
+        if (scoutingInProgress && !HasFriendlyScout)
+            CancelScoutingCountdown();
+    }
+
+    public int GetFriendlyWaspCount(WaspFunction function)
+    {
+        friendlyWasps.RemoveWhere(wasp => wasp == null);
+        int count = 0;
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp.AssignedFunction == function)
+                count++;
+        }
+
+        return count;
     }
 
     public void GatherPrey()
@@ -198,6 +294,91 @@ public class HexTile : MonoBehaviour
     }
 
     private bool HasResources => HasPrey || HasNectar || HasFibre;
+
+    private void CancelScoutingCountdown()
+    {
+        scoutingInProgress = false;
+        scoutingTimeRemaining = 0f;
+    }
+
+    private bool ContainsFormationPoint(Vector3 worldPosition)
+    {
+        Collider collider = ResolveFormationCollider();
+        if (collider == null)
+            return true;
+
+        Vector3 probe = new Vector3(
+            worldPosition.x,
+            collider.bounds.center.y,
+            worldPosition.z
+        );
+
+        Vector3 closestPoint = collider.ClosestPoint(probe);
+        return (closestPoint - probe).sqrMagnitude <= 0.0001f;
+    }
+
+    private void AddFormationPositions(
+        List<Vector3> positions,
+        Vector3 center,
+        float rowDirection,
+        int firstRow,
+        float columnDirection,
+        int firstColumn,
+        float horizontalSpacing,
+        float rowSpacing)
+    {
+        for (int row = firstRow; row < 64; row++)
+        {
+            Vector3 rowStart = center +
+                               transform.forward *
+                               row *
+                               rowSpacing *
+                               rowDirection;
+
+            if (!ContainsFormationPoint(rowStart))
+                break;
+
+            for (int column = firstColumn; column < 64; column++)
+            {
+                Vector3 candidate = rowStart +
+                                    transform.right *
+                                    column *
+                                    horizontalSpacing *
+                                    columnDirection;
+
+                if (!ContainsFormationPoint(candidate))
+                    break;
+
+                if (!positions.Contains(candidate))
+                    positions.Add(candidate);
+            }
+        }
+    }
+
+    private Collider ResolveFormationCollider()
+    {
+        if (formationCollider != null)
+            return formationCollider;
+
+        Collider[] colliders = GetComponentsInChildren<Collider>(true);
+        float largestArea = 0f;
+
+        foreach (Collider candidate in colliders)
+        {
+            if (candidate == null || candidate.isTrigger)
+                continue;
+
+            Bounds bounds = candidate.bounds;
+            float area = bounds.size.x * bounds.size.z;
+            if (area <= largestArea)
+                continue;
+
+            largestArea = area;
+            formationCollider = candidate;
+        }
+
+        return formationCollider;
+    }
 
     private void RefreshContentVisuals()
     {

@@ -17,6 +17,11 @@ MonoBehaviour:
   description: Reveals territory and identifies new sites.
   effectSummary: Improves scouting range and identification.
   maximumLevel: 3
+  trainingCost:
+    nectar: 10
+    prey: 5
+    fibre: 0
+    skillPoints: 0
   upgradeCost:
     nectar: 50
     prey: 0

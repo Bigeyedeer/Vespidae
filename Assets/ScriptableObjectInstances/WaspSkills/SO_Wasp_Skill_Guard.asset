@@ -17,6 +17,11 @@ MonoBehaviour:
   description: Defends the native colony from threats.
   effectSummary: Improves colony defence.
   maximumLevel: 3
+  trainingCost:
+    nectar: 10
+    prey: 15
+    fibre: 0
+    skillPoints: 0
   upgradeCost:
     nectar: 50
     prey: 0

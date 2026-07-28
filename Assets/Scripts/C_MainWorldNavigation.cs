@@ -16,6 +16,8 @@ public class C_MainWorldNavigation : MonoBehaviour
 
     private HexTile selectedHex;
     private WaspInfo selectedWasp;
+    private C_Friendly_Hive_Orc selectedHive;
+    private C_Enemy_Hive_Orc selectedEnemyHive;
 
     public void SelectHex(HexTile hex)
     {
@@ -41,6 +43,34 @@ public class C_MainWorldNavigation : MonoBehaviour
         cameraFocus?.FocusOnWasp(wasp);
     }
 
+    public void SelectHive(C_Friendly_Hive_Orc hive)
+    {
+        if (hive == null)
+            return;
+
+        selectedHive = hive;
+        selectedEnemyHive = null;
+        if (hive.OwnerHex != null)
+            selectedHex = hive.OwnerHex;
+
+        cameraFocus?.FocusOnHive(hive.CameraFocusPoint, hive.CameraLookPoint, hive.OwnerHex);
+        ResolveOverlayNavigation()?.OpenHiveTraining(hive);
+    }
+
+    public void SelectHive(C_Enemy_Hive_Orc hive)
+    {
+        if (hive == null)
+            return;
+
+        selectedHive = null;
+        selectedEnemyHive = hive;
+        if (hive.OwnerHex != null)
+            selectedHex = hive.OwnerHex;
+
+        cameraFocus?.FocusOnHive(hive.CameraFocusPoint, hive.CameraLookPoint, hive.OwnerHex);
+        ResolveOverlayNavigation()?.HideHiveTraining();
+    }
+
     public void OpenSkills()
     {
         ResolveOverlayNavigation()?.OpenSkills();
@@ -58,7 +88,11 @@ public class C_MainWorldNavigation : MonoBehaviour
 
     public void CloseWaspInfo()
     {
-        ResolveOverlayNavigation()?.CloseWaspInfo();
+        C_MainWorldOverlayNavigation navigation = ResolveOverlayNavigation();
+
+        if (navigation != null)
+            navigation.CloseWaspInfo();
+
         waspInfoPanel?.Close();
     }
 
@@ -76,6 +110,8 @@ public class C_MainWorldNavigation : MonoBehaviour
 
     public HexTile SelectedHex => selectedHex;
     public WaspInfo SelectedWasp => selectedWasp;
+    public C_Friendly_Hive_Orc SelectedHive => selectedHive;
+    public C_Enemy_Hive_Orc SelectedEnemyHive => selectedEnemyHive;
 
     private C_MainWorldOverlayNavigation ResolveOverlayNavigation()
     {

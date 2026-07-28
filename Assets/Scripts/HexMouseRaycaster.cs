@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -23,9 +24,17 @@ public class HexMouseRaycaster : MonoBehaviour
 
     private HexHoverEffect currentHoveredHex;
     private HexTile currentHexTile;
+    private HiveHoverEffect currentHoveredHive;
+    private C_Friendly_Hive_Orc currentHive;
+    private C_Enemy_Hive_Orc currentEnemyHive;
+    private WaspInfo currentWasp;
     private bool inHexView;
 
     public bool InHexView => inHexView;
+    public HexTile CurrentHoveredHexTile => currentHexTile;
+    public bool CanZoomCurrentHex => !inHexView &&
+                                     currentHexTile != null &&
+                                     !IsPointerOverUi();
 
     private void Awake()
     {
@@ -55,8 +64,9 @@ public class HexMouseRaycaster : MonoBehaviour
             if (cameraFocus == null || !cameraFocus.IsCloseUpActive)
                 return;
 
+            DetectCloseUpInteractable();
             if (Mouse.current.leftButton.wasPressedThisFrame)
-                TrySelectWasp();
+                TrySelectCloseUpInteractable();
 
             return;
         }
@@ -127,9 +137,9 @@ public class HexMouseRaycaster : MonoBehaviour
             optionsPanel.Open(currentHexTile);
     }
 
-    private void TrySelectWasp()
+    private void DetectCloseUpInteractable()
     {
-        if (IsPointerOverUi() || closeUpCamera == null)
+        if (closeUpCamera == null)
             return;
 
         Vector2 mousePosition = Mouse.current.position.ReadValue();
@@ -138,25 +148,81 @@ public class HexMouseRaycaster : MonoBehaviour
         if (showDebugRay)
             Debug.DrawRay(ray.origin, ray.direction * rayDistance, Color.yellow);
 
-        if (!Physics.Raycast(
-                ray,
-                out RaycastHit hit,
-                rayDistance,
-                waspLayer,
-                QueryTriggerInteraction.Ignore))
+        RaycastHit[] hits = Physics.RaycastAll(
+            ray,
+            rayDistance,
+            ~0,
+            QueryTriggerInteraction.Collide);
+
+        Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+        C_Friendly_Hive_Orc hoveredHive = null;
+        C_Enemy_Hive_Orc hoveredEnemyHive = null;
+        HiveHoverEffect hoverEffect = null;
+        WaspInfo hoveredWasp = null;
+
+        foreach (RaycastHit hit in hits)
         {
+            C_Friendly_Hive_Orc hive = hit.collider.GetComponentInParent<C_Friendly_Hive_Orc>();
+            if (hive != null)
+            {
+                hoveredHive = hive;
+                hoverEffect = hive.GetComponent<HiveHoverEffect>();
+                break;
+            }
+
+            C_Enemy_Hive_Orc enemyHive = hit.collider.GetComponentInParent<C_Enemy_Hive_Orc>();
+            if (enemyHive != null)
+            {
+                hoveredEnemyHive = enemyHive;
+                hoverEffect = enemyHive.GetComponent<HiveHoverEffect>();
+                break;
+            }
+
+            WaspInfo wasp = hit.collider.GetComponentInParent<WaspInfo>();
+            if (wasp != null)
+            {
+                hoveredWasp = wasp;
+                break;
+            }
+        }
+
+        if (hoverEffect != currentHoveredHive)
+        {
+            ClearCurrentHiveHover();
+            currentHoveredHive = hoverEffect;
+            if (currentHoveredHive != null)
+                currentHoveredHive.SetHovered(true);
+        }
+
+        currentHive = hoveredHive;
+        currentEnemyHive = hoveredEnemyHive;
+        currentWasp = hoveredWasp;
+    }
+
+    private void TrySelectCloseUpInteractable()
+    {
+        if (IsPointerOverUi())
+            return;
+
+        if (currentHive != null)
+        {
+            mainWorldNavigation?.SelectHive(currentHive);
             return;
         }
 
-        WaspInfo wasp = hit.collider.GetComponentInParent<WaspInfo>();
-
-        if (wasp == null)
+        if (currentEnemyHive != null)
+        {
+            mainWorldNavigation?.SelectHive(currentEnemyHive);
             return;
+        }
 
-        if (mainWorldNavigation != null)
-            mainWorldNavigation.SelectWasp(wasp);
-        else
-            cameraFocus?.FocusOnWasp(wasp);
+        if (currentWasp != null)
+        {
+            if (mainWorldNavigation != null)
+                mainWorldNavigation.SelectWasp(currentWasp);
+            else
+                cameraFocus?.FocusOnWasp(currentWasp);
+        }
     }
 
     private bool IsPointerOverUi()
@@ -174,8 +240,20 @@ public class HexMouseRaycaster : MonoBehaviour
         currentHexTile = null;
     }
 
+    private void ClearCurrentHiveHover()
+    {
+        if (currentHoveredHive != null)
+            currentHoveredHive.SetHovered(false);
+
+        currentHoveredHive = null;
+        currentHive = null;
+        currentEnemyHive = null;
+        currentWasp = null;
+    }
+
     private void OnDisable()
     {
         ClearCurrentHover();
+        ClearCurrentHiveHover();
     }
 }

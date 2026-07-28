@@ -41,6 +41,7 @@ public class SB_Wasp_Skill : ScriptableObject
     [SerializeField, TextArea(2, 4)] private string description;
     [SerializeField, TextArea(1, 3)] private string effectSummary;
     [SerializeField, Min(1)] private int maximumLevel = 3;
+    [SerializeField] private WaspSkillCost trainingCost;
     [SerializeField] private WaspSkillCost upgradeCost = new WaspSkillCost(50f, 0f, 0f, 0);
 
     [Header("Base Values")]
@@ -68,6 +69,7 @@ public class SB_Wasp_Skill : ScriptableObject
     public string Description => description;
     public string EffectSummary => effectSummary;
     public int MaximumLevel => Mathf.Max(1, maximumLevel);
+    public WaspSkillCost TrainingCost => trainingCost;
 
     public WaspSkillCost GetUpgradeCost(int nextLevel)
     {

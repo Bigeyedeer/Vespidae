@@ -17,6 +17,11 @@ MonoBehaviour:
   description: Collects nectar and prey for colony growth.
   effectSummary: Improves resource gathering.
   maximumLevel: 3
+  trainingCost:
+    nectar: 10
+    prey: 0
+    fibre: 10
+    skillPoints: 0
   upgradeCost:
     nectar: 50
     prey: 15

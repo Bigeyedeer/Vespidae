@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class HiveManagement : MonoBehaviour
 {
     public static HiveManagement Instance { get; private set; }
+    public event Action WorkforceChanged;
 
     [Header("Role Skill Assets")]
     [SerializeField] private SB_Wasp_Skill scoutSkill;
@@ -13,6 +15,13 @@ public class HiveManagement : MonoBehaviour
     [SerializeField] private SB_Wasp_Skill guardSkill;
     [SerializeField] private SB_Wasp_Skill containmentSkill;
     [SerializeField] private C_MainWorldHUD hud;
+    [SerializeField] private SB_PlayerSelection_State playerSelection;
+
+    [Header("Friendly Startup Spawning")]
+    [SerializeField] private GameObject friendlyHivePrefab;
+    [SerializeField] private GameObject friendlyWaspPrefab;
+    [SerializeField] private bool spawnFriendlyStartup = true;
+    [SerializeField] private bool spawnOneFriendlyWasp = true;
 
     [Header("Colony Values")]
     [SerializeField, Min(0)] private int workers;
@@ -29,6 +38,9 @@ public class HiveManagement : MonoBehaviour
 
     private int[] skillLevels;
     private ResourceManager resourceManager;
+    private readonly List<C_Friendly_Hive_Orc> spawnedFriendlyHives = new List<C_Friendly_Hive_Orc>();
+    private readonly List<WaspControl> friendlyWasps = new List<WaspControl>();
+    private bool friendlyStartupSpawned;
 
     public int Workers => workers;
     public float ColonyStrength => colonyStrength;
@@ -39,6 +51,10 @@ public class HiveManagement : MonoBehaviour
     public float HabitatHealth => habitatHealth;
     public float Biodiversity => biodiversity;
     public float InvasionPressure => invasionPressure;
+    public GameObject FriendlyHivePrefab => friendlyHivePrefab;
+    public GameObject FriendlyWaspPrefab => friendlyWaspPrefab;
+    public IReadOnlyList<C_Friendly_Hive_Orc> SpawnedFriendlyHives => spawnedFriendlyHives;
+    public IReadOnlyList<WaspControl> FriendlyWasps => friendlyWasps;
 
     public static HiveManagement GetOrCreate()
     {
@@ -79,6 +95,7 @@ public class HiveManagement : MonoBehaviour
         resourceManager = ResourceManager.Instance;
         hud = ResolveHud();
         RefreshHud();
+        SpawnFriendlyStartup();
     }
 
     private void OnDestroy()
@@ -195,12 +212,224 @@ public class HiveManagement : MonoBehaviour
         hud?.RefreshAll();
     }
 
+    public void SpawnFriendlyStartup()
+    {
+        if (friendlyStartupSpawned)
+            return;
+
+        friendlyStartupSpawned = true;
+        if (!spawnFriendlyStartup)
+            return;
+
+        if (friendlyHivePrefab == null)
+        {
+            Debug.LogWarning("HiveManagement cannot spawn friendly hives because no friendly hive prefab is assigned.");
+            return;
+        }
+
+        HexTile[] hexTiles = FindObjectsByType<HexTile>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        foreach (HexTile hexTile in hexTiles)
+        {
+            if (hexTile == null || hexTile.State != HexTile.HexState.Owned)
+                continue;
+
+            Transform spawnPoint = hexTile.HiveSpawnPoint;
+            GameObject hiveObject = Instantiate(friendlyHivePrefab, spawnPoint.position, spawnPoint.rotation);
+            C_Friendly_Hive_Orc hive = hiveObject.GetComponent<C_Friendly_Hive_Orc>();
+            if (hive == null)
+            {
+                Debug.LogWarning($"{friendlyHivePrefab.name} does not contain C_Friendly_Hive_Orc.");
+                continue;
+            }
+
+            hive.Initialize(hexTile, friendlyWaspPrefab);
+            spawnedFriendlyHives.Add(hive);
+            if (spawnOneFriendlyWasp)
+            {
+                WaspControl starter = hive.SpawnWasp(friendlyWaspPrefab);
+                if (starter != null)
+                {
+                    if (starter.InitializeFriendlyWasp(hive, WaspFunction.Scout, GetSelectedSpecies(starter)))
+                        RegisterFriendlyWasp(starter);
+                    else
+                        Destroy(starter.gameObject);
+                }
+            }
+        }
+    }
+
+    public WaspControl SpawnFriendlyWasp(C_Friendly_Hive_Orc hive, GameObject waspPrefab = null)
+    {
+        if (hive == null)
+            return null;
+
+        return hive.SpawnWasp(waspPrefab != null ? waspPrefab : friendlyWaspPrefab);
+    }
+
+    public bool CanTrainWasp(C_Friendly_Hive_Orc hive, WaspFunction function)
+    {
+        SB_Wasp_Skill definition = GetSkillDefinition(function);
+        ResourceManager resources = GetResourceManager();
+        if (hive == null || definition == null || resources == null)
+            return false;
+
+        WaspSkillCost cost = definition.TrainingCost;
+        return resources.CanAfford(cost.nectar, cost.prey, cost.fibre);
+    }
+
+    public bool TryTrainWasp(C_Friendly_Hive_Orc hive, WaspFunction function)
+    {
+        SB_Wasp_Skill definition = GetSkillDefinition(function);
+        ResourceManager resources = GetResourceManager();
+        if (hive == null || definition == null || resources == null)
+            return false;
+
+        WaspSkillCost cost = definition.TrainingCost;
+        if (!resources.TrySpend(cost.nectar, cost.prey, cost.fibre))
+            return false;
+
+        WaspControl wasp = hive.SpawnWasp(friendlyWaspPrefab);
+        if (wasp == null)
+        {
+            Refund(cost);
+            return false;
+        }
+
+        if (!wasp.InitializeFriendlyWasp(hive, function, GetSelectedSpecies(wasp)))
+        {
+            Destroy(wasp.gameObject);
+            Refund(cost);
+            return false;
+        }
+
+        RegisterFriendlyWasp(wasp);
+        return true;
+    }
+
+    public bool TryDispatchScout(HexTile target)
+    {
+        if (target == null || HasScoutAssignedTo(target))
+            return false;
+
+        CleanupFriendlyWasps();
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp == null ||
+                wasp.AssignedFunction != WaspFunction.Scout ||
+                !wasp.IsAvailable)
+            {
+                continue;
+            }
+
+            return wasp.DispatchToHex(target);
+        }
+
+        return false;
+    }
+
+    public int GetTotalWaspCount(WaspFunction function)
+    {
+        CleanupFriendlyWasps();
+        int count = 0;
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp != null && wasp.AssignedFunction == function)
+                count++;
+        }
+
+        return count;
+    }
+
+    public int GetAvailableWaspCount(WaspFunction function)
+    {
+        CleanupFriendlyWasps();
+        int count = 0;
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp != null &&
+                wasp.AssignedFunction == function &&
+                wasp.IsAvailable)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    public bool HasScoutAssignedTo(HexTile hex)
+    {
+        if (hex == null)
+            return false;
+
+        CleanupFriendlyWasps();
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp == null || wasp.AssignedFunction != WaspFunction.Scout)
+                continue;
+
+            if (wasp.TargetHex == hex || wasp.StationedHex == hex)
+                return true;
+        }
+
+        return false;
+    }
+
+    public void RegisterFriendlyWasp(WaspControl wasp)
+    {
+        if (wasp == null || friendlyWasps.Contains(wasp))
+            return;
+
+        friendlyWasps.Add(wasp);
+        NotifyWorkforceChanged();
+    }
+
+    public void UnregisterFriendlyWasp(WaspControl wasp)
+    {
+        if (wasp == null || !friendlyWasps.Remove(wasp))
+            return;
+
+        NotifyWorkforceChanged();
+    }
+
+    public void NotifyWorkforceChanged()
+    {
+        CleanupFriendlyWasps();
+        workers = friendlyWasps.Count;
+        RefreshHud();
+        WorkforceChanged?.Invoke();
+    }
+
     private ResourceManager GetResourceManager()
     {
         if (resourceManager == null)
             resourceManager = ResourceManager.Instance;
 
         return resourceManager;
+    }
+
+    private SB_Wasps_Info GetSelectedSpecies(WaspControl fallback)
+    {
+        if (playerSelection != null && playerSelection.SelectedWasp != null)
+            return playerSelection.SelectedWasp;
+
+        return fallback != null ? fallback.SpeciesInfo : null;
+    }
+
+    private void Refund(WaspSkillCost cost)
+    {
+        ResourceManager resources = GetResourceManager();
+        if (resources == null)
+            return;
+
+        resources.AddNectar(cost.nectar);
+        resources.AddPrey(cost.prey);
+        resources.AddFibre(cost.fibre);
+    }
+
+    private void CleanupFriendlyWasps()
+    {
+        friendlyWasps.RemoveAll(wasp => wasp == null);
     }
 
     private C_MainWorldHUD ResolveHud()

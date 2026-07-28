@@ -1,9 +1,11 @@
+using System;
 using UnityEngine;
 using UnityEngine.Serialization;
 
 public class ResourceManager : MonoBehaviour
 {
     public static ResourceManager Instance { get; private set; }
+    public event Action ResourcesChanged;
 
     [Header("Resources")]
     [FormerlySerializedAs("sugar")]
@@ -11,6 +13,12 @@ public class ResourceManager : MonoBehaviour
     [FormerlySerializedAs("protein")]
     [SerializeField, Min(0f)] private float prey;
     [SerializeField, Min(0f)] private float fibre;
+
+    [Header("Starting Resources")]
+    [SerializeField] private bool resetResourcesOnStart = true;
+    [SerializeField, Min(0f)] private float startingNectar = 50f;
+    [SerializeField, Min(0f)] private float startingPrey = 50f;
+    [SerializeField, Min(0f)] private float startingFibre = 50f;
 
     [Header("UI")]
     [SerializeField] private C_MainWorldHUD hud;
@@ -34,7 +42,10 @@ public class ResourceManager : MonoBehaviour
     {
         HiveManagement.GetOrCreate();
         hud = ResolveHud();
-        NotifyChanged();
+        if (resetResourcesOnStart)
+            SetResources(startingNectar, startingPrey, startingFibre);
+        else
+            NotifyChanged();
     }
 
     private void OnDestroy()
@@ -99,6 +110,7 @@ public class ResourceManager : MonoBehaviour
 
         hud = ResolveHud();
         hud?.RefreshAll();
+        ResourcesChanged?.Invoke();
     }
 
     private C_MainWorldHUD ResolveHud()

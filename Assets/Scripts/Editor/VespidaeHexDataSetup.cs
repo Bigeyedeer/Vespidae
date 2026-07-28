@@ -60,20 +60,26 @@ public static class VespidaeHexDataSetup
     {
         List<SB_Hex_Area_Info> hexAreas = new List<SB_Hex_Area_Info>();
 
-        for (int index = 1; index <= 33; index++)
+        for (int index = 1; index <= 42; index++)
         {
             string path = $"{AreaFolder}/SO_Hex{index}.asset";
-            SB_Hex_Area_Info areaInfo = LoadOrCreateAsset<SB_Hex_Area_Info>(path);
-            areaInfo.ConfigureForEditor(
-                $"hex_{index}",
-                $"Hex {index}",
-                "Area details not assigned yet.",
-                "Habitat not assigned yet.",
-                HexResourceType.None,
-                0f,
-                0f,
-                new List<SB_Wasps_Info>());
-            EditorUtility.SetDirty(areaInfo);
+            SB_Hex_Area_Info areaInfo = AssetDatabase.LoadAssetAtPath<SB_Hex_Area_Info>(path);
+            if (areaInfo == null)
+            {
+                areaInfo = ScriptableObject.CreateInstance<SB_Hex_Area_Info>();
+                areaInfo.ConfigureForEditor(
+                    $"hex_{index}",
+                    $"Hex {index}",
+                    "Area details not assigned yet.",
+                    "Habitat not assigned yet.",
+                    HexResourceType.None,
+                    0f,
+                    0f,
+                    new List<SB_Wasps_Info>());
+                AssetDatabase.CreateAsset(areaInfo, path);
+                EditorUtility.SetDirty(areaInfo);
+            }
+
             hexAreas.Add(areaInfo);
         }
 

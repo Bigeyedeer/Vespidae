@@ -14,6 +14,13 @@ public class CameraCursorMovement : MonoBehaviour
     [SerializeField] private bool enableMiddleMouseDrag = true;
     [SerializeField] private float dragSensitivity = 0.01f;
 
+    [Header("Hex Hover Zoom")]
+    [SerializeField] private HexMouseRaycaster hexMouseRaycaster;
+    [SerializeField] private bool enableHexHoverZoom = true;
+    [SerializeField, Min(0.001f)] private float hexZoomSensitivity = 0.02f;
+    [SerializeField, Min(0.1f)] private float minimumHexZoomDistance = 4f;
+    [SerializeField, Min(0.1f)] private float maximumHexZoomDistance = 30f;
+
     private Vector3 startingPosition;
     private Vector3 movementVelocity;
 
@@ -25,6 +32,8 @@ public class CameraCursorMovement : MonoBehaviour
     {
         startingPosition = transform.position;
         isDragging = false;
+        if (hexMouseRaycaster == null)
+            hexMouseRaycaster = FindFirstObjectByType<HexMouseRaycaster>();
     }
 
     private void LateUpdate()
@@ -36,6 +45,9 @@ public class CameraCursorMovement : MonoBehaviour
         }
 
         Vector2 mousePosition = Mouse.current.position.ReadValue();
+
+        if (!isDragging && ApplyHexHoverZoom())
+            return;
 
         if (enableMiddleMouseDrag &&
             Mouse.current.middleButton.wasPressedThisFrame)
@@ -148,5 +160,44 @@ public class CameraCursorMovement : MonoBehaviour
         startingPosition = transform.position;
         movementVelocity = Vector3.zero;
         isDragging = false;
+    }
+
+    public bool ZoomTowardsHex(HexTile hex, float scrollAmount)
+    {
+        if (!movementEnabled || hex == null || Mathf.Abs(scrollAmount) < 0.01f)
+            return false;
+
+        Vector3 target = hex.transform.position;
+        Vector3 fromTarget = transform.position - target;
+        float currentDistance = fromTarget.magnitude;
+        if (currentDistance <= 0.001f)
+            return false;
+
+        float zoomStep = Mathf.Abs(scrollAmount) * hexZoomSensitivity;
+        float desiredDistance = Mathf.Clamp(
+            currentDistance - Mathf.Sign(scrollAmount) * zoomStep,
+            minimumHexZoomDistance,
+            maximumHexZoomDistance
+        );
+
+        Vector3 desiredPosition = target + fromTarget.normalized * desiredDistance;
+        Vector3 movement = desiredPosition - transform.position;
+        transform.position = desiredPosition;
+        startingPosition += movement;
+        movementVelocity = Vector3.zero;
+        return true;
+    }
+
+    private bool ApplyHexHoverZoom()
+    {
+        if (!enableHexHoverZoom ||
+            hexMouseRaycaster == null ||
+            !hexMouseRaycaster.CanZoomCurrentHex)
+        {
+            return false;
+        }
+
+        float scrollAmount = Mouse.current.scroll.ReadValue().y;
+        return ZoomTowardsHex(hexMouseRaycaster.CurrentHoveredHexTile, scrollAmount);
     }
 }

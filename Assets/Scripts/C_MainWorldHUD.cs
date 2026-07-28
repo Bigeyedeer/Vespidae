@@ -30,9 +30,6 @@ public class C_MainWorldHUD : MonoBehaviour
     private void Awake()
     {
         CacheSceneObjects();
-        GameObject resourcesPanel = FindSceneObject("Resources Panel");
-        if (resourcesPanel != null)
-            resourcesPanel.SetActive(true);
     }
 
     private void Start()
@@ -77,6 +74,12 @@ public class C_MainWorldHUD : MonoBehaviour
         SetText("Resource_3", $"Workers\n{hive.Workers:0}");
         SetText("Resource_4", $"Strength\n{hive.ColonyStrength:0}");
         SetText("Resource_5", $"Brood\n{hive.BroodProgress:0}/{hive.BroodCapacity:0}");
+        SetText("RoleChipLabel_0", $"Scout {hive.GetTotalWaspCount(WaspFunction.Scout)}");
+        SetText("RoleChipLabel_1", $"Forager {hive.GetTotalWaspCount(WaspFunction.Forager)}");
+        SetText("RoleChipLabel_2", $"Builder {hive.GetTotalWaspCount(WaspFunction.Builder)}");
+        SetText("RoleChipLabel_3", $"Brood {hive.GetTotalWaspCount(WaspFunction.BroodCaretaker)}");
+        SetText("RoleChipLabel_4", $"Guard {hive.GetTotalWaspCount(WaspFunction.Guard)}");
+        SetText("RoleChipLabel_5", $"Contain {hive.GetTotalWaspCount(WaspFunction.Containment)}");
     }
 
     private void RefreshEcosystem()

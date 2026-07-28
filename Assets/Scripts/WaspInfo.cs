@@ -12,13 +12,21 @@ public class WaspInfo : MonoBehaviour
     [SerializeField] private Transform cameraPoint;
     [SerializeField] private Transform lookPoint;
 
-    public SB_Wasps_Info SpeciesInfo => speciesInfo;
-    public string CommonName => speciesInfo != null ? speciesInfo.CommonName : string.Empty;
-    public string ScientificName => speciesInfo != null ? speciesInfo.ScientificName : string.Empty;
-    public string Description => speciesInfo != null ? speciesInfo.GameplaySummary : string.Empty;
-    public string EcologicalRole => speciesInfo != null ? speciesInfo.EcologicalRole : string.Empty;
-    public bool IsNative => speciesInfo != null && speciesInfo.Classification == WaspClassification.Native;
-    public WaspFunction FunctionRole => assignedSkill != null ? assignedSkill.Function : WaspFunction.Scout;
+    private SB_Wasps_Info runtimeSpecies;
+    private WaspFunction runtimeFunction;
+    private bool hasRuntimeFunction;
+
+    public SB_Wasps_Info SpeciesInfo => runtimeSpecies != null ? runtimeSpecies : speciesInfo;
+    public string CommonName => SpeciesInfo != null ? SpeciesInfo.CommonName : string.Empty;
+    public string ScientificName => SpeciesInfo != null ? SpeciesInfo.ScientificName : string.Empty;
+    public string Description => SpeciesInfo != null ? SpeciesInfo.GameplaySummary : string.Empty;
+    public string EcologicalRole => SpeciesInfo != null ? SpeciesInfo.EcologicalRole : string.Empty;
+    public bool IsNative => SpeciesInfo != null && SpeciesInfo.Classification == WaspClassification.Native;
+    public WaspFunction FunctionRole => hasRuntimeFunction
+        ? runtimeFunction
+        : assignedSkill != null
+            ? assignedSkill.Function
+            : WaspFunction.Scout;
     public int SkillLevel => HiveManagement.Instance != null ? HiveManagement.Instance.GetSkillLevel(FunctionRole) : 0;
     public SB_Wasp_Skill SkillDefinition => assignedSkill != null ? assignedSkill : HiveManagement.Instance?.GetSkillDefinition(FunctionRole);
     public float ScoutingRange => GetSkillValue(WaspSkillStat.ScoutingRange);
@@ -30,6 +38,15 @@ public class WaspInfo : MonoBehaviour
     public float AttackSpeedMultiplier => GetSkillValue(WaspSkillStat.AttackSpeed);
     public float IdentificationMultiplier => GetSkillValue(WaspSkillStat.Identification);
     public Transform CameraPoint => cameraPoint;
+
+    public void SetRuntimeAssignment(SB_Wasps_Info species, WaspFunction function)
+    {
+        if (species != null)
+            runtimeSpecies = species;
+
+        runtimeFunction = function;
+        hasRuntimeFunction = true;
+    }
 
     public float GetSkillValue(WaspSkillStat stat)
     {
