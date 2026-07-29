@@ -196,8 +196,8 @@ public static class VespidaeHiveWorkforceSetup
         CreateText("HiveTraining_Resources", panel.transform, "Nectar 50   Prey 50   Fibre 50", 20f, TextAlignmentOptions.Center, new Vector2(0f, 185f), new Vector2(410f, 44f));
         CreateText("HiveTraining_ScoutInfo", panel.transform, "Scout: 0 total   0 available", 18f, TextAlignmentOptions.Left, new Vector2(0f, 133f), new Vector2(410f, 34f));
         CreateButton("HiveTrain_Scout", panel.transform, "Train Scout", new Vector2(0f, 83f), new Vector2(410f, 68f));
-        CreateText("HiveTraining_WorkerInfo", panel.transform, "Worker: 1 total   1 available", 18f, TextAlignmentOptions.Left, new Vector2(0f, 28f), new Vector2(410f, 34f));
-        CreateButton("HiveTrain_Worker", panel.transform, "Train Worker", new Vector2(0f, -22f), new Vector2(410f, 68f));
+        CreateText("HiveTraining_ForagerInfo", panel.transform, "Forager: 1 total   1 available", 18f, TextAlignmentOptions.Left, new Vector2(0f, 28f), new Vector2(410f, 34f));
+        CreateButton("HiveTrain_Forager", panel.transform, "Train Forager", new Vector2(0f, -22f), new Vector2(410f, 68f));
         CreateText("HiveTraining_AttackerInfo", panel.transform, "Attacker: 0 total   0 available", 18f, TextAlignmentOptions.Left, new Vector2(0f, -77f), new Vector2(410f, 34f));
         CreateButton("HiveTrain_Attacker", panel.transform, "Train Attacker", new Vector2(0f, -127f), new Vector2(410f, 68f));
         CreateText("HiveTraining_Feedback", panel.transform, string.Empty, 16f, TextAlignmentOptions.Center, new Vector2(0f, -190f), new Vector2(410f, 44f));

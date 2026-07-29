@@ -132,7 +132,7 @@ GameObject:
   - component: {fileID: 550342}
   - component: {fileID: 550341}
   m_Layer: 5
-  m_Name: HiveTrain_Worker
+  m_Name: HiveTrain_Forager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1720,7 +1720,7 @@ GameObject:
   - component: {fileID: 189975773}
   - component: {fileID: 189975772}
   m_Layer: 5
-  m_Name: HiveTrain_Worker_Label
+  m_Name: HiveTrain_Forager_Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1765,7 +1765,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Train Worker
+  m_text: Train Forager
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -6627,7 +6627,7 @@ GameObject:
   - component: {fileID: 603670149}
   - component: {fileID: 603670148}
   m_Layer: 5
-  m_Name: HiveTraining_WorkerInfo
+  m_Name: HiveTraining_ForagerInfo
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6672,7 +6672,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Worker: 1 total   1 available'
+  m_text: 'Forager: 1 total   1 available'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}

@@ -71,7 +71,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         BindButton("Skills_Return", CloseSkills);
         BindButton("Skills_Close", CloseSkills);
         BindButton("HiveTrain_Scout", TrainScout);
-        BindButton("HiveTrain_Worker", TrainWorker);
+        BindButton("HiveTrain_Forager", TrainForager);
         BindButton("HiveTrain_Attacker", TrainAttacker);
         BindButton("HiveTraining_Hide", HideHiveTraining);
     }
@@ -173,10 +173,10 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
                 : $"Nectar {resources.Nectar:0}   Prey {resources.Prey:0}   Fibre {resources.Fibre:0}");
 
         SetRoleText(hive, WaspFunction.Scout, "Scout", "HiveTraining_ScoutInfo");
-        SetRoleText(hive, WaspFunction.Forager, "Worker", "HiveTraining_WorkerInfo");
+        SetRoleText(hive, WaspFunction.Forager, "Forager", "HiveTraining_ForagerInfo");
         SetRoleText(hive, WaspFunction.Guard, "Attacker", "HiveTraining_AttackerInfo");
         SetTrainingButton(hive, WaspFunction.Scout, "HiveTrain_Scout", "Train Scout");
-        SetTrainingButton(hive, WaspFunction.Forager, "HiveTrain_Worker", "Train Worker");
+        SetTrainingButton(hive, WaspFunction.Forager, "HiveTrain_Forager", "Train Forager");
         SetTrainingButton(hive, WaspFunction.Guard, "HiveTrain_Attacker", "Train Attacker");
         SetText("HiveTraining_Feedback", trainingFeedback);
     }
@@ -186,7 +186,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         Train(WaspFunction.Scout);
     }
 
-    private void TrainWorker()
+    private void TrainForager()
     {
         Train(WaspFunction.Forager);
     }
@@ -252,8 +252,6 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
 
     private string GetDisplayRole(WaspFunction function)
     {
-        if (function == WaspFunction.Forager)
-            return "Worker";
         if (function == WaspFunction.Guard)
             return "Attacker";
         return function.ToString();
