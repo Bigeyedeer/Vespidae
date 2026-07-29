@@ -41,6 +41,13 @@ public class HexMouseRaycaster : MonoBehaviour
         if (mainCamera == null)
             mainCamera = Camera.main;
 
+        if (hexLayer.value == 0)
+        {
+            int hexLayerIndex = LayerMask.NameToLayer("HexTile");
+            if (hexLayerIndex >= 0)
+                hexLayer = 1 << hexLayerIndex;
+        }
+
         inHexView = false;
     }
 
