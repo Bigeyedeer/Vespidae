@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f2ad1f2c99d4a22b4c02b9d3a7b1e61, type: 3}
   m_Name: SO_Hex12
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
-  areaId: hex_12
-  areaName: Hex 12
-  areaDescription: Area details not assigned yet.
-  habitatCue: Habitat not assigned yet.
+  areaId: hex_12_false_bay_crossing
+  areaName: False Bay Crossing
+  areaDescription: A coastal crossing where scavenging insects concentrate along wind-sheltered vegetation.
+  habitatCue: Coastal strandveld
   territoryState: 0
   riskState: 0
   visibilityState: 0
   connectedHexIds: []
-  resourceType: 0
-  startingPrey: 0
-  startingNectar: 0
-  startingFibre: 0
+  resourceType: 1
+  startingPrey: 650
+  startingNectar: 1071
+  startingFibre: 1231
   waspsPresent: []

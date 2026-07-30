@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f2ad1f2c99d4a22b4c02b9d3a7b1e61, type: 3}
   m_Name: SO_Hex16
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
-  areaId: hex_16
-  areaName: Hex 16
-  areaDescription: Area details not assigned yet.
-  habitatCue: Habitat not assigned yet.
+  areaId: hex_16_constantia_valley
+  areaName: Constantia Valley
+  areaDescription: Sheltered valley gardens and fynbos edges provide both flowers and easy hunting.
+  habitatCue: Valley fynbos edge
   territoryState: 0
   riskState: 0
   visibilityState: 0
   connectedHexIds: []
-  resourceType: 0
-  startingPrey: 0
-  startingNectar: 0
-  startingFibre: 0
+  resourceType: 3
+  startingPrey: 880
+  startingNectar: 1240
+  startingFibre: 1194
   waspsPresent: []

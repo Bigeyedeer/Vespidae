@@ -250,7 +250,10 @@ public class HiveManagement : MonoBehaviour
                 if (starter != null)
                 {
                     if (starter.InitializeFriendlyWasp(hive, WaspFunction.Scout, GetSelectedSpecies(starter)))
+                    {
                         RegisterFriendlyWasp(starter);
+                        hexTile.RegisterFriendlyWasp(starter);
+                    }
                     else
                         Destroy(starter.gameObject);
                 }

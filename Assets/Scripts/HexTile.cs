@@ -27,6 +27,7 @@ public class HexTile : MonoBehaviour
     private float currentFibre;
     private bool resourcesInitialized;
     private readonly HashSet<WaspControl> friendlyWasps = new HashSet<WaspControl>();
+    private readonly HashSet<EnemyWaspControl> enemyWasps = new HashSet<EnemyWaspControl>();
     private Collider formationCollider;
 
     [Header("Hex Materials")]
@@ -59,6 +60,7 @@ public class HexTile : MonoBehaviour
     public string HabitatCue => areaInfo != null ? areaInfo.HabitatCue : string.Empty;
     public HexTerritoryState TerritoryState => areaInfo != null ? areaInfo.TerritoryState : HexTerritoryState.Neutral;
     public HexRiskState RiskState => areaInfo != null ? areaInfo.RiskState : HexRiskState.SafeNativeHabitat;
+    public HexVisibilityState VisibilityState => areaInfo != null ? areaInfo.VisibilityState : HexVisibilityState.Hidden;
     public int ConnectedSiteCount => areaInfo != null ? areaInfo.ConnectedSiteCount : 0;
     public IReadOnlyList<SB_Wasps_Info> WaspsPresent => areaInfo != null ? areaInfo.WaspsPresent : Array.Empty<SB_Wasps_Info>();
     public bool HasPrey => areaInfo != null && areaInfo.HasPrey;
@@ -73,9 +75,26 @@ public class HexTile : MonoBehaviour
     public Transform HiveSpawnPoint => hiveSpawnPoint != null ? hiveSpawnPoint : transform.Find("HiveSpawnpoint") ?? transform;
     public bool HasFriendlyScout => GetFriendlyWaspCount(WaspFunction.Scout) > 0;
     public IReadOnlyCollection<WaspControl> FriendlyWasps => friendlyWasps;
+    public int FriendlyWaspCount
+    {
+        get
+        {
+            friendlyWasps.RemoveWhere(wasp => wasp == null);
+            return friendlyWasps.Count;
+        }
+    }
+    public int EnemyWaspCount
+    {
+        get
+        {
+            enemyWasps.RemoveWhere(wasp => wasp == null);
+            return enemyWasps.Count;
+        }
+    }
     public bool IsScouting => scoutingInProgress;
     public float ScoutingDuration => scoutingDuration;
     public float ScoutingTimeRemaining => scoutingTimeRemaining;
+    public event Action<HexTile> TerritoryInformationChanged;
 
     public Vector3 GetWaspFormationPosition(
         int spawnIndex,
@@ -102,6 +121,7 @@ public class HexTile : MonoBehaviour
         InitializeRuntimeResources();
         RefreshContentVisuals();
         RefreshHexMaterial();
+        SynchronizeRuntimeTerritoryInformation();
     }
 
     private void Update()
@@ -143,6 +163,7 @@ public class HexTile : MonoBehaviour
         state = HexState.Scouted;
         RefreshContentVisuals();
         RefreshHexMaterial();
+        SynchronizeRuntimeTerritoryInformation();
         Debug.Log(HasResources ? $"{HexName} contains {Content}." : $"{HexName} is safe.");
     }
 
@@ -157,6 +178,7 @@ public class HexTile : MonoBehaviour
         state = HexState.Owned;
         RefreshContentVisuals();
         RefreshHexMaterial();
+        SynchronizeRuntimeTerritoryInformation();
         Debug.Log($"{HexName} has been claimed.");
     }
 
@@ -166,6 +188,7 @@ public class HexTile : MonoBehaviour
             return;
 
         friendlyWasps.Add(wasp);
+        SynchronizeRuntimeTerritoryInformation();
         if (wasp.AssignedFunction == WaspFunction.Scout &&
             state == HexState.Unknown &&
             !scoutingInProgress)
@@ -182,6 +205,8 @@ public class HexTile : MonoBehaviour
 
         if (scoutingInProgress && !HasFriendlyScout)
             CancelScoutingCountdown();
+
+        SynchronizeRuntimeTerritoryInformation();
     }
 
     public int GetFriendlyWaspCount(WaspFunction function)
@@ -195,6 +220,71 @@ public class HexTile : MonoBehaviour
         }
 
         return count;
+    }
+
+    public void RegisterEnemyWasp(EnemyWaspControl wasp)
+    {
+        if (wasp == null)
+            return;
+
+        enemyWasps.Add(wasp);
+        SynchronizeRuntimeTerritoryInformation();
+    }
+
+    public void UnregisterEnemyWasp(EnemyWaspControl wasp)
+    {
+        if (wasp != null)
+            enemyWasps.Remove(wasp);
+
+        SynchronizeRuntimeTerritoryInformation();
+    }
+
+    public void SynchronizeRuntimeTerritoryInformation()
+    {
+        if (areaInfo == null)
+            return;
+
+        int friendlyCount = FriendlyWaspCount;
+        int enemyCount = EnemyWaspCount;
+        HexTerritoryState territory;
+        HexRiskState risk;
+        HexVisibilityState visibility;
+
+        if (friendlyCount > 0 && enemyCount > 0)
+        {
+            territory = HexTerritoryState.Contested;
+            risk = enemyCount > friendlyCount
+                ? HexRiskState.AdvancingInvasivePressure
+                : HexRiskState.ContestedTerritory;
+            visibility = HexVisibilityState.Scouted;
+        }
+        else if (enemyCount > 0 || state == HexState.Enemy)
+        {
+            territory = HexTerritoryState.Invasive;
+            risk = HexRiskState.InvasiveHotspot;
+            visibility = HexVisibilityState.Hidden;
+        }
+        else if (friendlyCount > 0 || state == HexState.Owned)
+        {
+            territory = HexTerritoryState.Native;
+            risk = HexRiskState.SafeNativeHabitat;
+            visibility = HexVisibilityState.Scouted;
+        }
+        else if (state == HexState.Scouted)
+        {
+            territory = HexTerritoryState.Neutral;
+            risk = HexRiskState.Neutral;
+            visibility = HexVisibilityState.Scouted;
+        }
+        else
+        {
+            territory = HexTerritoryState.Neutral;
+            risk = HexRiskState.Neutral;
+            visibility = HexVisibilityState.Hidden;
+        }
+
+        if (areaInfo.SetRuntimeTerritoryInformation(territory, risk, visibility))
+            TerritoryInformationChanged?.Invoke(this);
     }
 
     public void GatherPrey()

@@ -49,6 +49,11 @@ public class C_MainWorldCameraFocus : MonoBehaviour
 
     public bool IsCloseUpActive => closeUpActive;
     public bool IsTransitioning => isTransitioning;
+    public float ScrollWheelZoomSpeed
+    {
+        get => closeUpZoomSensitivity;
+        set => closeUpZoomSensitivity = Mathf.Max(0.001f, value);
+    }
 
     private void Start()
     {
@@ -79,16 +84,13 @@ public class C_MainWorldCameraFocus : MonoBehaviour
 
     private void Update()
     {
+        if (C_MainWorldOverlayNavigation.IsPaused)
+            return;
+
         if (!closeUpActive || isTransitioning)
             return;
 
         ApplyCloseUpScrollZoom();
-
-        if (Keyboard.current != null &&
-            Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            ReturnToPreviousView();
-        }
     }
 
     public void FocusOnHex(HexTile hex)

@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f2ad1f2c99d4a22b4c02b9d3a7b1e61, type: 3}
   m_Name: SO_Hex13
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
-  areaId: hex_13
-  areaName: Hex 13
-  areaDescription: Area details not assigned yet.
-  habitatCue: Habitat not assigned yet.
+  areaId: hex_13_camissa_springs
+  areaName: Camissa Springs
+  areaDescription: Fresh-water seepage feeds lush vegetation with plentiful nectar and supple nesting fibres.
+  habitatCue: Spring-fed urban fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
   connectedHexIds: []
-  resourceType: 0
-  startingPrey: 0
-  startingNectar: 0
-  startingFibre: 0
+  resourceType: 6
+  startingPrey: 890
+  startingNectar: 1250
+  startingFibre: 730
   waspsPresent: []

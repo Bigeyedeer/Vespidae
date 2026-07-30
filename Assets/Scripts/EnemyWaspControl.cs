@@ -39,6 +39,7 @@ public class EnemyWaspControl : MonoBehaviour
 
     private void OnDisable()
     {
+        homeHive?.OwnerHex?.UnregisterEnemyWasp(this);
         EnemyHiveControl.Instance?.Unregister(this);
     }
 
@@ -68,6 +69,7 @@ public class EnemyWaspControl : MonoBehaviour
         homeHive = hive;
         assignedFunction = function;
         waspInfo?.SetRuntimeAssignment(null, function);
+        homeHive?.OwnerHex?.RegisterEnemyWasp(this);
     }
 
     public void SetFaction(WaspScopeRole value)

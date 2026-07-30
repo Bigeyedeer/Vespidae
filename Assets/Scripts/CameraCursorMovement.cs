@@ -28,6 +28,13 @@ public class CameraCursorMovement : MonoBehaviour
     private bool isDragging;
     private Vector2 previousDragPosition;
 
+    public bool MovementEnabled => movementEnabled;
+    public float ScrollWheelZoomSpeed
+    {
+        get => hexZoomSensitivity;
+        set => hexZoomSensitivity = Mathf.Max(0.001f, value);
+    }
+
     private void Start()
     {
         startingPosition = transform.position;

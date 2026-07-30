@@ -37,6 +37,11 @@ public class C_MainWorldHUD : MonoBehaviour
         RefreshAll();
     }
 
+    private void OnDestroy()
+    {
+        SubscribeToSelectedHex(null);
+    }
+
     public void RefreshAll()
     {
         CacheSceneObjects();
@@ -50,8 +55,24 @@ public class C_MainWorldHUD : MonoBehaviour
 
     public void ShowSelectedHex(HexTile hex)
     {
+        SubscribeToSelectedHex(hex);
         selectedHex = hex;
         RefreshTerritory(hex);
+    }
+
+    private void SubscribeToSelectedHex(HexTile hex)
+    {
+        if (selectedHex != null)
+            selectedHex.TerritoryInformationChanged -= RefreshSelectedTerritory;
+
+        if (hex != null)
+            hex.TerritoryInformationChanged += RefreshSelectedTerritory;
+    }
+
+    private void RefreshSelectedTerritory(HexTile hex)
+    {
+        if (hex == selectedHex)
+            RefreshTerritory(hex);
     }
 
     private void RefreshResources()
@@ -109,8 +130,16 @@ public class C_MainWorldHUD : MonoBehaviour
             return;
         }
 
+        if (hex.VisibilityState == HexVisibilityState.Hidden)
+        {
+            SetText("TerritoryTitle", "Unidentified Territory");
+            SetText("TerritoryInfo", "Visibility: Hidden\nDispatch a Scout to investigate.");
+            SetText("TerritoryNote", "Status: Unknown");
+            return;
+        }
+
         SetText("TerritoryTitle", hex.HexName);
-        SetText("TerritoryInfo", $"{hex.HabitatCue}\n{hex.ConnectedSiteCount} connected sites");
+        SetText("TerritoryInfo", $"{hex.HabitatCue}\nTerritory: {hex.TerritoryState} · {hex.ConnectedSiteCount} connected sites");
         SetText("TerritoryNote", $"State: {hex.State} · Risk: {hex.RiskState}");
     }
 

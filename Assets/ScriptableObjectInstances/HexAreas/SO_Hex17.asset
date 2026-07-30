@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f2ad1f2c99d4a22b4c02b9d3a7b1e61, type: 3}
   m_Name: SO_Hex17
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
-  areaId: hex_17
-  areaName: Hex 17
-  areaDescription: Area details not assigned yet.
-  habitatCue: Habitat not assigned yet.
+  areaId: hex_17_hout_bay_gate
+  areaName: Hout Bay Gate
+  areaDescription: A cool coastal entrance where flowering scrub maintains a steady nectar supply.
+  habitatCue: Coastal mountain fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
   connectedHexIds: []
-  resourceType: 0
-  startingPrey: 0
-  startingNectar: 0
-  startingFibre: 0
+  resourceType: 2
+  startingPrey: 637
+  startingNectar: 890
+  startingFibre: 584
   waspsPresent: []

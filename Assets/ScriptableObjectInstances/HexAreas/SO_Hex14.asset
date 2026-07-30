@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f2ad1f2c99d4a22b4c02b9d3a7b1e61, type: 3}
   m_Name: SO_Hex14
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
-  areaId: hex_14
-  areaName: Hex 14
-  areaDescription: Area details not assigned yet.
-  habitatCue: Habitat not assigned yet.
+  areaId: hex_14_hoerikwaggo_rise
+  areaName: Hoerikwaggo Rise
+  areaDescription: Steep slopes and hardy shrubs offer resilient fibres for a colony holding the heights.
+  habitatCue: Mountain slope fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
   connectedHexIds: []
-  resourceType: 0
-  startingPrey: 0
-  startingNectar: 0
-  startingFibre: 0
+  resourceType: 4
+  startingPrey: 1027
+  startingNectar: 616
+  startingFibre: 1120
   waspsPresent: []

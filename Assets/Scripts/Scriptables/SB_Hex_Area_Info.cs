@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -30,7 +31,8 @@ public enum HexRiskState
     SafeNativeHabitat,
     ContestedTerritory,
     AdvancingInvasivePressure,
-    InvasiveHotspot
+    InvasiveHotspot,
+    Neutral
 }
 
 public enum HexVisibilityState
@@ -66,13 +68,18 @@ public class SB_Hex_Area_Info : ScriptableObject
     [Header("Species Present")]
     [SerializeField] private List<SB_Wasps_Info> waspsPresent = new List<SB_Wasps_Info>();
 
+    [NonSerialized] private bool hasRuntimeTerritoryInformation;
+    [NonSerialized] private HexTerritoryState runtimeTerritoryState;
+    [NonSerialized] private HexRiskState runtimeRiskState;
+    [NonSerialized] private HexVisibilityState runtimeVisibilityState;
+
     public string AreaId => areaId;
     public string AreaName => areaName;
     public string AreaDescription => areaDescription;
     public string HabitatCue => habitatCue;
-    public HexTerritoryState TerritoryState => territoryState;
-    public HexRiskState RiskState => riskState;
-    public HexVisibilityState VisibilityState => visibilityState;
+    public HexTerritoryState TerritoryState => hasRuntimeTerritoryInformation ? runtimeTerritoryState : territoryState;
+    public HexRiskState RiskState => hasRuntimeTerritoryInformation ? runtimeRiskState : riskState;
+    public HexVisibilityState VisibilityState => hasRuntimeTerritoryInformation ? runtimeVisibilityState : visibilityState;
     public IReadOnlyList<string> ConnectedHexIds => connectedHexIds;
     public int ConnectedSiteCount => connectedHexIds == null ? 0 : connectedHexIds.Count;
     public HexResourceType ResourceType => resourceType;
@@ -80,9 +87,31 @@ public class SB_Hex_Area_Info : ScriptableObject
     public float StartingNectar => startingNectar;
     public float StartingFibre => startingFibre;
     public IReadOnlyList<SB_Wasps_Info> WaspsPresent => waspsPresent;
-    public bool HasPrey => ContainsResource(HexResourceType.Prey) || startingPrey > 0f;
-    public bool HasNectar => ContainsResource(HexResourceType.Nectar) || startingNectar > 0f;
-    public bool HasFibre => ContainsResource(HexResourceType.Fibre) || startingFibre > 0f;
+    public bool HasPrey => ContainsResource(HexResourceType.Prey);
+    public bool HasNectar => ContainsResource(HexResourceType.Nectar);
+    public bool HasFibre => ContainsResource(HexResourceType.Fibre);
+
+    public bool SetRuntimeTerritoryInformation(
+        HexTerritoryState territory,
+        HexRiskState risk,
+        HexVisibilityState visibility)
+    {
+        bool changed = !hasRuntimeTerritoryInformation ||
+                       runtimeTerritoryState != territory ||
+                       runtimeRiskState != risk ||
+                       runtimeVisibilityState != visibility;
+
+        hasRuntimeTerritoryInformation = true;
+        runtimeTerritoryState = territory;
+        runtimeRiskState = risk;
+        runtimeVisibilityState = visibility;
+        return changed;
+    }
+
+    public void ClearRuntimeTerritoryInformation()
+    {
+        hasRuntimeTerritoryInformation = false;
+    }
 
 #if UNITY_EDITOR
     public void ConfigureForEditor(
@@ -93,7 +122,8 @@ public class SB_Hex_Area_Info : ScriptableObject
         HexResourceType resources,
         float prey,
         float nectar,
-        List<SB_Wasps_Info> species)
+        List<SB_Wasps_Info> species,
+        float fibre = 0f)
     {
         areaId = id;
         areaName = name;
@@ -102,6 +132,7 @@ public class SB_Hex_Area_Info : ScriptableObject
         resourceType = resources;
         startingPrey = Mathf.Max(0f, prey);
         startingNectar = Mathf.Max(0f, nectar);
+        startingFibre = Mathf.Max(0f, fibre);
         waspsPresent = species ?? new List<SB_Wasps_Info>();
     }
 #endif

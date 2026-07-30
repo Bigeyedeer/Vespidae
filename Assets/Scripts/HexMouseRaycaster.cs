@@ -117,6 +117,9 @@ public class HexMouseRaycaster : MonoBehaviour
 
                 if (currentHoveredHex != null)
                     currentHoveredHex.SetHovered(true);
+
+                if (currentHexTile != null)
+                    C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(currentHexTile);
             }
         }
         else

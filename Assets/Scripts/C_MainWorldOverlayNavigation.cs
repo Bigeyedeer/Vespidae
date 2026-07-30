@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class C_MainWorldOverlayNavigation : MonoBehaviour
 {
     public static C_MainWorldOverlayNavigation Instance { get; private set; }
+    public static bool IsPaused => Instance != null && Instance.isPaused;
 
     [SerializeField] private GameObject waspInfoPanel;
     [SerializeField] private GameObject skillsPanel;
@@ -15,16 +16,31 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     private C_HiveSkillsPanel skillsController;
     private C_Friendly_Hive_Orc selectedHive;
     private string trainingFeedback;
+    private C_MainWorldCameraFocus cameraFocus;
+    private C_MainWorldNavigation mainWorldNavigation;
+    private CameraCursorMovement mapCameraMovement;
+    private GameObject pauseMenu;
+    private GameObject pauseMainButtons;
+    private GameObject pauseOptions;
+    private Slider scrollSpeedSlider;
+    private TMP_Text scrollSpeedValueText;
+    private bool isPaused;
+    private bool mapMovementWasEnabled;
+
+    private const string ScrollSpeedPreferenceKey = "Vespidae.ScrollWheelZoomSpeed";
+    private const float DefaultScrollWheelZoomSpeed = 0.02f;
 
     private void Awake()
     {
         Instance = this;
         BindSceneReferences();
+        CreatePauseMenu();
         CloseAllPanels();
     }
 
     private void OnDestroy()
     {
+        ResumeGame();
         Unsubscribe();
         if (Instance == this)
         {
@@ -34,6 +50,19 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
 
     private void Update()
     {
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            if (isPaused)
+                ResumeGame();
+            else
+                PauseGame();
+
+            return;
+        }
+
+        if (isPaused)
+            return;
+
         if (Keyboard.current != null && Keyboard.current[skillsKey].wasPressedThisFrame)
         {
             if (skillsPanel != null && skillsPanel.activeSelf)
@@ -64,8 +93,17 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
             hiveTrainingPanel = FindChild("Hive Training Panel");
         }
 
+        if (cameraFocus == null)
+            cameraFocus = FindFirstObjectByType<C_MainWorldCameraFocus>();
+
+        if (mainWorldNavigation == null)
+            mainWorldNavigation = FindFirstObjectByType<C_MainWorldNavigation>();
+
+        if (mapCameraMovement == null && Camera.main != null)
+            mapCameraMovement = Camera.main.GetComponent<CameraCursorMovement>();
+
         BindButton("Action_Codex", OpenWaspInfo);
-        BindButton("Action_Return", CloseAllPanels);
+        BindButton("Action_Return", ReturnToPreviousView);
         BindButton("WaspInfo_Return", CloseWaspInfo);
         BindButton("WaspInfo_Close", CloseWaspInfo);
         BindButton("Skills_Return", CloseSkills);
@@ -132,6 +170,284 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         CloseWaspInfo();
         CloseSkills();
         HideHiveTraining();
+    }
+
+    public void ReturnToPreviousView()
+    {
+        cameraFocus?.ReturnToPreviousView();
+    }
+
+    public void PauseGame()
+    {
+        if (isPaused)
+            return;
+
+        BindSceneReferences();
+        CreatePauseMenu();
+        if (pauseMenu == null)
+            return;
+
+        isPaused = true;
+        mapMovementWasEnabled = mapCameraMovement != null && mapCameraMovement.MovementEnabled;
+        mapCameraMovement?.SetMovementEnabled(false);
+        Time.timeScale = 0f;
+        ShowPauseMain();
+        pauseMenu.SetActive(true);
+    }
+
+    public void ResumeGame()
+    {
+        if (!isPaused)
+            return;
+
+        Time.timeScale = 1f;
+        isPaused = false;
+        if (pauseMenu != null)
+            pauseMenu.SetActive(false);
+
+        if (mapCameraMovement != null)
+            mapCameraMovement.SetMovementEnabled(mapMovementWasEnabled);
+    }
+
+    public void OpenPauseOptions()
+    {
+        if (pauseMainButtons != null)
+            pauseMainButtons.SetActive(false);
+        if (pauseOptions != null)
+            pauseOptions.SetActive(true);
+    }
+
+    public void ShowPauseMain()
+    {
+        if (pauseMainButtons != null)
+            pauseMainButtons.SetActive(true);
+        if (pauseOptions != null)
+            pauseOptions.SetActive(false);
+    }
+
+    public void SetScrollWheelZoomSpeed(float value)
+    {
+        float speed = Mathf.Clamp(value, 0.005f, 0.08f);
+        if (mapCameraMovement != null)
+            mapCameraMovement.ScrollWheelZoomSpeed = speed;
+        if (cameraFocus != null)
+            cameraFocus.ScrollWheelZoomSpeed = speed;
+        if (scrollSpeedSlider != null && !Mathf.Approximately(scrollSpeedSlider.value, speed))
+            scrollSpeedSlider.SetValueWithoutNotify(speed);
+        if (scrollSpeedValueText != null)
+            scrollSpeedValueText.text = $"{speed:0.000}";
+        PlayerPrefs.SetFloat(ScrollSpeedPreferenceKey, speed);
+        PlayerPrefs.Save();
+    }
+
+    public void QuitToMenu()
+    {
+        ResumeGame();
+        if (mainWorldNavigation != null)
+            mainWorldNavigation.ReturnToMenu();
+    }
+
+    private void CreatePauseMenu()
+    {
+        if (pauseMenu != null)
+            return;
+
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null)
+            canvas = FindFirstObjectByType<Canvas>();
+        if (canvas == null)
+            return;
+
+        pauseMenu = CreateUiObject(
+            "PauseMenu",
+            canvas.transform,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+        Image backdrop = pauseMenu.AddComponent<Image>();
+        backdrop.color = new Color(0.015f, 0.035f, 0.04f, 0.82f);
+
+        GameObject card = CreateUiObject(
+            "PauseMenuCard",
+            pauseMenu.transform,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(460f, 420f));
+        Image cardImage = card.AddComponent<Image>();
+        cardImage.color = new Color(0.07f, 0.12f, 0.12f, 0.98f);
+
+        CreateText(
+            "PauseMenuTitle",
+            card.transform,
+            "PAUSED",
+            new Vector2(0f, 154f),
+            new Vector2(380f, 46f),
+            30f);
+
+        pauseMainButtons = CreateUiObject(
+            "PauseMenuMainButtons",
+            card.transform,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+        CreateButton(pauseMainButtons.transform, "PauseResume", "RESUME", 60f, ResumeGame);
+        CreateButton(pauseMainButtons.transform, "PauseOptions", "OPTIONS", -12f, OpenPauseOptions);
+        CreateButton(pauseMainButtons.transform, "PauseQuit", "QUIT TO MENU", -84f, QuitToMenu);
+
+        pauseOptions = CreateUiObject(
+            "PauseMenuOptions",
+            card.transform,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+        CreateText(
+            "PauseOptionsTitle",
+            pauseOptions.transform,
+            "OPTIONS",
+            new Vector2(0f, 76f),
+            new Vector2(360f, 38f),
+            22f);
+        CreateText(
+            "PauseScrollSpeedLabel",
+            pauseOptions.transform,
+            "Scroll wheel zoom speed",
+            new Vector2(0f, 22f),
+            new Vector2(360f, 30f),
+            18f);
+        scrollSpeedValueText = CreateText(
+            "PauseScrollSpeedValue",
+            pauseOptions.transform,
+            string.Empty,
+            new Vector2(0f, -12f),
+            new Vector2(180f, 24f),
+            16f);
+        scrollSpeedSlider = CreateSlider(pauseOptions.transform, new Vector2(0f, -48f));
+        CreateButton(pauseOptions.transform, "PauseOptionsBack", "BACK", -118f, ShowPauseMain);
+
+        float speed = PlayerPrefs.GetFloat(
+            ScrollSpeedPreferenceKey,
+            DefaultScrollWheelZoomSpeed);
+        SetScrollWheelZoomSpeed(speed);
+        pauseMenu.SetActive(false);
+    }
+
+    private GameObject CreateUiObject(
+        string objectName,
+        Transform parent,
+        Vector2 anchorMin,
+        Vector2 anchorMax,
+        Vector2 anchoredPosition,
+        Vector2 size)
+    {
+        GameObject result = new GameObject(objectName, typeof(RectTransform));
+        RectTransform rect = result.GetComponent<RectTransform>();
+        rect.SetParent(parent, false);
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.anchoredPosition = anchoredPosition;
+        rect.sizeDelta = size;
+        return result;
+    }
+
+    private TMP_Text CreateText(
+        string objectName,
+        Transform parent,
+        string value,
+        Vector2 position,
+        Vector2 size,
+        float fontSize)
+    {
+        GameObject result = CreateUiObject(
+            objectName,
+            parent,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            position,
+            size);
+        TextMeshProUGUI text = result.AddComponent<TextMeshProUGUI>();
+        text.font = TMP_Settings.defaultFontAsset;
+        text.text = value;
+        text.fontSize = fontSize;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = new Color(0.92f, 0.96f, 0.92f, 1f);
+        return text;
+    }
+
+    private Button CreateButton(
+        Transform parent,
+        string objectName,
+        string label,
+        float y,
+        UnityEngine.Events.UnityAction action)
+    {
+        GameObject result = CreateUiObject(
+            objectName,
+            parent,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0f, y),
+            new Vector2(320f, 54f));
+        Image image = result.AddComponent<Image>();
+        image.color = new Color(0.16f, 0.3f, 0.25f, 1f);
+        Button button = result.AddComponent<Button>();
+        button.targetGraphic = image;
+        CreateText("Label", result.transform, label, Vector2.zero, new Vector2(290f, 40f), 18f);
+        button.onClick.AddListener(action);
+        return button;
+    }
+
+    private Slider CreateSlider(Transform parent, Vector2 position)
+    {
+        GameObject result = CreateUiObject(
+            "PauseScrollSpeedSlider",
+            parent,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            position,
+            new Vector2(320f, 24f));
+        Image background = result.AddComponent<Image>();
+        background.color = new Color(0.02f, 0.06f, 0.06f, 1f);
+        Slider slider = result.AddComponent<Slider>();
+        slider.minValue = 0.005f;
+        slider.maxValue = 0.08f;
+        slider.wholeNumbers = false;
+
+        GameObject fillArea = CreateUiObject(
+            "Fill Area",
+            result.transform,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            new Vector2(-30f, -6f));
+        GameObject fill = CreateUiObject(
+            "Fill",
+            fillArea.transform,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+        Image fillImage = fill.AddComponent<Image>();
+        fillImage.color = new Color(0.25f, 0.67f, 0.42f, 1f);
+
+        GameObject handle = CreateUiObject(
+            "Handle",
+            result.transform,
+            new Vector2(0f, 0.5f),
+            new Vector2(0f, 0.5f),
+            Vector2.zero,
+            new Vector2(18f, 30f));
+        Image handleImage = handle.AddComponent<Image>();
+        handleImage.color = new Color(0.9f, 0.95f, 0.9f, 1f);
+
+        slider.fillRect = fill.GetComponent<RectTransform>();
+        slider.handleRect = handle.GetComponent<RectTransform>();
+        slider.targetGraphic = handleImage;
+        slider.onValueChanged.AddListener(SetScrollWheelZoomSpeed);
+        return slider;
     }
 
     public void OpenHiveTraining(C_Friendly_Hive_Orc hive)
