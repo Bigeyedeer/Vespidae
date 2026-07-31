@@ -1,0 +1,19 @@
+fileFormatVersion: 2
+guid: 76859a4963b55ee49bd16fff5a6f3afe
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 323395
+  packageName: Starter Assets Third Person Controller Superhero - Basic
+  packageVersion: 1.1.0
+  assetPath: Assets/Forge Horizon/Starter Assets Third Person Controller Superhero
+    - Basic/Scripts/Flying.cs
+  uploadId: 840746

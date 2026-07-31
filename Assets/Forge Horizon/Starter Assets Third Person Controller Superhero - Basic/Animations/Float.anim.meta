@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 8f54bb220d5eedb43b0c8f728505404e
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 323395
+  packageName: Starter Assets Third Person Controller Superhero - Basic
+  packageVersion: 1.1.0
+  assetPath: Assets/Forge Horizon/Starter Assets Third Person Controller Superhero
+    - Basic/Animations/Float.anim
+  uploadId: 840746
