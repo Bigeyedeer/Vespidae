@@ -1,4 +1,5 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,6 +12,9 @@ public class CombatManager : MonoBehaviour
     public GameObject battleCanvas;
     public Slider playerSlider;
     public Slider enemySlider;
+    public GameObject playerRedImage;
+    public GameObject enemyRedImage;
+    public TextMeshProUGUI battleEndText;
     public float playerMaxHealth = 100f;
     public float enemyMaxHealth = 100f;
     public float playerCurrentHealth = 100f;
@@ -22,23 +26,35 @@ public class CombatManager : MonoBehaviour
     {
         playerSlider.maxValue = playerMaxHealth;
         enemySlider.maxValue = enemyMaxHealth;
+        
 
         ResetCombatValues();
     }
 
-    public void OnColliderEnter(Collider other)
+    public void OnTriggerEnter(Collider other)
     {
-        if (other == battleArea)
+        if (other.gameObject.CompareTag("Target"))
         {
             battleArea.enabled = false; //turn off collider
             battleCanvas.SetActive(true); // turn on Combat UI
             characterController.enabled = false; //turn off movement
             cameraLockOn.enabled = false; //turn off lock on
+
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.Confined;
         }
+    }
+
+    public void StartResume()
+    {
+        StartCoroutine(ResumeGame());
     }
 
     public IEnumerator ResumeGame()
     {
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
+
         ResetCombatValues();
         battleArea.enabled = false;
         battleCanvas.SetActive(false);
@@ -52,38 +68,69 @@ public class CombatManager : MonoBehaviour
     public void ResetCombatValues()
     {
         
-        playerSlider.value = playerMaxHealth;
-        enemySlider.value = enemyMaxHealth;
+        playerSlider.value = 0;
+        enemySlider.value = 0;
 
-        playerCurrentHealth = playerMaxHealth;
-        enemyCurrentHealth = enemyMaxHealth;
+        playerCurrentHealth = 0;
+        enemyCurrentHealth = 0;
     }
 
     public void DoDamage(bool PlayerRequest)
     {
         if (!PlayerRequest)//Enemy Doing Damage
         {
-            playerCurrentHealth =- enemyDamage;
+            //UI update
+            playerCurrentHealth =+ enemyDamage;
             playerSlider.value = playerCurrentHealth;
+
             checkHealthPoints();
-            //play animation
-            //red material
+
+            //rat mat
+            playerRedImage.SetActive(true);
+            playerRedImage.SetActive(false);
+
+            //animations
+
         }
         else//Player Doing Damage
         {
-            enemyCurrentHealth =- playerDamage;
+            //UI update
+            enemyCurrentHealth =+ playerDamage;
             enemySlider.value = enemyCurrentHealth; 
+
             checkHealthPoints();
-            //play animation
-            //red material
+            
+            //red mat
+            enemyRedImage.SetActive(true);
+            enemyRedImage.SetActive(false);
+
+            //animations
+            Debug.Log("Player Did Damage");
         }
     }
 
     public void checkHealthPoints()
     {
-        if (playerCurrentHealth <= 0 || enemyCurrentHealth <= 0)
+        if (playerCurrentHealth >= playerMaxHealth)
         {
-            ResumeGame();
+            battleEndText.text = "YOU LOSE";
+            StartCoroutine(waitforSeconds(1f));
+            StartResume();
+            Debug.Log("Player Lost");
         }
+        
+        if (enemyCurrentHealth >= enemyMaxHealth)
+        {
+            battleEndText.text = "YOU WIN";
+            StartCoroutine(waitforSeconds(1f));
+            StartResume();
+            Debug.Log("Enemy Lost");
+
+        }
+    }
+
+    public IEnumerator waitforSeconds(float secs)
+    {
+        yield return new WaitForSeconds(secs);
     }
 }
