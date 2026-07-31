@@ -7,6 +7,7 @@ public class CameraLockOn : MonoBehaviour
     private StarterAssetsInputs _Input;  // StarterAssetsInputs reference
     //public GameObject followCamera;
     //public GameObject lockCamera;
+    public ScanningManager scanningManager;
 
     [Tooltip("How high above the target you will look at")]
     public float lookatOffset = 1.2f;
@@ -38,21 +39,36 @@ public class CameraLockOn : MonoBehaviour
 
         _Input.lockOn = false;
 
+        Debug.Log($"Before: isLockedOn = {isLockedOn}");
+
         if (isLockedOn)
         {
-            isLockedOn = false;
+            Debug.Log("Unlocking");
+
+            scanningManager.CancelScan();
+
             CurrentTarget = null;
+            isLockedOn = false;
         }
         else
         {
+            Debug.Log("Searching for target...");
+
             CurrentTarget = FindNearestTarget();
 
-            if (CurrentTarget != null)
+            if (CurrentTarget == null)
             {
-                isLockedOn = true;
+                Debug.Log("No target found.");
+                return;
             }
+
+            Debug.Log("Locked onto " + CurrentTarget.name);
+
+            isLockedOn = true;
+            scanningManager.BeginScan();
         }
 
+        Debug.Log($"After: isLockedOn = {isLockedOn}");
     }
 
     private Transform FindNearestTarget()
