@@ -1,13 +1,15 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class CombatManager : MonoBehaviour
 {
     public Collider battleArea;
-    public CharacterController characterController;
+    //public playerInput playerInput;
     public CameraLockOn cameraLockOn;
+    public PlayerInput playerInput;
 
     public GameObject battleCanvas;
     public Slider playerSlider;
@@ -15,6 +17,7 @@ public class CombatManager : MonoBehaviour
     public GameObject playerRedImage;
     public GameObject enemyRedImage;
     public TextMeshProUGUI battleEndText;
+
     public float playerMaxHealth = 100f;
     public float enemyMaxHealth = 100f;
     public float playerCurrentHealth = 100f;
@@ -37,7 +40,7 @@ public class CombatManager : MonoBehaviour
         {
             battleArea.enabled = false; //turn off collider
             battleCanvas.SetActive(true); // turn on Combat UI
-            characterController.enabled = false; //turn off movement
+            playerInput.enabled = false; //turn off movement
             cameraLockOn.enabled = false; //turn off lock on
 
             Cursor.visible = true;
@@ -58,7 +61,7 @@ public class CombatManager : MonoBehaviour
         ResetCombatValues();
         battleArea.enabled = false;
         battleCanvas.SetActive(false);
-        characterController.enabled = true;
+        playerInput.enabled = true;
         cameraLockOn.enabled = true;
 
         yield return new WaitForSeconds(3f);
@@ -73,6 +76,8 @@ public class CombatManager : MonoBehaviour
 
         playerCurrentHealth = 0;
         enemyCurrentHealth = 0;
+
+        battleEndText.text = "BATTLE START";
     }
 
     public void DoDamage(bool PlayerRequest)
@@ -80,7 +85,7 @@ public class CombatManager : MonoBehaviour
         if (!PlayerRequest)//Enemy Doing Damage
         {
             //UI update
-            playerCurrentHealth =+ enemyDamage;
+            playerCurrentHealth += enemyDamage;
             playerSlider.value = playerCurrentHealth;
 
             checkHealthPoints();
@@ -95,7 +100,7 @@ public class CombatManager : MonoBehaviour
         else//Player Doing Damage
         {
             //UI update
-            enemyCurrentHealth =+ playerDamage;
+            enemyCurrentHealth += playerDamage;
             enemySlider.value = enemyCurrentHealth; 
 
             checkHealthPoints();
