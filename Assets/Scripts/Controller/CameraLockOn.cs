@@ -14,7 +14,7 @@ public class CameraLockOn : MonoBehaviour
 
     [Tooltip("Current Lookat Targer")]
     public Transform CurrentTarget { get; private set; }
-    public bool isLockedOn { get; private set; }
+    public bool isLockedOn { get; set; }
 
     [SerializeField] private float lockDistance = 20f;
 
@@ -65,7 +65,7 @@ public class CameraLockOn : MonoBehaviour
             Debug.Log("Locked onto " + CurrentTarget.name);
 
             isLockedOn = true;
-            scanningManager.BeginScan();
+            scanningManager.BeginScan(CurrentTarget.GetComponent<ScannableObject>());
         }
 
         Debug.Log($"After: isLockedOn = {isLockedOn}");

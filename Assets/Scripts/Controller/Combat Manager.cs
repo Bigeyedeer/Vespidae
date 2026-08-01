@@ -25,6 +25,9 @@ public class CombatManager : MonoBehaviour
     public float playerDamage = 10f;
     public float enemyDamage = 10f;
 
+    public ScanningManager scanningManager;
+    
+
     void Start()
     {
         playerSlider.maxValue = playerMaxHealth;
@@ -38,13 +41,20 @@ public class CombatManager : MonoBehaviour
     {
         if (other.gameObject.CompareTag("Target"))
         {
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
+
+            Debug.Log("Visible: " + Cursor.visible);
+            Debug.Log("Lock State: " + Cursor.lockState);
+
             battleArea.enabled = false; //turn off collider
             battleCanvas.SetActive(true); // turn on Combat UI
             playerInput.enabled = false; //turn off movement
             cameraLockOn.enabled = false; //turn off lock on
+            scanningManager.CancelScan();
+            //cameraLockOn.isLockedOn = false;
 
-            Cursor.visible = true;
-            Cursor.lockState = CursorLockMode.Confined;
+            
         }
     }
 
@@ -66,6 +76,7 @@ public class CombatManager : MonoBehaviour
 
         yield return new WaitForSeconds(3f);
         battleArea.enabled = true;
+        
     }
 
     public void ResetCombatValues()

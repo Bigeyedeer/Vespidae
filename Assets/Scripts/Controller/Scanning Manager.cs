@@ -1,12 +1,21 @@
 using System.Collections;
+using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class ScanningManager : MonoBehaviour
 {
-    [Header("UI")]
+    [Header("Universal UI")]
     public Image targetRadial;
-    public GameObject waspInfoPanel;
+    public Image targetNotification;
+
+    public GameObject InfoPanel;
+    public TextMeshProUGUI InfoTitle;
+    public Image InfoImage;
+    public TextMeshProUGUI InfoDescription;
+    public TextMeshProUGUI InfoType;
+    public Image InfoPanelColor;
 
     [Header("Settings")]
     public float scanDuration = 5f;
@@ -16,18 +25,25 @@ public class ScanningManager : MonoBehaviour
 
     private Coroutine scanCoroutine;
 
+    private ScannableObject currentObject;
+
     private void Start()
     {
         targetRadial.fillAmount = 1f;
         targetRadial.gameObject.SetActive(false);
-        waspInfoPanel.SetActive(false);
+        InfoPanel.SetActive(false);
     }
 
-    public void BeginScan()
+    public void BeginScan(ScannableObject target)
     {
-        if (scanCompleted)
+        currentObject = target;
+        targetRadial = target.radialTarget;
+        targetNotification = target.notificationImage;
+
+        if (currentObject.hasBeenScanned)
         {
-            waspInfoPanel.SetActive(true);
+            InfoPanel.SetActive(true);
+            UpdateInformation();
             return;
         }
 
@@ -50,14 +66,15 @@ public class ScanningManager : MonoBehaviour
 
         targetRadial.fillAmount = 1f;
         targetRadial.gameObject.SetActive(false);
-        waspInfoPanel.SetActive(false);
+        InfoPanel.SetActive(false);
+        targetNotification.gameObject.SetActive(false);
 
     }
 
     private IEnumerator ScanRoutine()
     {
         isScanning = true;
-        scanCompleted = false;
+        currentObject.hasBeenScanned = false;
 
         float timer = scanDuration;
 
@@ -74,22 +91,37 @@ public class ScanningManager : MonoBehaviour
         targetRadial.gameObject.SetActive(false);
 
         isScanning = false;
-        scanCompleted = true;
+        currentObject.hasBeenScanned = true;
 
-        DisplayWaspAttributes();
+        DisplayAttributes();
+        targetNotification.gameObject.SetActive(true);
 
         scanCoroutine = null;
     }
 
-    private void DisplayWaspAttributes()
+    private void DisplayAttributes()
     {
-       // Debug.Log("DisplayWaspAttributes called");
-        waspInfoPanel.SetActive(true);
+        // Debug.Log("DisplayWaspAttributes called");
+        UpdateInformation();
+        InfoPanel.SetActive(true);
     }
 
     public void ToggleAttributes()
     {
-        if (scanCompleted)
-            waspInfoPanel.SetActive(!waspInfoPanel.activeSelf);
+        if (currentObject.hasBeenScanned)
+        {
+            InfoPanel.SetActive(!InfoPanel.activeSelf);
+            targetNotification.enabled = !InfoPanel.activeSelf;
+        }
+            
+    }
+
+    public void UpdateInformation()
+    {
+        InfoTitle.text = currentObject.objectName;
+        InfoDescription.text = currentObject.description;
+        InfoImage = currentObject.objectImage;
+        InfoType.text = currentObject.scanType.ToString();
+        InfoPanelColor.color = currentObject.uiColor;
     }
 }
