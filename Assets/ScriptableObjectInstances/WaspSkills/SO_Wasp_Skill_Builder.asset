@@ -17,10 +17,20 @@ MonoBehaviour:
   description: Builds and repairs paper nest cells.
   effectSummary: Improves fibre construction and repair.
   maximumLevel: 3
+  trainingCost:
+    nectar: 0
+    prey: 0
+    fibre: 50
+    skillPoints: 0
   upgradeCost:
     nectar: 0
     prey: 0
     fibre: 50
+    skillPoints: 0
+  hiveConstructionCost:
+    nectar: 50
+    prey: 25
+    fibre: 100
     skillPoints: 0
   baseScoutingRange: 1
   baseMovementSpeed: 1

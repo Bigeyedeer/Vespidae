@@ -22,6 +22,12 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     private GameObject pauseMenu;
     private GameObject pauseMainButtons;
     private GameObject pauseOptions;
+    private GameObject builderHivePanel;
+    private TMP_Text builderHiveTitle;
+    private TMP_Text builderHiveDetails;
+    private TMP_Text builderHiveFeedback;
+    private Button builderHiveSpawnButton;
+    private WaspControl selectedBuilder;
     private Slider scrollSpeedSlider;
     private TMP_Text scrollSpeedValueText;
     private bool isPaused;
@@ -111,6 +117,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         BindButton("HiveTrain_Scout", TrainScout);
         BindButton("HiveTrain_Forager", TrainForager);
         BindButton("HiveTrain_Attacker", TrainAttacker);
+        BindButton("HiveTrain_Builder", TrainBuilder);
         BindButton("HiveTraining_Hide", HideHiveTraining);
     }
 
@@ -127,6 +134,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         }
 
         HideHiveTraining();
+        HideBuilderHivePanel();
     }
 
     public void OpenSkills()
@@ -170,6 +178,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         CloseWaspInfo();
         CloseSkills();
         HideHiveTraining();
+        HideBuilderHivePanel();
     }
 
     public void ReturnToPreviousView()
@@ -245,6 +254,142 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         ResumeGame();
         if (mainWorldNavigation != null)
             mainWorldNavigation.ReturnToMenu();
+    }
+
+    public void OpenBuilderHivePanel(WaspControl builder)
+    {
+        if (builder == null)
+            return;
+
+        selectedBuilder = builder;
+        CloseWaspInfo();
+        CloseSkills();
+        HideHiveTraining();
+        CreateBuilderHivePanel();
+        if (builderHivePanel != null)
+            builderHivePanel.SetActive(true);
+        RefreshBuilderHivePanel();
+    }
+
+    public void ReturnFromBuilderHivePanel()
+    {
+        HideBuilderHivePanel();
+        cameraFocus?.ReturnToPreviousView();
+    }
+
+    private void SpawnBuilderHive()
+    {
+        HiveManagement hive = HiveManagement.GetOrCreate();
+        bool created = hive != null && hive.TryBuildHive(selectedBuilder);
+        if (builderHiveFeedback == null)
+            return;
+
+        if (created)
+            builderHiveFeedback.text = "Native hive established on this territory.";
+        else
+            builderHiveFeedback.text = "Unable to establish a hive here.";
+        RefreshBuilderHivePanel();
+    }
+
+    private void HideBuilderHivePanel()
+    {
+        if (builderHivePanel != null)
+            builderHivePanel.SetActive(false);
+        selectedBuilder = null;
+    }
+
+    private void CreateBuilderHivePanel()
+    {
+        if (builderHivePanel != null)
+            return;
+
+        Canvas canvas = GetComponentInParent<Canvas>();
+        Transform parent = canvas != null ? canvas.transform : transform;
+        builderHivePanel = CreateUiObject(
+            "BuilderHivePanel",
+            parent,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+        Image backdrop = builderHivePanel.AddComponent<Image>();
+        backdrop.color = new Color(0.01f, 0.03f, 0.03f, 0.78f);
+
+        GameObject card = CreateUiObject(
+            "BuilderHiveCard",
+            builderHivePanel.transform,
+            new Vector2(0.5f, 0.5f),
+            new Vector2(0.5f, 0.5f),
+            Vector2.zero,
+            new Vector2(620f, 390f));
+        Image cardImage = card.AddComponent<Image>();
+        cardImage.color = new Color(0.055f, 0.11f, 0.1f, 0.98f);
+
+        builderHiveTitle = CreateText(
+            "BuilderHiveTitle",
+            card.transform,
+            "BUILDER DEPLOYMENT",
+            new Vector2(0f, 138f),
+            new Vector2(530f, 44f),
+            26f);
+        builderHiveDetails = CreateText(
+            "BuilderHiveDetails",
+            card.transform,
+            string.Empty,
+            new Vector2(0f, 44f),
+            new Vector2(520f, 132f),
+            18f);
+        builderHiveDetails.alignment = TextAlignmentOptions.TopLeft;
+        builderHiveFeedback = CreateText(
+            "BuilderHiveFeedback",
+            card.transform,
+            string.Empty,
+            new Vector2(0f, -80f),
+            new Vector2(520f, 34f),
+            15f);
+        builderHiveSpawnButton = CreateButton(
+            card.transform,
+            "BuilderHiveSpawn",
+            "SPAWN HIVE",
+            -132f,
+            SpawnBuilderHive);
+        CreateButton(
+            card.transform,
+            "BuilderHiveReturn",
+            "RETURN",
+            -200f,
+            ReturnFromBuilderHivePanel);
+        builderHivePanel.SetActive(false);
+    }
+
+    private void RefreshBuilderHivePanel()
+    {
+        if (selectedBuilder == null || builderHivePanel == null)
+            return;
+
+        HiveManagement hive = HiveManagement.GetOrCreate();
+        HexTile target = selectedBuilder.StationedHex;
+        SB_Wasp_Skill definition = hive != null ? hive.GetSkillDefinition(WaspFunction.Builder) : null;
+        WaspSkillCost cost = definition != null ? definition.HiveConstructionCost : default;
+        bool established = target != null && target.FriendlyHive != null;
+        bool canBuild = hive != null && hive.CanBuildHive(selectedBuilder);
+
+        if (builderHiveTitle != null)
+            builderHiveTitle.text = established ? "HIVE ESTABLISHED" : "BUILDER DEPLOYMENT";
+        if (builderHiveDetails != null)
+        {
+            builderHiveDetails.text =
+                $"Target territory: {(target != null ? target.HexName : "Unavailable")}\n\n" +
+                $"Construction cost\nNectar {cost.nectar:0}   Prey {cost.prey:0}   Fibre {cost.fibre:0}\n\n" +
+                (established
+                    ? "A friendly hive is already established on this hex."
+                    : "The Builder will remain stationed after construction.");
+        }
+
+        if (builderHiveSpawnButton != null)
+            builderHiveSpawnButton.interactable = canBuild;
+        if (builderHiveFeedback != null && string.IsNullOrEmpty(builderHiveFeedback.text))
+            builderHiveFeedback.text = established ? "Construction unavailable: hive already established." : string.Empty;
     }
 
     private void CreatePauseMenu()
@@ -460,6 +605,8 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         CloseWaspInfo();
         CloseSkills();
         BindSceneReferences();
+        EnsureBuilderTrainingControls();
+        ArrangeHiveTrainingLayout();
         Subscribe();
 
         if (hiveTrainingPanel != null)
@@ -490,9 +637,11 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
 
         SetRoleText(hive, WaspFunction.Scout, "Scout", "HiveTraining_ScoutInfo");
         SetRoleText(hive, WaspFunction.Forager, "Forager", "HiveTraining_ForagerInfo");
+        SetRoleText(hive, WaspFunction.Builder, "Builder", "HiveTraining_BuilderInfo");
         SetRoleText(hive, WaspFunction.Guard, "Attacker", "HiveTraining_AttackerInfo");
         SetTrainingButton(hive, WaspFunction.Scout, "HiveTrain_Scout", "Train Scout");
         SetTrainingButton(hive, WaspFunction.Forager, "HiveTrain_Forager", "Train Forager");
+        SetTrainingButton(hive, WaspFunction.Builder, "HiveTrain_Builder", "Train Builder");
         SetTrainingButton(hive, WaspFunction.Guard, "HiveTrain_Attacker", "Train Attacker");
         SetText("HiveTraining_Feedback", trainingFeedback);
     }
@@ -510,6 +659,85 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     private void TrainAttacker()
     {
         Train(WaspFunction.Guard);
+    }
+
+    private void TrainBuilder()
+    {
+        Train(WaspFunction.Builder);
+    }
+
+    private void EnsureBuilderTrainingControls()
+    {
+        if (hiveTrainingPanel == null || FindChild("HiveTrain_Builder") != null)
+            return;
+
+        CreateText(
+            "HiveTraining_BuilderInfo",
+            hiveTrainingPanel.transform,
+            "Builder: 0 total   0 available",
+            new Vector2(0f, -118f),
+            new Vector2(340f, 38f),
+            15f);
+        CreateButton(
+            hiveTrainingPanel.transform,
+            "HiveTrain_Builder",
+            "Train Builder",
+            -162f,
+            TrainBuilder);
+    }
+
+    private void ArrangeHiveTrainingLayout()
+    {
+        if (hiveTrainingPanel == null)
+            return;
+
+        RectTransform panelRect = hiveTrainingPanel.GetComponent<RectTransform>();
+        if (panelRect != null)
+            panelRect.sizeDelta = new Vector2(500f, 660f);
+
+        SetHiveTrainingRect("HiveTraining_Title", 0f, 278f, 440f, 38f);
+        SetHiveTrainingRect("HiveTraining_Subtitle", 0f, 240f, 440f, 28f);
+        SetHiveTrainingRect("HiveTraining_Resources", 0f, 205f, 440f, 30f);
+        SetHiveTrainingRect("HiveTraining_ScoutInfo", 0f, 154f, 420f, 26f);
+        SetHiveTrainingRect("HiveTrain_Scout", 0f, 116f, 400f, 46f);
+        SetHiveTrainingRect("HiveTraining_ForagerInfo", 0f, 65f, 420f, 26f);
+        SetHiveTrainingRect("HiveTrain_Forager", 0f, 27f, 400f, 46f);
+        SetHiveTrainingRect("HiveTraining_BuilderInfo", 0f, -24f, 420f, 26f);
+        SetHiveTrainingRect("HiveTrain_Builder", 0f, -62f, 400f, 46f);
+        SetHiveTrainingRect("HiveTraining_AttackerInfo", 0f, -113f, 420f, 26f);
+        SetHiveTrainingRect("HiveTrain_Attacker", 0f, -151f, 400f, 46f);
+        SetHiveTrainingRect("HiveTraining_Feedback", 0f, -218f, 440f, 30f);
+        SetHiveTrainingRect("HiveTraining_Hide", 0f, -274f, 240f, 42f);
+
+        SetTrainingLabelSize("HiveTrain_Scout");
+        SetTrainingLabelSize("HiveTrain_Forager");
+        SetTrainingLabelSize("HiveTrain_Builder");
+        SetTrainingLabelSize("HiveTrain_Attacker");
+    }
+
+    private void SetHiveTrainingRect(string objectName, float x, float y, float width, float height)
+    {
+        GameObject target = FindChild(objectName);
+        if (target == null)
+            return;
+
+        RectTransform rect = target.GetComponent<RectTransform>();
+        if (rect == null)
+            return;
+
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(x, y);
+        rect.sizeDelta = new Vector2(width, height);
+    }
+
+    private void SetTrainingLabelSize(string buttonName)
+    {
+        GameObject target = FindChild(buttonName);
+        TMP_Text label = target != null ? target.GetComponentInChildren<TMP_Text>(true) : null;
+        if (label != null)
+            label.fontSize = 14f;
     }
 
     private void Train(WaspFunction function)

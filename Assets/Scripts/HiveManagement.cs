@@ -244,6 +244,7 @@ public class HiveManagement : MonoBehaviour
 
             hive.Initialize(hexTile, friendlyWaspPrefab);
             spawnedFriendlyHives.Add(hive);
+            hexTile.SetFriendlyHive(hive);
             if (spawnOneFriendlyWasp)
             {
                 WaspControl starter = hive.SpawnWasp(friendlyWaspPrefab);
@@ -311,23 +312,53 @@ public class HiveManagement : MonoBehaviour
 
     public bool TryDispatchScout(HexTile target)
     {
-        if (target == null || HasScoutAssignedTo(target))
+        return TryDispatchWasp(target, WaspFunction.Scout);
+    }
+
+    public bool TryDispatchWasp(HexTile target, WaspFunction function)
+    {
+        if (!CanDispatchToHex(target, function))
             return false;
 
         CleanupFriendlyWasps();
         foreach (WaspControl wasp in friendlyWasps)
         {
             if (wasp == null ||
-                wasp.AssignedFunction != WaspFunction.Scout ||
+                wasp.AssignedFunction != function ||
                 !wasp.IsAvailable)
             {
                 continue;
             }
 
-            return wasp.DispatchToHex(target);
+            int formationIndex = target.FriendlyWaspCount + GetIncomingWaspCount(target);
+            Vector3 destination = target.GetWaspFormationPosition(formationIndex, 0.25f, 0.25f);
+            return wasp.DispatchToHex(target, destination);
         }
 
         return false;
+    }
+
+    public bool CanDispatchToHex(HexTile target, WaspFunction function)
+    {
+        if (target == null)
+            return false;
+
+        switch (function)
+        {
+            case WaspFunction.Scout:
+                if (target.State == HexTile.HexState.Unknown)
+                    return !HasScoutAssignedTo(target) && GetAvailableWaspCount(function) > 0;
+                return target.State == HexTile.HexState.Owned && GetAvailableWaspCount(function) > 0;
+            case WaspFunction.Forager:
+                return target.State == HexTile.HexState.Owned &&
+                       !target.ResourcesDepleted &&
+                       GetAssignedWaspCount(target, function) < target.MaximumForagersPerHex &&
+                       GetAvailableWaspCount(function) > 0;
+            case WaspFunction.Builder:
+                return target.State == HexTile.HexState.Owned && GetAvailableWaspCount(function) > 0;
+            default:
+                return false;
+        }
     }
 
     public int GetTotalWaspCount(WaspFunction function)
@@ -376,6 +407,93 @@ public class HiveManagement : MonoBehaviour
         }
 
         return false;
+    }
+
+    public int GetAssignedWaspCount(HexTile hex, WaspFunction function)
+    {
+        if (hex == null)
+            return 0;
+
+        CleanupFriendlyWasps();
+        int count = 0;
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp != null &&
+                wasp.AssignedFunction == function &&
+                (wasp.TargetHex == hex || wasp.StationedHex == hex))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private int GetIncomingWaspCount(HexTile hex)
+    {
+        int count = 0;
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp != null && wasp.TargetHex == hex)
+                count++;
+        }
+
+        return count;
+    }
+
+    public bool TryBuildHive(WaspControl builder)
+    {
+        if (!CanBuildHive(builder))
+            return false;
+
+        HexTile target = builder.StationedHex;
+        SB_Wasp_Skill definition = GetSkillDefinition(WaspFunction.Builder);
+        ResourceManager resources = GetResourceManager();
+        WaspSkillCost cost = definition.HiveConstructionCost;
+        if (!resources.TrySpend(cost.nectar, cost.prey, cost.fibre))
+            return false;
+
+        Transform spawnPoint = target.HiveSpawnPoint;
+        GameObject hiveObject = Instantiate(friendlyHivePrefab, spawnPoint.position, spawnPoint.rotation);
+        C_Friendly_Hive_Orc hive = hiveObject.GetComponent<C_Friendly_Hive_Orc>();
+        if (hive == null)
+        {
+            Destroy(hiveObject);
+            Refund(cost);
+            return false;
+        }
+
+        hive.Initialize(target, friendlyWaspPrefab);
+        spawnedFriendlyHives.Add(hive);
+        target.SetFriendlyHive(hive);
+        NotifyWorkforceChanged();
+        return true;
+    }
+
+    public bool CanBuildHive(WaspControl builder)
+    {
+        if (builder == null ||
+            builder.AssignedFunction != WaspFunction.Builder ||
+            builder.WorkforceState != WaspWorkforceState.Stationed)
+        {
+            return false;
+        }
+
+        HexTile target = builder.StationedHex;
+        SB_Wasp_Skill definition = GetSkillDefinition(WaspFunction.Builder);
+        ResourceManager resources = GetResourceManager();
+        if (target == null ||
+            target.State != HexTile.HexState.Owned ||
+            target.FriendlyHive != null ||
+            definition == null ||
+            resources == null ||
+            friendlyHivePrefab == null)
+        {
+            return false;
+        }
+
+        WaspSkillCost cost = definition.HiveConstructionCost;
+        return resources.CanAfford(cost.nectar, cost.prey, cost.fibre);
     }
 
     public void RegisterFriendlyWasp(WaspControl wasp)

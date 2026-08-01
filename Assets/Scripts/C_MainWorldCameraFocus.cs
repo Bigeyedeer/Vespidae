@@ -331,8 +331,7 @@ public class C_MainWorldCameraFocus : MonoBehaviour
         closeUpActive = true;
         isTransitioning = false;
 
-        if (waspInfoPanel != null && wasp != null)
-            waspInfoPanel.Open(wasp);
+        OpenWaspView(wasp);
     }
 
     private IEnumerator BlendCloseUpToWasp(WaspInfo wasp)
@@ -393,8 +392,27 @@ public class C_MainWorldCameraFocus : MonoBehaviour
 
         isTransitioning = false;
 
-        if (waspInfoPanel != null)
-            waspInfoPanel.Open(wasp);
+        OpenWaspView(wasp);
+    }
+
+    private void OpenWaspView(WaspInfo wasp)
+    {
+        if (wasp == null)
+            return;
+
+        WaspControl control = wasp.GetComponentInParent<WaspControl>();
+        if (control != null &&
+            control.AssignedFunction == WaspFunction.Builder &&
+            control.WorkforceState == WaspWorkforceState.Stationed &&
+            control.StationedHex != null &&
+            control.StationedHex.State == HexTile.HexState.Owned)
+        {
+            waspInfoPanel?.Close();
+            C_MainWorldOverlayNavigation.Instance?.OpenBuilderHivePanel(control);
+            return;
+        }
+
+        waspInfoPanel?.Open(wasp);
     }
 
     private IEnumerator BlendCloseUpToPoint(Vector3 targetPosition, Vector3 lookPosition)

@@ -14,10 +14,22 @@ public class HexOptionsPanel : MonoBehaviour
     [SerializeField] private TMP_Text primaryActionButtonText;
 
     private HexTile selectedHex;
+    private Button foragerActionButton;
+    private Button builderActionButton;
+    private TMP_Text foragerActionButtonText;
+    private TMP_Text builderActionButtonText;
+    private RectTransform primaryActionRect;
+    private Vector2 primaryDefaultPosition;
+    private Vector2 primaryDefaultSize;
     private string actionFeedback;
     private HexTile.HexState displayedState;
     private bool displayedScouting;
     private int displayedSeconds = int.MinValue;
+
+    private void Awake()
+    {
+        EnsureDispatchButtons();
+    }
 
     private void Update()
     {
@@ -41,7 +53,9 @@ public class HexOptionsPanel : MonoBehaviour
         if (hex == null)
             return;
 
+        UnsubscribeFromHex();
         selectedHex = hex;
+        selectedHex.ResourcesChanged += OnHexResourcesChanged;
         actionFeedback = string.Empty;
         displayedSeconds = int.MinValue;
         gameObject.SetActive(true);
@@ -54,6 +68,7 @@ public class HexOptionsPanel : MonoBehaviour
         if (selectedHex == null)
             return;
 
+        EnsureDispatchButtons();
         displayedState = selectedHex.State;
         displayedScouting = selectedHex.IsScouting;
         displayedSeconds = selectedHex.IsScouting
@@ -65,30 +80,10 @@ public class HexOptionsPanel : MonoBehaviour
         if (stateText != null)
             stateText.text = $"Status: {selectedHex.State}";
 
-        if (discoveryText != null)
-        {
-            if (selectedHex.State == HexTile.HexState.Unknown)
-            {
-                discoveryText.text = string.IsNullOrEmpty(actionFeedback)
-                    ? "Contents: Unknown"
-                    : actionFeedback;
-            }
-            else
-            {
-                discoveryText.text =
-                    $"Contents: {selectedHex.Content}\n" +
-                    $"Prey remaining: {selectedHex.PreyRemaining:0.##}\n" +
-                    $"Nectar remaining: {selectedHex.NectarRemaining:0.##}\n" +
-                    $"Fibre remaining: {selectedHex.FibreRemaining:0.##}\n" +
-                    $"Gather tick: {selectedHex.GatheringTickIntervalSeconds:0.##} seconds";
-            }
-        }
-
+        RefreshDetails();
+        HideDispatchButtons();
         if (primaryActionButton == null)
             return;
-
-        primaryActionButton.onClick.RemoveAllListeners();
-        primaryActionButton.gameObject.SetActive(true);
 
         switch (selectedHex.State)
         {
@@ -96,62 +91,69 @@ public class HexOptionsPanel : MonoBehaviour
                 ConfigureScoutAction();
                 break;
             case HexTile.HexState.Scouted:
-                SetAction("Claim Land", ClaimSelectedHex);
+                SetSingleAction("Claim Land", ClaimSelectedHex, true);
                 break;
             case HexTile.HexState.Owned:
                 ConfigureOwnedHex();
                 break;
             case HexTile.HexState.Enemy:
-                SetAction("Attack Hex", null);
+                SetSingleAction("Enemy Territory", null, false);
                 break;
             case HexTile.HexState.Locked:
-                primaryActionButton.gameObject.SetActive(false);
                 if (discoveryText != null)
                     discoveryText.text = "This territory is currently locked.";
                 break;
         }
     }
 
+    private void RefreshDetails()
+    {
+        if (discoveryText == null)
+            return;
+
+        if (selectedHex.State == HexTile.HexState.Unknown)
+        {
+            discoveryText.text = string.IsNullOrEmpty(actionFeedback)
+                ? "Contents: Unknown\nSend one Scout to survey this territory."
+                : actionFeedback;
+            return;
+        }
+
+        int foragerCount = selectedHex.GetFriendlyWaspCount(WaspFunction.Forager);
+        discoveryText.text =
+            $"Contents: {selectedHex.Content}\n" +
+            $"Prey remaining: {selectedHex.PreyRemaining:0}\n" +
+            $"Nectar remaining: {selectedHex.NectarRemaining:0}\n" +
+            $"Fibre remaining: {selectedHex.FibreRemaining:0}\n" +
+            $"Foragers: {foragerCount}/{selectedHex.MaximumForagersPerHex}\n" +
+            $"Auto production / {selectedHex.GatheringTickIntervalSeconds:0.#} sec: " +
+            $"P +{selectedHex.GetPreyGatherAmount(foragerCount):0}  " +
+            $"N +{selectedHex.GetNectarGatherAmount(foragerCount):0}  " +
+            $"F +{selectedHex.GetFibreGatherAmount(foragerCount):0}";
+    }
+
     private void ConfigureOwnedHex()
     {
-        bool hasPrey = selectedHex.HasPrey;
-        bool hasNectar = selectedHex.HasNectar;
-        bool hasFibre = selectedHex.HasFibre;
-
-        if (hasPrey || hasNectar || hasFibre)
-        {
-            string label = $"Gather P +{selectedHex.GetPreyGatherAmount(1):0.##} / " +
-                           $"N +{selectedHex.GetNectarGatherAmount(1):0.##} / " +
-                           $"F +{selectedHex.GetFibreGatherAmount(1):0.##}";
-            SetAction(label, GatherResources);
-        }
-        else
-        {
-            primaryActionButton.gameObject.SetActive(false);
-            if (discoveryText != null)
-                discoveryText.text = "Safe territory secured.";
-        }
-    }
-
-    private void SetAction(string label, UnityEngine.Events.UnityAction action)
-    {
-        if (primaryActionButtonText != null)
-            primaryActionButtonText.text = label;
-
-        primaryActionButton.interactable = action != null;
-        if (action != null)
-            primaryActionButton.onClick.AddListener(action);
-    }
-
-    private void ScoutSelectedHex()
-    {
         HiveManagement hive = HiveManagement.GetOrCreate();
-        bool dispatched = hive != null && hive.TryDispatchScout(selectedHex);
-        actionFeedback = dispatched
-            ? "Scout dispatched. The territory remains unknown until scouting is resolved."
-            : "No available Scout can be sent to this territory.";
-        C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(selectedHex);
-        RefreshPanel();
+        ConfigureDispatchLayout();
+        SetDispatchAction(
+            primaryActionButton,
+            primaryActionButtonText,
+            WaspFunction.Scout,
+            "Scout",
+            hive);
+        SetDispatchAction(
+            foragerActionButton,
+            foragerActionButtonText,
+            WaspFunction.Forager,
+            "Forager",
+            hive);
+        SetDispatchAction(
+            builderActionButton,
+            builderActionButtonText,
+            WaspFunction.Builder,
+            "Builder",
+            hive);
     }
 
     private void ConfigureScoutAction()
@@ -160,21 +162,64 @@ public class HexOptionsPanel : MonoBehaviour
         {
             int secondsRemaining = Mathf.CeilToInt(selectedHex.ScoutingTimeRemaining);
             actionFeedback = $"Scout surveying territory. {secondsRemaining} seconds remaining.";
-            SetAction($"Scouting... {secondsRemaining}s", null);
+            SetSingleAction($"Scouting... {secondsRemaining}s", null, false);
             return;
         }
 
         HiveManagement hive = HiveManagement.GetOrCreate();
         bool alreadyAssigned = hive != null && hive.HasScoutAssignedTo(selectedHex);
-        bool available = hive != null && hive.GetAvailableWaspCount(WaspFunction.Scout) > 0;
-
+        bool available = hive != null && hive.CanDispatchToHex(selectedHex, WaspFunction.Scout);
         if (alreadyAssigned)
         {
-            SetAction(selectedHex.HasFriendlyScout ? "Scout Stationed" : "Scout En Route", null);
+            SetSingleAction(selectedHex.HasFriendlyScout ? "Scout Stationed" : "Scout En Route", null, false);
             return;
         }
 
-        SetAction(available ? "Send Scout" : "No Scout Available", available ? ScoutSelectedHex : null);
+        SetSingleAction(available ? "Send Scout" : "No Scout Available", ScoutSelectedHex, available);
+    }
+
+    private void SetDispatchAction(Button button, TMP_Text text, WaspFunction role, string label, HiveManagement hive)
+    {
+        if (button == null)
+            return;
+
+        int available = hive != null ? hive.GetAvailableWaspCount(role) : 0;
+        bool canDispatch = hive != null && hive.CanDispatchToHex(selectedHex, role);
+        button.gameObject.SetActive(true);
+        button.onClick.RemoveAllListeners();
+        button.interactable = canDispatch;
+        if (text != null)
+            text.text = $"{label}\n{available} available";
+        if (canDispatch)
+            button.onClick.AddListener(() => Dispatch(role));
+    }
+
+    private void SetSingleAction(string label, UnityEngine.Events.UnityAction action, bool interactable)
+    {
+        RestorePrimaryLayout();
+        primaryActionButton.gameObject.SetActive(true);
+        primaryActionButton.onClick.RemoveAllListeners();
+        primaryActionButton.interactable = interactable && action != null;
+        if (primaryActionButtonText != null)
+            primaryActionButtonText.text = label;
+        if (action != null)
+            primaryActionButton.onClick.AddListener(action);
+    }
+
+    private void ScoutSelectedHex()
+    {
+        Dispatch(WaspFunction.Scout);
+    }
+
+    private void Dispatch(WaspFunction role)
+    {
+        HiveManagement hive = HiveManagement.GetOrCreate();
+        bool dispatched = hive != null && hive.TryDispatchWasp(selectedHex, role);
+        actionFeedback = dispatched
+            ? $"{role} dispatched to {selectedHex.HexName}."
+            : $"No available {role} can be sent to this territory.";
+        C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(selectedHex);
+        RefreshPanel();
     }
 
     private void ClaimSelectedHex()
@@ -184,20 +229,74 @@ public class HexOptionsPanel : MonoBehaviour
         RefreshPanel();
     }
 
-    private void GatherResources()
+    private void EnsureDispatchButtons()
     {
-        if (selectedHex.HasPrey)
-            selectedHex.GatherPrey();
-        if (selectedHex.HasNectar)
-            selectedHex.GatherNectar(1);
-        if (selectedHex.HasFibre)
-            selectedHex.GatherFibre(1);
-        RefreshPanel();
+        if (primaryActionButton == null || foragerActionButton != null || builderActionButton != null)
+            return;
+
+        primaryActionRect = primaryActionButton.GetComponent<RectTransform>();
+        if (primaryActionRect == null)
+            return;
+
+        primaryDefaultPosition = primaryActionRect.anchoredPosition;
+        primaryDefaultSize = primaryActionRect.sizeDelta;
+        foragerActionButton = CreateActionClone("Send Forager Button", out foragerActionButtonText);
+        builderActionButton = CreateActionClone("Send Builder Button", out builderActionButtonText);
+        HideDispatchButtons();
+    }
+
+    private Button CreateActionClone(string objectName, out TMP_Text text)
+    {
+        GameObject clone = Instantiate(primaryActionButton.gameObject, primaryActionButton.transform.parent);
+        clone.name = objectName;
+        Button button = clone.GetComponent<Button>();
+        button.onClick.RemoveAllListeners();
+        text = clone.GetComponentInChildren<TMP_Text>(true);
+        clone.SetActive(false);
+        return button;
+    }
+
+    private void ConfigureDispatchLayout()
+    {
+        RectTransform[] buttons =
+        {
+            primaryActionButton.GetComponent<RectTransform>(),
+            foragerActionButton != null ? foragerActionButton.GetComponent<RectTransform>() : null,
+            builderActionButton != null ? builderActionButton.GetComponent<RectTransform>() : null
+        };
+
+        float width = 136f;
+        for (int index = 0; index < buttons.Length; index++)
+        {
+            if (buttons[index] == null)
+                continue;
+
+            buttons[index].anchoredPosition = new Vector2(24f + index * 148f, primaryDefaultPosition.y);
+            buttons[index].sizeDelta = new Vector2(width, primaryDefaultSize.y);
+        }
+    }
+
+    private void RestorePrimaryLayout()
+    {
+        if (primaryActionRect == null)
+            return;
+
+        primaryActionRect.anchoredPosition = primaryDefaultPosition;
+        primaryActionRect.sizeDelta = primaryDefaultSize;
+    }
+
+    private void HideDispatchButtons()
+    {
+        if (foragerActionButton != null)
+            foragerActionButton.gameObject.SetActive(false);
+        if (builderActionButton != null)
+            builderActionButton.gameObject.SetActive(false);
     }
 
     public void Close()
     {
         UnsubscribeFromWorkforce();
+        UnsubscribeFromHex();
         selectedHex = null;
         gameObject.SetActive(false);
     }
@@ -205,6 +304,7 @@ public class HexOptionsPanel : MonoBehaviour
     private void OnDisable()
     {
         UnsubscribeFromWorkforce();
+        UnsubscribeFromHex();
     }
 
     private void SubscribeToWorkforce()
@@ -221,5 +321,16 @@ public class HexOptionsPanel : MonoBehaviour
     {
         if (HiveManagement.Instance != null)
             HiveManagement.Instance.WorkforceChanged -= RefreshPanel;
+    }
+
+    private void UnsubscribeFromHex()
+    {
+        if (selectedHex != null)
+            selectedHex.ResourcesChanged -= OnHexResourcesChanged;
+    }
+
+    private void OnHexResourcesChanged(HexTile hex)
+    {
+        RefreshPanel();
     }
 }

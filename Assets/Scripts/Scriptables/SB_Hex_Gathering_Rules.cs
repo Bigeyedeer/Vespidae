@@ -15,27 +15,28 @@ public class SB_Hex_Gathering_Rules : ScriptableObject
     [SerializeField, Min(0f)] private float fibrePerWaspPerTick;
 
     [Header("Gathering Limits")]
-    [SerializeField, Min(1)] private int maximumGatheringWasps = 20;
+    [FormerlySerializedAs("maximumGatheringWasps")]
+    [SerializeField, Min(1)] private int maximumForagersPerHex = 5;
 
     public float GatheringTickIntervalSeconds => gatheringTickIntervalSeconds;
     public float PreyPerWaspPerTick => preyPerWaspPerTick;
     public float NectarPerWaspPerTick => nectarPerWaspPerTick;
     public float FibrePerWaspPerTick => fibrePerWaspPerTick;
-    public int MaximumGatheringWasps => maximumGatheringWasps;
+    public int MaximumForagersPerHex => maximumForagersPerHex;
 
     public float GetPreyAmount(int waspCount)
     {
-        return Mathf.Clamp(waspCount, 0, maximumGatheringWasps) * preyPerWaspPerTick;
+        return Mathf.Clamp(waspCount, 0, maximumForagersPerHex) * preyPerWaspPerTick;
     }
 
     public float GetNectarAmount(int waspCount)
     {
-        return Mathf.Clamp(waspCount, 0, maximumGatheringWasps) * nectarPerWaspPerTick;
+        return Mathf.Clamp(waspCount, 0, maximumForagersPerHex) * nectarPerWaspPerTick;
     }
 
     public float GetFibreAmount(int waspCount)
     {
-        return Mathf.Clamp(waspCount, 0, maximumGatheringWasps) * fibrePerWaspPerTick;
+        return Mathf.Clamp(waspCount, 0, maximumForagersPerHex) * fibrePerWaspPerTick;
     }
 
 #if UNITY_EDITOR
@@ -48,7 +49,7 @@ public class SB_Hex_Gathering_Rules : ScriptableObject
         gatheringTickIntervalSeconds = Mathf.Max(0.1f, tickInterval);
         preyPerWaspPerTick = Mathf.Max(0f, preyPerWasp);
         nectarPerWaspPerTick = Mathf.Max(0f, nectarPerWasp);
-        maximumGatheringWasps = Mathf.Max(1, maximumWasps);
+        maximumForagersPerHex = Mathf.Max(1, maximumWasps);
     }
 #endif
 }

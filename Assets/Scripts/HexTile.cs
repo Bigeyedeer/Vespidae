@@ -26,9 +26,11 @@ public class HexTile : MonoBehaviour
     private float currentNectar;
     private float currentFibre;
     private bool resourcesInitialized;
+    private float gatheringTickElapsed;
     private readonly HashSet<WaspControl> friendlyWasps = new HashSet<WaspControl>();
     private readonly HashSet<EnemyWaspControl> enemyWasps = new HashSet<EnemyWaspControl>();
     private Collider formationCollider;
+    private C_Friendly_Hive_Orc friendlyHive;
 
     [Header("Hex Materials")]
     [SerializeField] private Renderer hexRenderer;
@@ -70,9 +72,15 @@ public class HexTile : MonoBehaviour
     public float NectarRemaining => currentNectar;
     public float FibreRemaining => currentFibre;
     public float GatheringTickIntervalSeconds => gatheringRules != null ? gatheringRules.GatheringTickIntervalSeconds : 0f;
+    public int MaximumForagersPerHex => gatheringRules != null ? gatheringRules.MaximumForagersPerHex : 0;
+    public bool ResourcesDepleted =>
+        (!HasPrey || PreyRemaining <= 0f) &&
+        (!HasNectar || NectarRemaining <= 0f) &&
+        (!HasFibre || FibreRemaining <= 0f);
 
     public Vector3 FocusPosition => focusPoint != null ? focusPoint.position : transform.position;
     public Transform HiveSpawnPoint => hiveSpawnPoint != null ? hiveSpawnPoint : transform.Find("HiveSpawnpoint") ?? transform;
+    public C_Friendly_Hive_Orc FriendlyHive => friendlyHive;
     public bool HasFriendlyScout => GetFriendlyWaspCount(WaspFunction.Scout) > 0;
     public IReadOnlyCollection<WaspControl> FriendlyWasps => friendlyWasps;
     public int FriendlyWaspCount
@@ -95,6 +103,7 @@ public class HexTile : MonoBehaviour
     public float ScoutingDuration => scoutingDuration;
     public float ScoutingTimeRemaining => scoutingTimeRemaining;
     public event Action<HexTile> TerritoryInformationChanged;
+    public event Action<HexTile> ResourcesChanged;
 
     public Vector3 GetWaspFormationPosition(
         int spawnIndex,
@@ -126,6 +135,12 @@ public class HexTile : MonoBehaviour
 
     private void Update()
     {
+        UpdateScouting();
+        UpdateGathering();
+    }
+
+    private void UpdateScouting()
+    {
         if (!scoutingInProgress)
             return;
 
@@ -142,6 +157,33 @@ public class HexTile : MonoBehaviour
         scoutingInProgress = false;
         Scout();
         C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(this);
+    }
+
+    private void UpdateGathering()
+    {
+        int foragerCount = GetFriendlyWaspCount(WaspFunction.Forager);
+        if (state != HexState.Owned || foragerCount <= 0 || gatheringRules == null)
+        {
+            gatheringTickElapsed = 0f;
+            return;
+        }
+
+        gatheringTickElapsed += Time.deltaTime;
+        if (gatheringTickElapsed < gatheringRules.GatheringTickIntervalSeconds)
+            return;
+
+        gatheringTickElapsed = 0f;
+        if (HasPrey && PreyRemaining > 0f)
+            GatherPrey(foragerCount);
+        if (HasNectar && NectarRemaining > 0f)
+            GatherNectar(foragerCount);
+        if (HasFibre && FibreRemaining > 0f)
+            GatherFibre(foragerCount);
+        ResourcesChanged?.Invoke(this);
+        C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(this);
+
+        if (ResourcesDepleted)
+            ReturnForagersToHive();
     }
 
     private void OnValidate()
@@ -196,6 +238,8 @@ public class HexTile : MonoBehaviour
             scoutingInProgress = true;
             scoutingTimeRemaining = scoutingDuration;
         }
+
+        ResourcesChanged?.Invoke(this);
     }
 
     public void UnregisterFriendlyWasp(WaspControl wasp)
@@ -207,6 +251,7 @@ public class HexTile : MonoBehaviour
             CancelScoutingCountdown();
 
         SynchronizeRuntimeTerritoryInformation();
+        ResourcesChanged?.Invoke(this);
     }
 
     public int GetFriendlyWaspCount(WaspFunction function)
@@ -302,6 +347,7 @@ public class HexTile : MonoBehaviour
         float gatheredAmount = Mathf.Min(requestedAmount, currentPrey);
         currentPrey -= gatheredAmount;
         ResourceManager.Instance.AddPrey(gatheredAmount);
+        ResourcesChanged?.Invoke(this);
         return gatheredAmount;
     }
 
@@ -315,6 +361,7 @@ public class HexTile : MonoBehaviour
         float gatheredAmount = Mathf.Min(requestedAmount, currentNectar);
         currentNectar -= gatheredAmount;
         ResourceManager.Instance.AddNectar(gatheredAmount);
+        ResourcesChanged?.Invoke(this);
         return gatheredAmount;
     }
 
@@ -328,6 +375,7 @@ public class HexTile : MonoBehaviour
         float gatheredAmount = Mathf.Min(requestedAmount, currentFibre);
         currentFibre -= gatheredAmount;
         ResourceManager.Instance.AddFibre(gatheredAmount);
+        ResourcesChanged?.Invoke(this);
         return gatheredAmount;
     }
 
@@ -367,6 +415,24 @@ public class HexTile : MonoBehaviour
         }
 
         return true;
+    }
+
+    public void SetFriendlyHive(C_Friendly_Hive_Orc hive)
+    {
+        friendlyHive = hive;
+    }
+
+    private void ReturnForagersToHive()
+    {
+        List<WaspControl> returningForagers = new List<WaspControl>();
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp != null && wasp.AssignedFunction == WaspFunction.Forager)
+                returningForagers.Add(wasp);
+        }
+
+        foreach (WaspControl wasp in returningForagers)
+            wasp.ReturnToHomeHive();
     }
 
     private void InitializeRuntimeResources()

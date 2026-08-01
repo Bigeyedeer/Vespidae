@@ -26,6 +26,10 @@ public class WaspControl : MonoBehaviour
     private HexTile stationedHex;
     private WaspWorkforceState workforceState = WaspWorkforceState.Idle;
     private GameObject navigationProxy;
+    private bool returningToHive;
+    private Vector3 homePosition;
+    private Vector3 stationaryNavPosition;
+    private bool hasStationaryPosition;
 
     public WaspInfo WaspInfo => waspInfo;
     public SB_Wasps_Info SpeciesInfo => waspInfo != null ? waspInfo.SpeciesInfo : null;
@@ -59,6 +63,15 @@ public class WaspControl : MonoBehaviour
     {
         if (navMeshAgent == null || !navMeshAgent.enabled || !navMeshAgent.isOnNavMesh)
             return;
+
+        if (workforceState != WaspWorkforceState.Travelling && hasStationaryPosition)
+        {
+            if ((navMeshAgent.nextPosition - stationaryNavPosition).sqrMagnitude > 0.0001f)
+                navMeshAgent.Warp(stationaryNavPosition);
+
+            transform.position = stationaryNavPosition + Vector3.up * flightHeight;
+            return;
+        }
 
         transform.position = navMeshAgent.nextPosition + Vector3.up * flightHeight;
 
@@ -116,15 +129,29 @@ public class WaspControl : MonoBehaviour
         targetHex = null;
         stationedHex = null;
         hasDestination = false;
-        return PlaceOnNavMesh(transform.position);
+        returningToHive = false;
+        homePosition = transform.position;
+        bool placed = PlaceOnNavMesh(homePosition);
+        if (placed)
+        {
+            homePosition = navMeshAgent.nextPosition;
+            SetStationaryPosition(homePosition);
+        }
+
+        return placed;
     }
 
     public bool DispatchToHex(HexTile hex)
     {
+        return DispatchToHex(hex, hex != null ? hex.transform.position : Vector3.zero);
+    }
+
+    public bool DispatchToHex(HexTile hex, Vector3 targetPosition)
+    {
         if (hex == null || !IsAvailable)
             return false;
 
-        if (!EnsureAgentOnNavMesh() || !TrySamplePosition(hex.transform.position, out NavMeshHit hit))
+        if (!EnsureAgentOnNavMesh() || !TrySamplePosition(targetPosition, out NavMeshHit hit))
             return false;
 
         if (stationedHex != null)
@@ -132,6 +159,8 @@ public class WaspControl : MonoBehaviour
 
         targetHex = hex;
         stationedHex = null;
+        returningToHive = false;
+        hasStationaryPosition = false;
         destination = hit.position;
         hasDestination = TrySetPath(destination);
         if (!hasDestination)
@@ -153,11 +182,39 @@ public class WaspControl : MonoBehaviour
         targetHex = null;
         stationedHex = null;
         hasDestination = false;
+        returningToHive = false;
         workforceState = WaspWorkforceState.Idle;
         if (navMeshAgent != null && navMeshAgent.enabled && navMeshAgent.isOnNavMesh)
             navMeshAgent.ResetPath();
 
         HiveManagement.Instance?.NotifyWorkforceChanged();
+    }
+
+    public bool ReturnToHomeHive()
+    {
+        if (homeHive == null || workforceState != WaspWorkforceState.Stationed)
+            return false;
+
+        if (!EnsureAgentOnNavMesh() || !TrySamplePosition(homePosition, out NavMeshHit hit))
+            return false;
+
+        HexTile previousHex = stationedHex;
+        stationedHex = null;
+        targetHex = null;
+        destination = hit.position;
+        hasDestination = TrySetPath(destination);
+        if (!hasDestination)
+        {
+            stationedHex = previousHex;
+            return false;
+        }
+
+        previousHex?.UnregisterFriendlyWasp(this);
+        returningToHive = true;
+        hasStationaryPosition = false;
+        workforceState = WaspWorkforceState.Travelling;
+        HiveManagement.Instance?.NotifyWorkforceChanged();
+        return true;
     }
 
     private void ConfigureAgent()
@@ -247,11 +304,30 @@ public class WaspControl : MonoBehaviour
     {
         navMeshAgent.ResetPath();
         hasDestination = false;
+
+        if (returningToHive)
+        {
+            returningToHive = false;
+            targetHex = null;
+            stationedHex = null;
+            workforceState = WaspWorkforceState.Idle;
+            SetStationaryPosition(navMeshAgent.nextPosition);
+            HiveManagement.Instance?.NotifyWorkforceChanged();
+            return;
+        }
+
         stationedHex = targetHex;
         targetHex = null;
         workforceState = WaspWorkforceState.Stationed;
+        SetStationaryPosition(navMeshAgent.nextPosition);
         stationedHex?.RegisterFriendlyWasp(this);
         HiveManagement.Instance?.NotifyWorkforceChanged();
+    }
+
+    private void SetStationaryPosition(Vector3 position)
+    {
+        stationaryNavPosition = position;
+        hasStationaryPosition = true;
     }
 
     private void OnDestroy()
