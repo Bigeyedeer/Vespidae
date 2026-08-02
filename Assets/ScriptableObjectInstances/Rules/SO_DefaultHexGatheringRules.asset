@@ -16,4 +16,4 @@ MonoBehaviour:
   preyPerWaspPerTick: 10
   nectarPerWaspPerTick: 20
   fibrePerWaspPerTick: 0
-  maximumForagersPerHex: 5
+  maximumForagersPerHex: 20
