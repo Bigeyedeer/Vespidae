@@ -58,13 +58,6 @@ public class EnemyHiveControl : MonoBehaviour
             Register(wasp);
 
         SpawnEnemyStartup();
-
-        // TEMP TEST
-        foreach (EnemyWaspControl wasp in PrimaryInvasiveFaction)
-        {
-            if (wasp != null)
-                wasp.SetDestination(wasp.transform.position + Vector3.forward * 8f);
-        }
     }
     
     private void Update()

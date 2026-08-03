@@ -1,3 +1,4 @@
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -29,6 +30,7 @@ public class HexOptionsPanel : MonoBehaviour
     private void Awake()
     {
         EnsureDispatchButtons();
+        ConfigureInformationLayout();
     }
 
     private void Update()
@@ -113,23 +115,101 @@ public class HexOptionsPanel : MonoBehaviour
 
         if (selectedHex.State == HexTile.HexState.Unknown)
         {
-            discoveryText.text = string.IsNullOrEmpty(actionFeedback)
+            string unknownDetails = string.IsNullOrEmpty(actionFeedback)
                 ? "Contents: Unknown\nSend one Scout to survey this territory."
                 : actionFeedback;
+            discoveryText.text = $"{unknownDetails}\n\n{BuildFriendlyWaspDetails()}";
             return;
         }
 
         int foragerCount = selectedHex.GetFriendlyWaspCount(WaspFunction.Forager);
         discoveryText.text =
-            $"Contents: {selectedHex.Content}\n" +
-            $"Prey remaining: {selectedHex.PreyRemaining:0}\n" +
-            $"Nectar remaining: {selectedHex.NectarRemaining:0}\n" +
-            $"Fibre remaining: {selectedHex.FibreRemaining:0}\n" +
-            $"Foragers: {foragerCount}/{selectedHex.MaximumForagersPerHex}\n" +
-            $"Auto production / {selectedHex.GatheringTickIntervalSeconds:0.#} sec: " +
-            $"P +{selectedHex.GetPreyGatherAmount(foragerCount):0}  " +
-            $"N +{selectedHex.GetNectarGatherAmount(foragerCount):0}  " +
-            $"F +{selectedHex.GetFibreGatherAmount(foragerCount):0}";
+            $"{BuildResourceDetails(foragerCount)}\n\n{BuildFriendlyWaspDetails()}";
+    }
+
+    private string BuildResourceDetails(int foragerCount)
+    {
+        StringBuilder details = new StringBuilder();
+        StringBuilder names = new StringBuilder();
+        StringBuilder production = new StringBuilder();
+
+        AppendResource(
+            selectedHex.HasPrey,
+            "Prey",
+            selectedHex.PreyRemaining,
+            selectedHex.GetPreyGatherAmount(foragerCount),
+            names,
+            details,
+            production);
+        AppendResource(
+            selectedHex.HasNectar,
+            "Nectar",
+            selectedHex.NectarRemaining,
+            selectedHex.GetNectarGatherAmount(foragerCount),
+            names,
+            details,
+            production);
+        AppendResource(
+            selectedHex.HasFibre,
+            "Fibre",
+            selectedHex.FibreRemaining,
+            selectedHex.GetFibreGatherAmount(foragerCount),
+            names,
+            details,
+            production);
+
+        if (names.Length == 0)
+            return "Resources: None";
+
+        details.Insert(0, $"Resources: {names}\n");
+        details.Append($"Foragers: {foragerCount}/{selectedHex.MaximumForagersPerHex}\n");
+        details.Append($"Production / {selectedHex.GatheringTickIntervalSeconds:0.#} sec: {production}");
+        return details.ToString();
+    }
+
+    private static void AppendResource(
+        bool available,
+        string resourceName,
+        float remaining,
+        float gathered,
+        StringBuilder names,
+        StringBuilder details,
+        StringBuilder production)
+    {
+        if (!available)
+            return;
+
+        if (names.Length > 0)
+            names.Append(" + ");
+        if (production.Length > 0)
+            production.Append("   ");
+
+        names.Append(resourceName);
+        details.Append($"{resourceName} remaining: {remaining:0}\n");
+        production.Append($"{resourceName} +{gathered:0}");
+    }
+
+    private string BuildFriendlyWaspDetails()
+    {
+        return
+            "Friendly wasps\n" +
+            $"Scout: {selectedHex.GetFriendlyWaspCount(WaspFunction.Scout)}   " +
+            $"Forager: {selectedHex.GetFriendlyWaspCount(WaspFunction.Forager)}   " +
+            $"Builder: {selectedHex.GetFriendlyWaspCount(WaspFunction.Builder)}\n" +
+            $"Brood: {selectedHex.GetFriendlyWaspCount(WaspFunction.BroodCaretaker)}   " +
+            $"Guard: {selectedHex.GetFriendlyWaspCount(WaspFunction.Guard)}   " +
+            $"Contain: {selectedHex.GetFriendlyWaspCount(WaspFunction.Containment)}";
+    }
+
+    private void ConfigureInformationLayout()
+    {
+        if (discoveryText == null)
+            return;
+
+        RectTransform rect = discoveryText.rectTransform;
+        rect.sizeDelta = new Vector2(rect.sizeDelta.x, 310f);
+        discoveryText.fontSize = 16f;
+        discoveryText.lineSpacing = 2f;
     }
 
     private void ConfigureOwnedHex()

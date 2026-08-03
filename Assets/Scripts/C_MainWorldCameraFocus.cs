@@ -401,17 +401,14 @@ public class C_MainWorldCameraFocus : MonoBehaviour
             return;
 
         WaspControl control = wasp.GetComponentInParent<WaspControl>();
-        if (control != null &&
-            control.AssignedFunction == WaspFunction.Builder &&
-            control.WorkforceState == WaspWorkforceState.Stationed &&
-            control.StationedHex != null &&
-            control.StationedHex.State == HexTile.HexState.Owned)
+        if (control != null)
         {
             waspInfoPanel?.Close();
-            C_MainWorldOverlayNavigation.Instance?.OpenBuilderHivePanel(control);
+            C_MainWorldOverlayNavigation.Instance?.OpenFriendlyWaspActions(control);
             return;
         }
 
+        C_MainWorldOverlayNavigation.Instance?.HideFriendlyWaspActions();
         waspInfoPanel?.Open(wasp);
     }
 
@@ -482,6 +479,8 @@ public class C_MainWorldCameraFocus : MonoBehaviour
 
         if (waspInfoPanel != null)
             waspInfoPanel.Close();
+
+        C_MainWorldOverlayNavigation.Instance?.HideFriendlyWaspActions();
 
         Camera activeCamera = closeUpActive ? closeUpCamera : mainCamera;
         Vector3 startPosition = activeCamera.transform.position;
@@ -556,6 +555,8 @@ public class C_MainWorldCameraFocus : MonoBehaviour
 
         if (waspInfoPanel != null)
             waspInfoPanel.Close();
+
+        C_MainWorldOverlayNavigation.Instance?.HideFriendlyWaspActions();
 
         Vector3 startPosition = mainCamera.transform.position;
         Quaternion startRotation = mainCamera.transform.rotation;

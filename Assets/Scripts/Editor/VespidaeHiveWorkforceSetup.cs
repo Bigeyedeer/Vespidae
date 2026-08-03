@@ -150,9 +150,9 @@ public static class VespidaeHiveWorkforceSetup
         {
             SerializedObject serialized = new SerializedObject(resources);
             serialized.FindProperty("resetResourcesOnStart").boolValue = true;
-            serialized.FindProperty("startingNectar").floatValue = 50f;
-            serialized.FindProperty("startingPrey").floatValue = 50f;
-            serialized.FindProperty("startingFibre").floatValue = 50f;
+            serialized.FindProperty("startingNectar").floatValue = 150f;
+            serialized.FindProperty("startingPrey").floatValue = 150f;
+            serialized.FindProperty("startingFibre").floatValue = 300f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(resources);
         }

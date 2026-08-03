@@ -41,7 +41,8 @@ public class WaspControl : MonoBehaviour
     public HexTile TargetHex => targetHex;
     public HexTile StationedHex => stationedHex;
     public WaspWorkforceState WorkforceState => workforceState;
-    public bool IsAvailable => workforceState == WaspWorkforceState.Idle;
+    public bool IsAvailable => workforceState == WaspWorkforceState.Idle ||
+                               assignedFunction == WaspFunction.Scout && returningToHive;
     public NavMeshAgent NavigationAgent => navMeshAgent;
 
     private void Awake()

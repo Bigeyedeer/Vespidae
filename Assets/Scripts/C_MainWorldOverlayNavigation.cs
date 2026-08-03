@@ -28,6 +28,13 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     private TMP_Text builderHiveFeedback;
     private Button builderHiveSpawnButton;
     private WaspControl selectedBuilder;
+    private GameObject friendlyWaspPanel;
+    private TMP_Text friendlyWaspTitle;
+    private TMP_Text friendlyWaspDetails;
+    private TMP_Text friendlyWaspFeedback;
+    private Button friendlyWaspReturnButton;
+    private Button friendlyWaspBuilderButton;
+    private WaspControl selectedFriendlyWasp;
     private Slider scrollSpeedSlider;
     private TMP_Text scrollSpeedValueText;
     private bool isPaused;
@@ -135,6 +142,33 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
 
         HideHiveTraining();
         HideBuilderHivePanel();
+        HideFriendlyWaspActions();
+    }
+
+    public void OpenFriendlyWaspActions(WaspControl wasp)
+    {
+        if (wasp == null)
+            return;
+
+        selectedFriendlyWasp = wasp;
+        CloseWaspInfo();
+        CloseSkills();
+        HideHiveTraining();
+        HideBuilderHivePanel();
+        CreateFriendlyWaspPanel();
+
+        if (friendlyWaspPanel != null)
+            friendlyWaspPanel.SetActive(true);
+
+        RefreshFriendlyWaspActions();
+    }
+
+    public void HideFriendlyWaspActions()
+    {
+        if (friendlyWaspPanel != null)
+            friendlyWaspPanel.SetActive(false);
+
+        selectedFriendlyWasp = null;
     }
 
     public void OpenSkills()
@@ -179,11 +213,167 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         CloseSkills();
         HideHiveTraining();
         HideBuilderHivePanel();
+        HideFriendlyWaspActions();
     }
 
     public void ReturnToPreviousView()
     {
+        HideFriendlyWaspActions();
         cameraFocus?.ReturnToPreviousView();
+    }
+
+    private void CreateFriendlyWaspPanel()
+    {
+        if (friendlyWaspPanel != null)
+            return;
+
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null)
+            canvas = FindFirstObjectByType<Canvas>();
+        if (canvas == null)
+            return;
+
+        friendlyWaspPanel = CreateUiObject(
+            "FriendlyWaspActionsPanel",
+            canvas.transform,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+
+        GameObject card = CreateUiObject(
+            "FriendlyWaspActionsCard",
+            friendlyWaspPanel.transform,
+            new Vector2(0.78f, 0.5f),
+            new Vector2(0.78f, 0.5f),
+            Vector2.zero,
+            new Vector2(470f, 520f));
+        Image cardImage = card.AddComponent<Image>();
+        cardImage.color = new Color(0.035f, 0.085f, 0.075f, 0.96f);
+
+        friendlyWaspTitle = CreateText(
+            "FriendlyWaspTitle",
+            card.transform,
+            "FRIENDLY WASP",
+            new Vector2(0f, 205f),
+            new Vector2(400f, 52f),
+            27f);
+        friendlyWaspDetails = CreateText(
+            "FriendlyWaspDetails",
+            card.transform,
+            string.Empty,
+            new Vector2(0f, 116f),
+            new Vector2(390f, 112f),
+            18f);
+        friendlyWaspDetails.alignment = TextAlignmentOptions.TopLeft;
+        friendlyWaspFeedback = CreateText(
+            "FriendlyWaspFeedback",
+            card.transform,
+            string.Empty,
+            new Vector2(0f, 43f),
+            new Vector2(390f, 34f),
+            15f);
+
+        CreateButton(
+            card.transform,
+            "FriendlyWaspInformation",
+            "VIEW INFORMATION",
+            -15f,
+            ShowFriendlyWaspInformation);
+        friendlyWaspReturnButton = CreateButton(
+            card.transform,
+            "FriendlyWaspReturnToBase",
+            "RETURN TO BASE",
+            -82f,
+            SendSelectedFriendlyWaspHome);
+        friendlyWaspBuilderButton = CreateButton(
+            card.transform,
+            "FriendlyWaspBuildHive",
+            "BUILD HIVE",
+            -149f,
+            OpenSelectedBuilderHivePanel);
+        CreateButton(
+            card.transform,
+            "FriendlyWaspHide",
+            "HIDE",
+            -216f,
+            HideFriendlyWaspActions);
+
+        friendlyWaspPanel.SetActive(false);
+    }
+
+    private void RefreshFriendlyWaspActions()
+    {
+        if (selectedFriendlyWasp == null)
+        {
+            HideFriendlyWaspActions();
+            return;
+        }
+
+        WaspInfo info = selectedFriendlyWasp.WaspInfo;
+        string commonName = info != null && !string.IsNullOrWhiteSpace(info.CommonName)
+            ? info.CommonName
+            : "Friendly Wasp";
+        string scientificName = info != null ? info.ScientificName : string.Empty;
+        string role = GetDisplayRole(selectedFriendlyWasp.AssignedFunction);
+        string location = selectedFriendlyWasp.StationedHex != null
+            ? selectedFriendlyWasp.StationedHex.HexName
+            : selectedFriendlyWasp.WorkforceState == WaspWorkforceState.Idle
+                ? "Home hive"
+                : "Travelling";
+
+        if (friendlyWaspTitle != null)
+            friendlyWaspTitle.text = commonName.ToUpperInvariant();
+        if (friendlyWaspDetails != null)
+        {
+            friendlyWaspDetails.text =
+                $"{scientificName}\n\nRole: {role}\nStatus: {selectedFriendlyWasp.WorkforceState}\nLocation: {location}";
+        }
+
+        bool canReturn = selectedFriendlyWasp.WorkforceState == WaspWorkforceState.Stationed &&
+                         selectedFriendlyWasp.HomeHive != null;
+        if (friendlyWaspReturnButton != null)
+            friendlyWaspReturnButton.interactable = canReturn;
+
+        bool canUseBuilderAction = selectedFriendlyWasp.AssignedFunction == WaspFunction.Builder &&
+                                   selectedFriendlyWasp.WorkforceState == WaspWorkforceState.Stationed &&
+                                   selectedFriendlyWasp.StationedHex != null &&
+                                   selectedFriendlyWasp.StationedHex.State == HexTile.HexState.Owned;
+        if (friendlyWaspBuilderButton != null)
+            friendlyWaspBuilderButton.gameObject.SetActive(canUseBuilderAction);
+    }
+
+    private void ShowFriendlyWaspInformation()
+    {
+        if (selectedFriendlyWasp == null || selectedFriendlyWasp.WaspInfo == null)
+            return;
+
+        WaspInfo info = selectedFriendlyWasp.WaspInfo;
+        HideFriendlyWaspActions();
+        WaspInfoPanel panel = waspInfoPanel != null ? waspInfoPanel.GetComponent<WaspInfoPanel>() : null;
+        panel?.Open(info);
+    }
+
+    private void SendSelectedFriendlyWaspHome()
+    {
+        if (selectedFriendlyWasp == null)
+            return;
+
+        bool returning = selectedFriendlyWasp.ReturnToHomeHive();
+        if (friendlyWaspFeedback != null)
+            friendlyWaspFeedback.text = returning ? "Returning to the home hive." : "This wasp cannot return right now.";
+
+        RefreshFriendlyWaspActions();
+    }
+
+    private void OpenSelectedBuilderHivePanel()
+    {
+        if (selectedFriendlyWasp == null)
+            return;
+
+        WaspControl builder = selectedFriendlyWasp;
+        HideFriendlyWaspActions();
+        OpenBuilderHivePanel(builder);
     }
 
     public void PauseGame()

@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 1908808853436998816}
   - component: {fileID: -7464778473336272435}
   - component: {fileID: 2662493003264945764}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Friendly_hive
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -162,7 +162,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5874922688354901396}
   - component: {fileID: 1690782318252941133}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HiveClickTrigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -217,7 +217,7 @@ GameObject:
   - component: {fileID: 1945578287421807182}
   - component: {fileID: 2477139471550311380}
   - component: {fileID: 1146277559925596615}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Cube (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -329,7 +329,7 @@ GameObject:
   - component: {fileID: 7447246603888845644}
   - component: {fileID: 6460384938799931304}
   - component: {fileID: 2738014975785367789}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Cube (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -438,7 +438,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6316529033121742234}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: WaspSpawnPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -469,7 +469,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1142092297507619910}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HiveLookPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -500,7 +500,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8504784497948960327}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HiveCameraPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -534,7 +534,7 @@ GameObject:
   - component: {fileID: 7978007920862619301}
   - component: {fileID: 779150629857631521}
   - component: {fileID: 8490774861387004689}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Cube (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 1908808853436998816}
   - component: {fileID: -4201168922929045464}
   - component: {fileID: 985582087321575919}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Enemy_hive
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -40,6 +40,7 @@ Transform:
   - {fileID: 3451709657443411631}
   - {fileID: 8754027064390558151}
   - {fileID: 3999726117985601304}
+  - {fileID: 900000000000000002}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &1147404542921782667
@@ -136,7 +137,7 @@ MonoBehaviour:
   - {fileID: 2550413874109327029, guid: df48099161e745cb895dbc7fbc199634, type: 3}
   - {fileID: 2550413874109327029, guid: 4bbcaa2f30ec4a9da56a03394c3e889b, type: 3}
   - {fileID: 2550413874109327029, guid: 1ab1faa6895a47f9ad2467ba47a1f4e9, type: 3}
-  waspSpawnPoint: {fileID: 0}
+  waspSpawnPoint: {fileID: 900000000000000002}
   cameraFocusPoint: {fileID: 8754027064390558151}
   cameraLookPoint: {fileID: 3999726117985601304}
   spawnHeight: 0.35
@@ -155,6 +156,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HiveHoverEffect
   clickTrigger: {fileID: 701419017313596266}
+--- !u!1 &900000000000000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 900000000000000002}
+  m_Layer: 9
+  m_Name: WaspSpawnPoint
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &900000000000000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 900000000000000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.35, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 7716948414662858931}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1322100881805822528
 GameObject:
   m_ObjectHideFlags: 0
@@ -167,7 +199,7 @@ GameObject:
   - component: {fileID: 1945578287421807182}
   - component: {fileID: 2477139471550311380}
   - component: {fileID: 1146277559925596615}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Cube (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -277,7 +309,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3451709657443411631}
   - component: {fileID: 701419017313596266}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HiveClickTrigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -329,7 +361,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8754027064390558151}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HiveCameraPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -363,7 +395,7 @@ GameObject:
   - component: {fileID: 7447246603888845644}
   - component: {fileID: 6460384938799931304}
   - component: {fileID: 2738014975785367789}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Cube (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -472,7 +504,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3999726117985601304}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: HiveLookPoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -506,7 +538,7 @@ GameObject:
   - component: {fileID: 7978007920862619301}
   - component: {fileID: 779150629857631521}
   - component: {fileID: 8490774861387004689}
-  m_Layer: 7
+  m_Layer: 9
   m_Name: Cube (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
