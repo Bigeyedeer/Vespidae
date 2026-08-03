@@ -19,6 +19,9 @@ public class EnemyHiveControl : MonoBehaviour
     private readonly Dictionary<WaspScopeRole, List<EnemyWaspControl>> factions = new Dictionary<WaspScopeRole, List<EnemyWaspControl>>();
     private readonly List<C_Enemy_Hive_Orc> spawnedEnemyHives = new List<C_Enemy_Hive_Orc>();
     private bool enemyStartupSpawned;
+    [SerializeField] private float scoutInterval = 10f;
+
+    private float scoutTimer;
 
     public IReadOnlyList<EnemyWaspControl> NativeFaction => GetFaction(WaspScopeRole.NativePlayer);
     public IReadOnlyList<EnemyWaspControl> PrimaryInvasiveFaction => GetFaction(WaspScopeRole.PrimaryInvasive);
@@ -47,11 +50,33 @@ public class EnemyHiveControl : MonoBehaviour
         if (!autoRegisterSceneWasps)
             return;
 
-        EnemyWaspControl[] sceneWasps = FindObjectsByType<EnemyWaspControl>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        EnemyWaspControl[] sceneWasps = FindObjectsByType<EnemyWaspControl>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+
         foreach (EnemyWaspControl wasp in sceneWasps)
             Register(wasp);
 
         SpawnEnemyStartup();
+
+        // TEMP TEST
+        foreach (EnemyWaspControl wasp in PrimaryInvasiveFaction)
+        {
+            if (wasp != null)
+                wasp.SetDestination(wasp.transform.position + Vector3.forward * 8f);
+        }
+    }
+    
+    private void Update()
+    {
+        scoutTimer += Time.deltaTime;
+
+        if (scoutTimer < scoutInterval)
+            return;
+
+        scoutTimer = 0f;
+
+        RunScoutBehaviour();
     }
 
     private void OnDestroy()
@@ -193,7 +218,92 @@ public class EnemyHiveControl : MonoBehaviour
         foreach (List<EnemyWaspControl> faction in factions.Values)
             faction.Remove(wasp);
     }
+    
+    private void RunScoutBehaviour()
+    {
+        foreach (C_Enemy_Hive_Orc hive in spawnedEnemyHives)
+        {
+            if (hive == null)
+                continue;
 
+            EnemyWaspControl scout = null;
+
+            foreach (EnemyWaspControl wasp in GetFaction(WaspScopeRole.PrimaryInvasive))
+            {
+                if (wasp == null)
+                    continue;
+
+                if (wasp.HomeHive != hive)
+                    continue;
+
+                if (wasp.AssignedFunction != WaspFunction.Scout)
+                    continue;
+
+                scout = wasp;
+                break;
+            }
+
+            if (scout == null)
+                continue;
+
+            HexTile target = ChooseScoutTarget(hive);
+
+            if (target != null)
+            {
+                Debug.Log($"Enemy scout heading to {target.name}");
+                scout.DispatchToHex(target);
+            }
+        }
+    }
+
+    private HexTile ChooseScoutTarget(C_Enemy_Hive_Orc hive)
+    {
+        if (hive == null)
+            return null;
+
+        HexTile[] allHexes = FindObjectsByType<HexTile>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None);
+
+        List<HexTile> candidates = new List<HexTile>();
+
+        foreach (HexTile hex in allHexes)
+        {
+            if (hex == null)
+                continue;
+
+            // Don't scout our own territory
+            if (hex.State == HexTile.HexState.Enemy)
+                continue;
+
+            // Don't bother with locked areas
+            if (hex.State == HexTile.HexState.Locked)
+                continue;
+
+            candidates.Add(hex);
+        }
+
+        if (candidates.Count == 0)
+            return null;
+
+        candidates.Sort((a, b) =>
+        {
+            float da = Vector3.Distance(
+                hive.OwnerHex.transform.position,
+                a.transform.position);
+
+            float db = Vector3.Distance(
+                hive.OwnerHex.transform.position,
+                b.transform.position);
+
+            return da.CompareTo(db);
+        });
+
+        int limit = Mathf.Min(5, candidates.Count);
+
+        return candidates[Random.Range(0, limit)];
+    }
+    
     private GameObject GetEnemyWaspPrefab(int speciesIndex)
     {
         if (enemyWaspPrefabs == null || enemyWaspPrefabs.Length == 0)

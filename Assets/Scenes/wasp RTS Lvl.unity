@@ -18783,6 +18783,11 @@ MonoBehaviour:
   containmentSkill: {fileID: 11400000, guid: a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1, type: 2}
   hud: {fileID: 0}
   playerSelection: {fileID: 11400000, guid: 070e624730bad6542957d0e31399f7f8, type: 2}
+  scoutDispatchCost: 1
+  foragerDispatchCost: 1
+  builderDispatchCost: 2
+  upkeepInterval: 10
+  nectarUpkeepPerWorker: 0.25
   friendlyHivePrefab: {fileID: 120589579808290378, guid: 63335af942420dc4681e5f790aa92a08, type: 3}
   friendlyWaspPrefab: {fileID: 2550413874109327029, guid: 46dd3894874c42e980a90b21f439ae74, type: 3}
   spawnFriendlyStartup: 1
@@ -18819,6 +18824,7 @@ MonoBehaviour:
   spawnEnemyStartup: 1
   spawnOneEnemyWasp: 1
   autoRegisterSceneWasps: 1
+  scoutInterval: 10
 --- !u!1 &1826766195
 GameObject:
   m_ObjectHideFlags: 0
