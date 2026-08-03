@@ -79,6 +79,38 @@ public class EnemyWaspControl : MonoBehaviour
             $"Enemy path set: {hasDestination}, OnNavMesh: {navMeshAgent.isOnNavMesh}");
         return true;
     }
+    
+    public bool DispatchToHex(HexTile hex)
+    {
+        if (hex == null)
+            return false;
+
+        if (!EnsureAgentOnNavMesh() ||
+            !TrySamplePosition(hex.transform.position, out UnityEngine.AI.NavMeshHit hit))
+        {
+            return false;
+        }
+
+        if (stationedHex != null)
+            stationedHex.UnregisterEnemyWasp(this);
+
+        targetHex = hex;
+        stationedHex = null;
+        hasStationaryPosition = false;
+
+        destination = hit.position;
+        hasDestination = TrySetPath(destination);
+
+        if (!hasDestination)
+        {
+            targetHex = null;
+            return false;
+        }
+
+        workforceState = WaspWorkforceState.Travelling;
+
+        return true;
+    }
 
     private bool TrySetPath(Vector3 worldPosition)
     {

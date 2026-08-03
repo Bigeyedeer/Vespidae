@@ -18047,6 +18047,7 @@ MonoBehaviour:
   spawnEnemyStartup: 1
   spawnOneEnemyWasp: 1
   autoRegisterSceneWasps: 1
+  scoutInterval: 10
 --- !u!1 &1826766195
 GameObject:
   m_ObjectHideFlags: 0

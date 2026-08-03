@@ -2,9 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="bf77c97e-4480-4d04-bab1-3e138376a787" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.Vespidae/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Vespidae/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/wasp RTS Lvl.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/wasp RTS Lvl.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/EnemyHiveControl.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/EnemyHiveControl.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scripts/EnemyWaspControl.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/EnemyWaspControl.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
