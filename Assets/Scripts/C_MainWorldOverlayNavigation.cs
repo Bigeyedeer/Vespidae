@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using TMPro;
 using UnityEngine.UI;
+using System.Linq;
 
 public class C_MainWorldOverlayNavigation : MonoBehaviour
 {
@@ -11,6 +12,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     [SerializeField] private GameObject waspInfoPanel;
     [SerializeField] private GameObject skillsPanel;
     [SerializeField] private GameObject hiveTrainingPanel;
+    [SerializeField] private GameObject pauseMenuPrefab;
     [SerializeField] private Key skillsKey = Key.K;
 
     private C_HiveSkillsPanel skillsController;
@@ -37,6 +39,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     private WaspControl selectedFriendlyWasp;
     private Slider scrollSpeedSlider;
     private TMP_Text scrollSpeedValueText;
+    private TMP_Text pauseTitleText;
     private bool isPaused;
     private bool mapMovementWasEnabled;
 
@@ -414,6 +417,8 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
             pauseMainButtons.SetActive(false);
         if (pauseOptions != null)
             pauseOptions.SetActive(true);
+        if (pauseTitleText != null)
+            pauseTitleText.text = "SETTINGS";
     }
 
     public void ShowPauseMain()
@@ -422,6 +427,8 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
             pauseMainButtons.SetActive(true);
         if (pauseOptions != null)
             pauseOptions.SetActive(false);
+        if (pauseTitleText != null)
+            pauseTitleText.text = "PAUSED";
     }
 
     public void SetScrollWheelZoomSpeed(float value)
@@ -444,6 +451,16 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         ResumeGame();
         if (mainWorldNavigation != null)
             mainWorldNavigation.ReturnToMenu();
+    }
+
+    public void QuitGame()
+    {
+        Time.timeScale = 1f;
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
     }
 
     public void OpenBuilderHivePanel(WaspControl builder)
@@ -593,6 +610,9 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         if (canvas == null)
             return;
 
+        if (pauseMenuPrefab != null && CreateHerbertPauseMenu(canvas))
+            return;
+
         pauseMenu = CreateUiObject(
             "PauseMenu",
             canvas.transform,
@@ -668,6 +688,172 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
             DefaultScrollWheelZoomSpeed);
         SetScrollWheelZoomSpeed(speed);
         pauseMenu.SetActive(false);
+    }
+
+    private bool CreateHerbertPauseMenu(Canvas canvas)
+    {
+        pauseMenu = CreateUiObject(
+            "PauseMenu",
+            canvas.transform,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+        Image backdrop = pauseMenu.AddComponent<Image>();
+        backdrop.color = new Color(0.015f, 0.025f, 0.03f, 0.78f);
+
+        GameObject visual = Instantiate(pauseMenuPrefab, pauseMenu.transform);
+        visual.name = "Herbert Pause Menu";
+        RectTransform visualRect = visual.GetComponent<RectTransform>();
+        visualRect.anchorMin = new Vector2(0.5f, 0.5f);
+        visualRect.anchorMax = new Vector2(0.5f, 0.5f);
+        visualRect.pivot = new Vector2(0.5f, 0.5f);
+        visualRect.anchoredPosition = Vector2.zero;
+        visualRect.localScale = Vector3.one * 1.2f;
+
+        Button[] buttons = visual.GetComponentsInChildren<Button>(true);
+        Button resumeButton = FindPauseButton(buttons, "Codex");
+        Button optionsButton = FindPauseButton(buttons, "Settings");
+        Button menuButton = FindPauseButton(buttons, "Menu");
+        Button quitButton = FindPauseButton(buttons, "Quit Game");
+        pauseTitleText = visual.GetComponentsInChildren<TMP_Text>(true)
+            .FirstOrDefault(text => text.text == "Paused");
+
+        if (resumeButton == null || optionsButton == null || menuButton == null || quitButton == null)
+        {
+            Destroy(pauseMenu);
+            pauseMenu = null;
+            pauseTitleText = null;
+            return false;
+        }
+
+        Transform buttonContainer = resumeButton.transform.parent;
+        VerticalLayoutGroup sourceLayout = buttonContainer.GetComponent<VerticalLayoutGroup>();
+        if (sourceLayout != null)
+            sourceLayout.enabled = false;
+
+        pauseMainButtons = CreateUiObject(
+            "PauseMenuMainButtons",
+            buttonContainer,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+        VerticalLayoutGroup mainLayout = pauseMainButtons.AddComponent<VerticalLayoutGroup>();
+        mainLayout.childAlignment = TextAnchor.MiddleCenter;
+        mainLayout.spacing = 28f;
+        mainLayout.childControlWidth = false;
+        mainLayout.childControlHeight = false;
+        mainLayout.childForceExpandWidth = false;
+        mainLayout.childForceExpandHeight = false;
+        mainLayout.childScaleWidth = true;
+        mainLayout.childScaleHeight = true;
+
+        Button[] orderedButtons = { resumeButton, optionsButton, menuButton, quitButton };
+        foreach (Button button in orderedButtons)
+        {
+            button.transform.SetParent(pauseMainButtons.transform, false);
+            RectTransform rect = button.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = new Vector2(350f, 100f);
+            rect.localScale = Vector3.one * 0.5f;
+        }
+
+        ConfigureHerbertPauseButton(resumeButton, "RESUME", ResumeGame);
+        ConfigureHerbertPauseButton(optionsButton, "OPTIONS", OpenPauseOptions);
+        ConfigureHerbertPauseButton(menuButton, "MAIN MENU", QuitToMenu);
+        ConfigureHerbertPauseButton(quitButton, "QUIT GAME", QuitGame);
+
+        pauseOptions = CreateUiObject(
+            "PauseMenuOptions",
+            buttonContainer,
+            Vector2.zero,
+            Vector2.one,
+            Vector2.zero,
+            Vector2.zero);
+        CreatePauseOptionsText(
+            pauseOptions.transform,
+            "SCROLL ZOOM SPEED",
+            new Vector2(0f, 72f),
+            new Vector2(310f, 36f),
+            20f);
+        scrollSpeedValueText = CreatePauseOptionsText(
+            pauseOptions.transform,
+            string.Empty,
+            new Vector2(0f, 22f),
+            new Vector2(180f, 28f),
+            18f);
+        scrollSpeedSlider = CreateSlider(pauseOptions.transform, new Vector2(0f, -22f));
+
+        Button backButton = Instantiate(resumeButton, pauseOptions.transform);
+        backButton.gameObject.name = "PauseOptionsBack";
+        RectTransform backRect = backButton.GetComponent<RectTransform>();
+        backRect.anchorMin = new Vector2(0.5f, 0.5f);
+        backRect.anchorMax = new Vector2(0.5f, 0.5f);
+        backRect.pivot = new Vector2(0.5f, 0.5f);
+        backRect.anchoredPosition = new Vector2(0f, -112f);
+        backRect.sizeDelta = new Vector2(350f, 100f);
+        backRect.localScale = Vector3.one * 0.5f;
+        ConfigureHerbertPauseButton(backButton, "BACK", ShowPauseMain);
+
+        pauseOptions.SetActive(false);
+        float speed = PlayerPrefs.GetFloat(
+            ScrollSpeedPreferenceKey,
+            DefaultScrollWheelZoomSpeed);
+        SetScrollWheelZoomSpeed(speed);
+        pauseMenu.SetActive(false);
+        return true;
+    }
+
+    private Button FindPauseButton(Button[] buttons, string label)
+    {
+        return buttons.FirstOrDefault(button =>
+        {
+            TMP_Text text = button.GetComponentInChildren<TMP_Text>(true);
+            return text != null && text.text == label;
+        });
+    }
+
+    private void ConfigureHerbertPauseButton(
+        Button button,
+        string label,
+        UnityEngine.Events.UnityAction action)
+    {
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(action);
+        TMP_Text text = button.GetComponentInChildren<TMP_Text>(true);
+        if (text == null)
+            return;
+        text.text = label;
+        text.alignment = TextAlignmentOptions.Center;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 20f;
+        text.fontSizeMax = 34f;
+    }
+
+    private TMP_Text CreatePauseOptionsText(
+        Transform parent,
+        string value,
+        Vector2 position,
+        Vector2 size,
+        float fontSize)
+    {
+        TMP_Text text = CreateText(
+            "PauseOptionText",
+            parent,
+            value,
+            position,
+            size,
+            fontSize);
+        if (pauseTitleText != null)
+        {
+            text.font = pauseTitleText.font;
+            text.fontSharedMaterial = pauseTitleText.fontSharedMaterial;
+        }
+        return text;
     }
 
     private GameObject CreateUiObject(

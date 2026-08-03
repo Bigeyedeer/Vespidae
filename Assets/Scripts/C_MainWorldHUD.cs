@@ -81,9 +81,12 @@ public class C_MainWorldHUD : MonoBehaviour
         if (resources == null)
             return;
 
-        SetText("Resource_0", $"Nectar\n{resources.Nectar:0}");
-        SetText("Resource_1", $"Prey\n{resources.Prey:0}");
-        SetText("Resource_2", $"Fibre\n{resources.Fibre:0}");
+        SetText("ResourceLabel_0", "Nectar");
+        SetText("ResourceLabel_1", "Prey");
+        SetText("ResourceLabel_2", "Fibre");
+        SetText("Resource_0", $"{resources.Nectar:0}");
+        SetText("Resource_1", $"{resources.Prey:0}");
+        SetText("Resource_2", $"{resources.Fibre:0}");
     }
 
     private void RefreshColony()
@@ -92,9 +95,12 @@ public class C_MainWorldHUD : MonoBehaviour
         if (hive == null)
             return;
 
-        SetText("Resource_3", $"Workers\n{hive.Workers:0}");
-        SetText("Resource_4", $"Strength\n{hive.ColonyStrength:0}");
-        SetText("Resource_5", $"Brood\n{hive.BroodProgress:0}/{hive.BroodCapacity:0}");
+        SetText("ResourceLabel_3", "Workers");
+        SetText("ResourceLabel_4", "Strength");
+        SetText("ResourceLabel_5", "Brood");
+        SetText("Resource_3", $"{hive.Workers:0}");
+        SetText("Resource_4", $"{hive.ColonyStrength:0}");
+        SetText("Resource_5", $"{hive.BroodProgress:0}/{hive.BroodCapacity:0}");
         SetText("RoleChipLabel_0", $"Scout {hive.GetTotalWaspCount(WaspFunction.Scout)}");
         SetText("RoleChipLabel_1", $"Forager {hive.GetTotalWaspCount(WaspFunction.Forager)}");
         SetText("RoleChipLabel_2", $"Builder {hive.GetTotalWaspCount(WaspFunction.Builder)}");

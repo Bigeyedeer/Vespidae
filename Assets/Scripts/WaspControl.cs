@@ -50,6 +50,8 @@ public class WaspControl : MonoBehaviour
         if (waspInfo == null)
             waspInfo = GetComponent<WaspInfo>();
 
+        WaspRoleIconBillboard.Ensure(gameObject, waspInfo);
+
         if (navMeshAgent == null)
             navMeshAgent = GetComponentInChildren<NavMeshAgent>(true);
 

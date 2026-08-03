@@ -37,6 +37,7 @@ public class SB_Wasp_Skill : ScriptableObject
     [SerializeField] private WaspFunction function;
 
     [Header("Skill Information")]
+    [SerializeField] private Sprite roleIcon;
     [SerializeField] private string displayName;
     [SerializeField, TextArea(2, 4)] private string description;
     [SerializeField, TextArea(1, 3)] private string effectSummary;
@@ -66,6 +67,7 @@ public class SB_Wasp_Skill : ScriptableObject
     [SerializeField] private float identificationPerLevel = 0.1f;
 
     public WaspFunction Function => function;
+    public Sprite RoleIcon => roleIcon;
     public string DisplayName => string.IsNullOrWhiteSpace(displayName) ? function.ToString() : displayName;
     public string Description => description;
     public string EffectSummary => effectSummary;

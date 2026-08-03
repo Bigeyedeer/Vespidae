@@ -13,6 +13,8 @@ public class HexOptionsPanel : MonoBehaviour
     [Header("Action Button")]
     [SerializeField] private Button primaryActionButton;
     [SerializeField] private TMP_Text primaryActionButtonText;
+    [SerializeField] private Button closeActionButton;
+    [SerializeField] private RectTransform actionButtonContainer;
 
     private HexTile selectedHex;
     private Button foragerActionButton;
@@ -31,6 +33,13 @@ public class HexOptionsPanel : MonoBehaviour
     {
         EnsureDispatchButtons();
         ConfigureInformationLayout();
+        ConfigureActionLayout();
+
+        if (closeActionButton != null)
+        {
+            closeActionButton.onClick.RemoveAllListeners();
+            closeActionButton.onClick.AddListener(Close);
+        }
     }
 
     private void Update()
@@ -206,10 +215,15 @@ public class HexOptionsPanel : MonoBehaviour
         if (discoveryText == null)
             return;
 
-        RectTransform rect = discoveryText.rectTransform;
-        rect.sizeDelta = new Vector2(rect.sizeDelta.x, 310f);
         discoveryText.fontSize = 16f;
-        discoveryText.lineSpacing = 2f;
+        discoveryText.lineSpacing = 1f;
+
+        if (actionButtonContainer == null)
+        {
+            RectTransform rect = discoveryText.rectTransform;
+            rect.sizeDelta = new Vector2(rect.sizeDelta.x, 310f);
+            discoveryText.lineSpacing = 2f;
+        }
     }
 
     private void ConfigureOwnedHex()
@@ -332,12 +346,25 @@ public class HexOptionsPanel : MonoBehaviour
         Button button = clone.GetComponent<Button>();
         button.onClick.RemoveAllListeners();
         text = clone.GetComponentInChildren<TMP_Text>(true);
+
+        if (closeActionButton != null && closeActionButton.transform.parent == clone.transform.parent)
+            clone.transform.SetSiblingIndex(closeActionButton.transform.GetSiblingIndex());
+
         clone.SetActive(false);
         return button;
     }
 
     private void ConfigureDispatchLayout()
     {
+        if (actionButtonContainer != null)
+        {
+            ConfigureActionButton(primaryActionButton);
+            ConfigureActionButton(foragerActionButton);
+            ConfigureActionButton(builderActionButton);
+            ConfigureActionButton(closeActionButton);
+            return;
+        }
+
         RectTransform[] buttons =
         {
             primaryActionButton.GetComponent<RectTransform>(),
@@ -358,6 +385,13 @@ public class HexOptionsPanel : MonoBehaviour
 
     private void RestorePrimaryLayout()
     {
+        if (actionButtonContainer != null)
+        {
+            ConfigureActionButton(primaryActionButton);
+            ConfigureActionButton(closeActionButton);
+            return;
+        }
+
         if (primaryActionRect == null)
             return;
 
@@ -371,6 +405,41 @@ public class HexOptionsPanel : MonoBehaviour
             foragerActionButton.gameObject.SetActive(false);
         if (builderActionButton != null)
             builderActionButton.gameObject.SetActive(false);
+    }
+
+    private void ConfigureActionLayout()
+    {
+        if (actionButtonContainer == null)
+            return;
+
+        HorizontalLayoutGroup layout = actionButtonContainer.GetComponent<HorizontalLayoutGroup>();
+        if (layout != null)
+        {
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.spacing = 8f;
+            layout.childControlWidth = false;
+            layout.childControlHeight = false;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+        }
+
+        ConfigureActionButton(primaryActionButton);
+        ConfigureActionButton(foragerActionButton);
+        ConfigureActionButton(builderActionButton);
+        ConfigureActionButton(closeActionButton);
+    }
+
+    private static void ConfigureActionButton(Button button)
+    {
+        if (button == null)
+            return;
+
+        RectTransform rect = button.GetComponent<RectTransform>();
+        if (rect == null)
+            return;
+
+        rect.sizeDelta = new Vector2(200f, 90f);
+        rect.localScale = Vector3.one * 0.5f;
     }
 
     public void Close()

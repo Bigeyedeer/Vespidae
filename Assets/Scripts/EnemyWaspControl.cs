@@ -34,6 +34,9 @@ public class EnemyWaspControl : MonoBehaviour
     public WaspScopeRole Faction => ResolveFaction();
     public WaspFunction AssignedFunction => assignedFunction;
     public C_Enemy_Hive_Orc HomeHive => homeHive;
+    public HexTile TargetHex => targetHex;
+    public HexTile StationedHex => stationedHex;
+    public WaspWorkforceState WorkforceState => workforceState;
     public float ThreatLevel => threatLevel;
     public bool IsAlerted => alerted;
     public bool HasDestination => hasDestination;
@@ -43,6 +46,7 @@ public class EnemyWaspControl : MonoBehaviour
     {
         if (waspInfo == null)
             waspInfo = GetComponent<WaspInfo>();
+        WaspRoleIconBillboard.Ensure(gameObject, waspInfo);
         CreateNavigationProxy();
         ConfigureAgent();
 

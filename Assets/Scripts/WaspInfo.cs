@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class WaspInfo : MonoBehaviour
@@ -7,10 +8,6 @@ public class WaspInfo : MonoBehaviour
 
     [Header("Assigned Role Skill")]
     [SerializeField] private SB_Wasp_Skill assignedSkill;
-
-    [Header("Camera Focus")]
-    [SerializeField] private Transform cameraPoint;
-    [SerializeField] private Transform lookPoint;
 
     private SB_Wasps_Info runtimeSpecies;
     private WaspFunction runtimeFunction;
@@ -28,7 +25,17 @@ public class WaspInfo : MonoBehaviour
             ? assignedSkill.Function
             : WaspFunction.Scout;
     public int SkillLevel => HiveManagement.Instance != null ? HiveManagement.Instance.GetSkillLevel(FunctionRole) : 0;
-    public SB_Wasp_Skill SkillDefinition => assignedSkill != null ? assignedSkill : HiveManagement.Instance?.GetSkillDefinition(FunctionRole);
+    public SB_Wasp_Skill SkillDefinition
+    {
+        get
+        {
+            if (assignedSkill != null && assignedSkill.Function == FunctionRole)
+                return assignedSkill;
+
+            return HiveManagement.Instance?.GetSkillDefinition(FunctionRole) ?? assignedSkill;
+        }
+    }
+    public Sprite RoleIcon => SkillDefinition != null ? SkillDefinition.RoleIcon : null;
     public float ScoutingRange => GetSkillValue(WaspSkillStat.ScoutingRange);
     public float MovementSpeedMultiplier => GetSkillValue(WaspSkillStat.MovementSpeed);
     public float GatheringMultiplier => GetSkillValue(WaspSkillStat.GatheringMultiplier);
@@ -37,7 +44,7 @@ public class WaspInfo : MonoBehaviour
     public float DefenceMultiplier => GetSkillValue(WaspSkillStat.Defence);
     public float AttackSpeedMultiplier => GetSkillValue(WaspSkillStat.AttackSpeed);
     public float IdentificationMultiplier => GetSkillValue(WaspSkillStat.Identification);
-    public Transform CameraPoint => cameraPoint;
+    public event Action AssignmentChanged;
 
     public void SetRuntimeAssignment(SB_Wasps_Info species, WaspFunction function)
     {
@@ -46,6 +53,7 @@ public class WaspInfo : MonoBehaviour
 
         runtimeFunction = function;
         hasRuntimeFunction = true;
+        AssignmentChanged?.Invoke();
     }
 
     public float GetSkillValue(WaspSkillStat stat)
@@ -55,6 +63,4 @@ public class WaspInfo : MonoBehaviour
 
         return SkillDefinition != null ? SkillDefinition.GetEffectiveValue(stat, 0) : 1f;
     }
-
-    public Vector3 LookPosition => lookPoint != null ? lookPoint.position : transform.position;
 }

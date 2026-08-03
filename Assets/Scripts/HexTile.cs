@@ -43,6 +43,7 @@ public class HexTile : MonoBehaviour
 
     [Header("Camera")]
     [SerializeField] private Transform focusPoint;
+    [SerializeField] private Transform waspOverviewFocusPoint;
 
     [Header("Hive Spawning")]
     [SerializeField] private Transform hiveSpawnPoint;
@@ -79,6 +80,8 @@ public class HexTile : MonoBehaviour
         (!HasFibre || FibreRemaining <= 0f);
 
     public Vector3 FocusPosition => focusPoint != null ? focusPoint.position : transform.position;
+    public Vector3 WaspOverviewPosition => waspOverviewFocusPoint != null ? waspOverviewFocusPoint.position : FocusPosition;
+    public Vector3 WaspOverviewLookPosition => transform.position + Vector3.up * 0.35f;
     public Transform HiveSpawnPoint => hiveSpawnPoint != null ? hiveSpawnPoint : transform.Find("HiveSpawnpoint") ?? transform;
     public C_Friendly_Hive_Orc FriendlyHive => friendlyHive;
     public bool HasFriendlyScout => GetFriendlyWaspCount(WaspFunction.Scout) > 0;

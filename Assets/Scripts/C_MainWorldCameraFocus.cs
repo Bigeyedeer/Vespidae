@@ -49,6 +49,9 @@ public class C_MainWorldCameraFocus : MonoBehaviour
 
     public bool IsCloseUpActive => closeUpActive;
     public bool IsTransitioning => isTransitioning;
+    public Camera ActiveCamera => closeUpActive && closeUpCamera != null && closeUpCamera.gameObject.activeInHierarchy
+        ? closeUpCamera
+        : mainCamera;
     public float ScrollWheelZoomSpeed
     {
         get => closeUpZoomSensitivity;
@@ -100,37 +103,40 @@ public class C_MainWorldCameraFocus : MonoBehaviour
 
         focusedHex = hex;
         currentView = FocusView.Hex;
-        currentCloseUpLookPosition = hex.transform.position;
+        currentCloseUpLookPosition = hex.WaspOverviewLookPosition;
 
         BeginFocus(
-            hex.FocusPosition,
-            hex.transform.position,
+            hex.WaspOverviewPosition,
+            hex.WaspOverviewLookPosition,
             null
         );
     }
 
     public void FocusOnWasp(WaspInfo wasp)
     {
-        if (wasp == null || wasp.CameraPoint == null)
-        {
-            Debug.LogWarning(
-                "The selected wasp needs a WaspCameraPoint empty assigned."
-            );
-
+        if (wasp == null)
             return;
-        }
 
-        if (closeUpActive)
-        {
-            currentView = FocusView.Wasp;
-            currentCloseUpLookPosition = wasp.LookPosition;
-            StartCoroutine(BlendCloseUpToWasp(wasp));
-            return;
-        }
+        HexTile waspHex = ResolveWaspHex(wasp);
+        if (waspHex != null)
+            focusedHex = waspHex;
 
         currentView = FocusView.Wasp;
-        currentCloseUpLookPosition = wasp.LookPosition;
-        BeginFocus(wasp.CameraPoint.position, wasp.LookPosition, wasp);
+
+        if (!closeUpActive && focusedHex != null)
+        {
+            currentCloseUpLookPosition = focusedHex.WaspOverviewLookPosition;
+            BeginFocus(
+                focusedHex.WaspOverviewPosition,
+                focusedHex.WaspOverviewLookPosition,
+                wasp);
+            return;
+        }
+
+        if (hexOptionsPanel != null)
+            hexOptionsPanel.Close();
+
+        OpenWaspView(wasp);
     }
 
     public void ReturnToMap()
@@ -334,67 +340,6 @@ public class C_MainWorldCameraFocus : MonoBehaviour
         OpenWaspView(wasp);
     }
 
-    private IEnumerator BlendCloseUpToWasp(WaspInfo wasp)
-    {
-        if (wasp == null || closeUpCamera == null || isTransitioning)
-            yield break;
-
-        isTransitioning = true;
-        currentCloseUpLookPosition = wasp.LookPosition;
-
-        Vector3 startPosition = closeUpCamera.transform.position;
-        Quaternion startRotation = closeUpCamera.transform.rotation;
-        Vector3 targetPosition = wasp.CameraPoint.position;
-        Vector3 lookDirection = wasp.LookPosition - targetPosition;
-        Quaternion targetRotation = startRotation;
-
-        if (lookDirection.sqrMagnitude > 0.0001f)
-        {
-            targetRotation = Quaternion.LookRotation(
-                lookDirection.normalized,
-                Vector3.up
-            );
-        }
-
-        float elapsedTime = 0f;
-
-        if (hexOptionsPanel != null)
-            hexOptionsPanel.Close();
-
-        while (elapsedTime < blendDuration)
-        {
-            elapsedTime += Time.deltaTime;
-
-            float progress = Mathf.Clamp01(
-                elapsedTime / Mathf.Max(0.01f, blendDuration)
-            );
-
-            float smoothProgress = Mathf.SmoothStep(0f, 1f, progress);
-
-            closeUpCamera.transform.position = Vector3.Lerp(
-                startPosition,
-                targetPosition,
-                smoothProgress
-            );
-
-            closeUpCamera.transform.rotation = Quaternion.Slerp(
-                startRotation,
-                targetRotation,
-                smoothProgress
-            );
-
-            yield return null;
-        }
-
-        closeUpCamera.transform.position = targetPosition;
-        closeUpCamera.transform.rotation = targetRotation;
-        currentCloseUpLookPosition = wasp.LookPosition;
-
-        isTransitioning = false;
-
-        OpenWaspView(wasp);
-    }
-
     private void OpenWaspView(WaspInfo wasp)
     {
         if (wasp == null)
@@ -410,6 +355,19 @@ public class C_MainWorldCameraFocus : MonoBehaviour
 
         C_MainWorldOverlayNavigation.Instance?.HideFriendlyWaspActions();
         waspInfoPanel?.Open(wasp);
+    }
+
+    private HexTile ResolveWaspHex(WaspInfo wasp)
+    {
+        WaspControl friendly = wasp.GetComponentInParent<WaspControl>();
+        if (friendly != null)
+            return friendly.StationedHex ?? friendly.TargetHex ?? friendly.HomeHive?.OwnerHex ?? focusedHex;
+
+        EnemyWaspControl enemy = wasp.GetComponentInParent<EnemyWaspControl>();
+        if (enemy != null)
+            return enemy.StationedHex ?? enemy.TargetHex ?? enemy.HomeHive?.OwnerHex ?? focusedHex;
+
+        return focusedHex;
     }
 
     private IEnumerator BlendCloseUpToPoint(Vector3 targetPosition, Vector3 lookPosition)
@@ -475,7 +433,7 @@ public class C_MainWorldCameraFocus : MonoBehaviour
             yield break;
 
         isTransitioning = true;
-        currentCloseUpLookPosition = focusedHex.transform.position;
+        currentCloseUpLookPosition = focusedHex.WaspOverviewLookPosition;
 
         if (waspInfoPanel != null)
             waspInfoPanel.Close();
@@ -535,7 +493,7 @@ public class C_MainWorldCameraFocus : MonoBehaviour
             hexOptionsPanel.Open(focusedHex);
 
         currentView = FocusView.Hex;
-        currentCloseUpLookPosition = focusedHex.transform.position;
+        currentCloseUpLookPosition = focusedHex.WaspOverviewLookPosition;
         isTransitioning = false;
     }
 
