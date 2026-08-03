@@ -203,12 +203,18 @@ public class EnemyWaspControl : MonoBehaviour
     
     private void Update()
     {
-        if (navMeshAgent == null)
+        if (navMeshAgent == null || !navMeshAgent.enabled || !navMeshAgent.isOnNavMesh)
             return;
+        
+        if (workforceState != WaspWorkforceState.Travelling && hasStationaryPosition)
+        {
+            if ((navMeshAgent.nextPosition - stationaryNavPosition).sqrMagnitude > 0.0001f)
+                navMeshAgent.Warp(stationaryNavPosition);
 
-        if (!navMeshAgent.enabled || !navMeshAgent.isOnNavMesh)
+            transform.position = stationaryNavPosition + Vector3.up * flightHeight;
             return;
-
+        }
+        
         transform.position = navMeshAgent.nextPosition + Vector3.up * flightHeight;
 
         Vector3 velocity = navMeshAgent.desiredVelocity;
@@ -217,15 +223,46 @@ public class EnemyWaspControl : MonoBehaviour
         if (velocity.sqrMagnitude > 0.001f)
         {
             Quaternion targetRotation =
-                Quaternion.LookRotation(velocity.normalized);
+                Quaternion.LookRotation(velocity.normalized, Vector3.up);
 
             transform.rotation = Quaternion.Slerp(
                 transform.rotation,
                 targetRotation,
                 turnSpeed * Time.deltaTime);
         }
+        
+        if (workforceState == WaspWorkforceState.Travelling &&
+            !navMeshAgent.pathPending &&
+            navMeshAgent.pathStatus == UnityEngine.AI.NavMeshPathStatus.PathComplete &&
+            navMeshAgent.remainingDistance <= Mathf.Max(arrivalDistance, navMeshAgent.stoppingDistance))
+        {
+            CompleteArrival();
+        }
     }
 
+    private void CompleteArrival()
+    {
+        navMeshAgent.ResetPath();
+
+        hasDestination = false;
+
+        stationedHex = targetHex;
+        targetHex = null;
+
+        workforceState = WaspWorkforceState.Stationed;
+
+        SetStationaryPosition(navMeshAgent.nextPosition);
+
+        if (stationedHex != null)
+            stationedHex.RegisterEnemyWasp(this);
+    }
+    
+    private void SetStationaryPosition(Vector3 position)
+    {
+        stationaryNavPosition = position;
+        hasStationaryPosition = true;
+    }
+    
     private WaspScopeRole ResolveFaction()
     {
         if (deriveFactionFromSpecies && SpeciesInfo != null)
