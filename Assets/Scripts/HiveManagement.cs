@@ -16,7 +16,18 @@ public class HiveManagement : MonoBehaviour
     [SerializeField] private SB_Wasp_Skill containmentSkill;
     [SerializeField] private C_MainWorldHUD hud;
     [SerializeField] private SB_PlayerSelection_State playerSelection;
+    
+    [Header("Action Costs")]
+    [SerializeField] private float scoutDispatchCost = 1f;
+    [SerializeField] private float foragerDispatchCost = 1f;
+    [SerializeField] private float builderDispatchCost = 2f;
 
+    [Header("Colony Upkeep")]
+    [SerializeField] private float upkeepInterval = 10f;
+    [SerializeField] private float nectarUpkeepPerWorker = 0.25f;
+
+    private float upkeepTimer;
+    
     [Header("Friendly Startup Spawning")]
     [SerializeField] private GameObject friendlyHivePrefab;
     [SerializeField] private GameObject friendlyWaspPrefab;
@@ -90,6 +101,31 @@ public class HiveManagement : MonoBehaviour
         skillLevels = new int[Enum.GetValues(typeof(WaspFunction)).Length];
     }
 
+    private void Update()
+    {
+        upkeepTimer += Time.deltaTime;
+
+        if (upkeepTimer >= upkeepInterval)
+        {
+            upkeepTimer = 0f;
+            ApplyUpkeep();
+        }
+    }
+    
+    private void ApplyUpkeep()
+    {
+        ResourceManager resources = GetResourceManager();
+
+        if (resources == null)
+            return;
+
+        float upkeepCost = workers * nectarUpkeepPerWorker;
+
+        resources.TrySpend(upkeepCost, 0f, 0f);
+    }
+    
+    
+    
     private void Start()
     {
         resourceManager = ResourceManager.Instance;
@@ -102,6 +138,24 @@ public class HiveManagement : MonoBehaviour
     {
         if (Instance == this)
             Instance = null;
+    }
+    
+    private float GetDispatchCost(WaspFunction function)
+    {
+        switch (function)
+        {
+            case WaspFunction.Scout:
+                return scoutDispatchCost;
+
+            case WaspFunction.Forager:
+                return foragerDispatchCost;
+
+            case WaspFunction.Builder:
+                return builderDispatchCost;
+
+            default:
+                return 0f;
+        }
     }
 
     public int GetSkillLevel(WaspFunction function)
@@ -320,6 +374,13 @@ public class HiveManagement : MonoBehaviour
         if (!CanDispatchToHex(target, function))
             return false;
 
+        ResourceManager resources = GetResourceManager();
+
+        float cost = GetDispatchCost(function);
+
+        if (resources == null || !resources.CanAfford(cost, 0f, 0f))
+            return false;
+        
         CleanupFriendlyWasps();
         foreach (WaspControl wasp in friendlyWasps)
         {
@@ -332,7 +393,12 @@ public class HiveManagement : MonoBehaviour
 
             int formationIndex = target.FriendlyWaspCount + GetIncomingWaspCount(target);
             Vector3 destination = target.GetWaspFormationPosition(formationIndex, 0.25f, 0.25f);
-            return wasp.DispatchToHex(target, destination);
+            if (!wasp.DispatchToHex(target, destination))
+                return false;
+
+            resources.TrySpend(cost, 0f, 0f);
+
+            return true;
         }
 
         return false;

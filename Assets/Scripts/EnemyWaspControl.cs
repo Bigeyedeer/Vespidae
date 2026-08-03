@@ -7,6 +7,11 @@ public class EnemyWaspControl : MonoBehaviour
     [SerializeField] private WaspFunction assignedFunction = WaspFunction.Scout;
     [SerializeField] private bool deriveFactionFromSpecies = true;
     [SerializeField, Min(0f)] private float threatLevel = 1f;
+    [SerializeField] private UnityEngine.AI.NavMeshAgent navMeshAgent;
+    [SerializeField, Min(0.1f)] private float flightHeight = 0.35f;
+    [SerializeField, Min(0.1f)] private float navMeshSampleRadius = 8f;
+    [SerializeField, Min(0.01f)] private float arrivalDistance = 0.25f;
+    [SerializeField, Min(1f)] private float turnSpeed = 12f;
 
     private Vector3 destination;
     private bool hasDestination;
