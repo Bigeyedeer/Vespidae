@@ -29,13 +29,12 @@ public class ScanningManager : MonoBehaviour
 
     private void Start()
     {
-        targetRadial.fillAmount = 1f;
-        targetRadial.gameObject.SetActive(false);
-        InfoPanel.SetActive(false);
+        
     }
 
     public void BeginScan(ScannableObject target)
     {
+        InfoPanel = target.InfoPanel;
         currentObject = target;
         targetRadial = target.radialTarget;
         targetNotification = target.notificationImage;
@@ -43,7 +42,7 @@ public class ScanningManager : MonoBehaviour
         if (currentObject.hasBeenScanned)
         {
             InfoPanel.SetActive(true);
-            UpdateInformation();
+            //UpdateInformation();
             return;
         }
 
@@ -64,10 +63,13 @@ public class ScanningManager : MonoBehaviour
         isScanning = false;
         //scanCompleted = false;
 
-        targetRadial.fillAmount = 1f;
-        targetRadial.gameObject.SetActive(false);
+        if (targetRadial != null)
+        {
+            targetRadial.fillAmount = 1f;
+            targetRadial.gameObject.SetActive(false);
+        }
+
         InfoPanel.SetActive(false);
-        targetNotification.gameObject.SetActive(false);
 
     }
 
@@ -102,8 +104,9 @@ public class ScanningManager : MonoBehaviour
     private void DisplayAttributes()
     {
         // Debug.Log("DisplayWaspAttributes called");
-        UpdateInformation();
+        //UpdateInformation();
         InfoPanel.SetActive(true);
+        //targetNotification.gameObject.SetActive(true);
     }
 
     public void ToggleAttributes()
@@ -111,9 +114,10 @@ public class ScanningManager : MonoBehaviour
         if (currentObject.hasBeenScanned)
         {
             InfoPanel.SetActive(!InfoPanel.activeSelf);
-            targetNotification.enabled = !InfoPanel.activeSelf;
+            //targetNotification.enabled = !InfoPanel.activeSelf;
         }
-            
+
+        
     }
 
     public void UpdateInformation()
@@ -124,4 +128,6 @@ public class ScanningManager : MonoBehaviour
         InfoType.text = currentObject.scanType.ToString();
         InfoPanelColor.color = currentObject.uiColor;
     }
+
+    
 }

@@ -2,6 +2,7 @@ using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Splines.Interpolators;
 using UnityEngine.UI;
 
 public class CombatManager : MonoBehaviour
@@ -26,6 +27,7 @@ public class CombatManager : MonoBehaviour
     public float enemyDamage = 10f;
 
     public ScanningManager scanningManager;
+
     
 
     void Start()
@@ -47,11 +49,14 @@ public class CombatManager : MonoBehaviour
             Debug.Log("Visible: " + Cursor.visible);
             Debug.Log("Lock State: " + Cursor.lockState);
 
+            cameraLockOn.ForceUnlock();
+
             battleArea.enabled = false; //turn off collider
             battleCanvas.SetActive(true); // turn on Combat UI
             playerInput.enabled = false; //turn off movement
-            cameraLockOn.enabled = false; //turn off lock on
-            scanningManager.CancelScan();
+            //cameraLockOn.enabled = false; //turn off lock on
+
+            //scanningManager.CancelScan();
             //cameraLockOn.isLockedOn = false;
 
             
@@ -98,14 +103,11 @@ public class CombatManager : MonoBehaviour
             //UI update
             playerCurrentHealth += enemyDamage;
             playerSlider.value = playerCurrentHealth;
+           //playerSlider.value = Mathf.Lerp(playerSlider.value, playerCurrentHealth, .5f); animate slider
+
+            DisplayDamage(PlayerRequest);
 
             checkHealthPoints();
-
-            //rat mat
-            playerRedImage.SetActive(true);
-            playerRedImage.SetActive(false);
-
-            //animations
 
         }
         else//Player Doing Damage
@@ -114,39 +116,73 @@ public class CombatManager : MonoBehaviour
             enemyCurrentHealth += playerDamage;
             enemySlider.value = enemyCurrentHealth; 
 
+            DisplayDamage(PlayerRequest);
+
             checkHealthPoints();
+
+        }
+    }
+
+    public void DisplayDamage(bool PlayerRequest)
+    {
+        if (!PlayerRequest)//Enemy Doing Damage
+        {
+            //red damage display
+            StartCoroutine(FlashDamage(playerRedImage));
             
+            //animations
+
+        }
+        else//Player Doing Damage
+        {
             //red mat
-            enemyRedImage.SetActive(true);
-            enemyRedImage.SetActive(false);
+            StartCoroutine(FlashDamage(enemyRedImage));
 
             //animations
-            Debug.Log("Player Did Damage");
         }
+    }
+
+    private IEnumerator FlashDamage(GameObject image)
+    {
+        image.SetActive(true);
+
+        yield return new WaitForSeconds(0.3f);
+
+        image.SetActive(false);
     }
 
     public void checkHealthPoints()
     {
         if (playerCurrentHealth >= playerMaxHealth)
         {
-            battleEndText.text = "YOU LOSE";
-            StartCoroutine(waitforSeconds(1f));
-            StartResume();
-            Debug.Log("Player Lost");
+            StartCoroutine(EndBattle(false));
         }
         
         if (enemyCurrentHealth >= enemyMaxHealth)
         {
-            battleEndText.text = "YOU WIN";
-            StartCoroutine(waitforSeconds(1f));
-            StartResume();
-            Debug.Log("Enemy Lost");
-
+            StartCoroutine(EndBattle(true));
         }
     }
 
-    public IEnumerator waitforSeconds(float secs)
+    private IEnumerator EndBattle(bool playerWon)
     {
-        yield return new WaitForSeconds(secs);
+        if (playerWon)
+        {
+            battleEndText.text = "YOU WIN";
+            Debug.Log("Enemy Lost");
+        }
+        else
+        {
+            battleEndText.text = "YOU LOSE";
+            Debug.Log("Player Lost");
+        }
+
+        // Show the message for a second
+        yield return new WaitForSeconds(1f);
+
+        // Resume gameplay
+        yield return StartCoroutine(ResumeGame());
     }
+
+    
 }

@@ -242,6 +242,18 @@ namespace StarterAssets
             
 
         }
+        public void SyncCameraRotation()
+        {
+            Vector3 euler = CinemachineCameraTarget.transform.eulerAngles;
+
+            float pitch = euler.x;
+
+            if (pitch > 180f)
+                pitch -= 360f;
+
+            _cinemachineTargetYaw = euler.y;
+            _cinemachineTargetPitch = pitch;
+        }
 
         private void Move()
         {

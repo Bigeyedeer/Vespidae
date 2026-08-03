@@ -148,6 +148,7 @@ GameObject:
   - component: {fileID: 8371561320395858849}
   - component: {fileID: 4679500585051944358}
   - component: {fileID: 2909987086884516368}
+  - component: {fileID: 1776747735498947912}
   m_Layer: 5
   m_Name: Scanner
   m_TagString: Untagged
@@ -213,6 +214,26 @@ MonoBehaviour:
   m_FillOrigin: 2
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!1183024399 &1776747735498947912
+LookAtConstraint:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2449845248807564038}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Weight: 1
+  m_RotationAtRest: {x: 0, y: 0, z: 0}
+  m_RotationOffset: {x: 0, y: 180, z: 0}
+  m_Roll: 0
+  m_WorldUpObject: {fileID: 0}
+  m_UseUpObject: 0
+  m_Active: 1
+  m_IsLocked: 0
+  m_Sources:
+  - sourceTransform: {fileID: 0}
+    weight: 1
 --- !u!1 &3306916234839197011
 GameObject:
   m_ObjectHideFlags: 0
@@ -224,6 +245,7 @@ GameObject:
   - component: {fileID: 1728083106272836749}
   - component: {fileID: 7090334799472678509}
   - component: {fileID: 6416563697653310359}
+  - component: {fileID: 5848501925647017525}
   m_Layer: 5
   m_Name: Notification
   m_TagString: Untagged
@@ -272,7 +294,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0.5415094, b: 0.7170352, a: 1}
+  m_Color: {r: 0.7607844, g: 0.6117647, b: 0.24313727, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -289,6 +311,26 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!1183024399 &5848501925647017525
+LookAtConstraint:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3306916234839197011}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Weight: 1
+  m_RotationAtRest: {x: 0, y: 0, z: 0}
+  m_RotationOffset: {x: 0, y: 180, z: 0}
+  m_Roll: 0
+  m_WorldUpObject: {fileID: 0}
+  m_UseUpObject: 0
+  m_Active: 1
+  m_IsLocked: 0
+  m_Sources:
+  - sourceTransform: {fileID: 0}
+    weight: 1
 --- !u!1 &3560428923826274672
 GameObject:
   m_ObjectHideFlags: 0
@@ -443,7 +485,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &5706421449977010411
 RectTransform:
   m_ObjectHideFlags: 0
@@ -758,7 +800,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &7166362397167835165
 RectTransform:
   m_ObjectHideFlags: 0
@@ -962,7 +1004,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &6871628493623404113
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1004,15 +1046,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0.83753663, b: 0.39811313, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
+  m_Maskable: 0
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: afde26445c428b7419386cb1372e0f27, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -1076,9 +1118,10 @@ MonoBehaviour:
     Fynbos fragments
   hasBeenScanned: 0
   scanType: 1
-  uiColor: {r: 1, g: 0.47362727, b: 0, a: 1}
+  uiColor: {r: 0.7607844, g: 0.6117647, b: 0.2392157, a: 1}
   radialTarget: {fileID: 2909987086884516368}
   notificationImage: {fileID: 6416563697653310359}
+  InfoPanel: {fileID: 5423126224234649704}
 --- !u!1001 &2543147272412323052
 PrefabInstance:
   m_ObjectHideFlags: 0

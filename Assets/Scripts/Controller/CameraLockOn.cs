@@ -5,6 +5,7 @@ using UnityEngine;
 public class CameraLockOn : MonoBehaviour
 {
     private StarterAssetsInputs _Input;  // StarterAssetsInputs reference
+    public ThirdPersonController thirdPersonController;
     //public GameObject followCamera;
     //public GameObject lockCamera;
     public ScanningManager scanningManager;
@@ -47,8 +48,8 @@ public class CameraLockOn : MonoBehaviour
 
             scanningManager.CancelScan();
 
-            CurrentTarget = null;
-            isLockedOn = false;
+            ForceUnlock();
+            thirdPersonController.SyncCameraRotation();
         }
         else
         {
@@ -93,5 +94,14 @@ public class CameraLockOn : MonoBehaviour
         }
 
         return nearest;
+    }
+
+    public void ForceUnlock()
+    {
+        scanningManager.CancelScan();
+
+        CurrentTarget = null;
+        isLockedOn = false;
+
     }
 }

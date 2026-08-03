@@ -251,6 +251,7 @@ GameObject:
   - component: {fileID: 2119296255803696904}
   - component: {fileID: 2845940174766219981}
   - component: {fileID: 7480374099146481034}
+  - component: {fileID: 4859482383713628896}
   m_Layer: 5
   m_Name: Scanner
   m_TagString: Untagged
@@ -316,6 +317,26 @@ MonoBehaviour:
   m_FillOrigin: 2
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!1183024399 &4859482383713628896
+LookAtConstraint:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1044748820908299348}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Weight: 1
+  m_RotationAtRest: {x: 0, y: 0, z: 0}
+  m_RotationOffset: {x: 0, y: 180, z: 0}
+  m_Roll: 0
+  m_WorldUpObject: {fileID: 0}
+  m_UseUpObject: 0
+  m_Active: 1
+  m_IsLocked: 0
+  m_Sources:
+  - sourceTransform: {fileID: 0}
+    weight: 1
 --- !u!1 &1692025260692009578
 GameObject:
   m_ObjectHideFlags: 0
@@ -464,13 +485,14 @@ GameObject:
   - component: {fileID: 3629860626048919712}
   - component: {fileID: 6259224389145093122}
   - component: {fileID: 17796003630552657}
+  - component: {fileID: 6639349710764614045}
   m_Layer: 5
   m_Name: Notification
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &3629860626048919712
 RectTransform:
   m_ObjectHideFlags: 0
@@ -512,7 +534,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0, b: 0, a: 1}
+  m_Color: {r: 0.8078432, g: 0.27058825, b: 0.26666668, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -529,6 +551,26 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!1183024399 &6639349710764614045
+LookAtConstraint:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3365016345761896132}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Weight: 1
+  m_RotationAtRest: {x: 0, y: 0, z: 0}
+  m_RotationOffset: {x: 0, y: 180, z: 0}
+  m_Roll: 0
+  m_WorldUpObject: {fileID: 0}
+  m_UseUpObject: 0
+  m_Active: 1
+  m_IsLocked: 0
+  m_Sources:
+  - sourceTransform: {fileID: 0}
+    weight: 1
 --- !u!1 &4321950937800642442
 GameObject:
   m_ObjectHideFlags: 0
@@ -710,6 +752,7 @@ MonoBehaviour:
   uiColor: {r: 1, g: 0, b: 0, a: 1}
   radialTarget: {fileID: 7480374099146481034}
   notificationImage: {fileID: 17796003630552657}
+  InfoPanel: {fileID: 4321950937800642442}
 --- !u!1 &5038239368994641096
 GameObject:
   m_ObjectHideFlags: 0
@@ -864,7 +907,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &8327184420675181376
 RectTransform:
   m_ObjectHideFlags: 0
@@ -906,15 +949,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 0.83753663, b: 0.39811313, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
+  m_Maskable: 0
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: 86492a66a2d272c4292d1f8a598280d3, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -940,7 +983,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1196585002765652754
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1183,7 +1226,8 @@ Animation:
   m_Enabled: 1
   serializedVersion: 4
   m_Animation: {fileID: 7400000, guid: 9ddfcc039cf5de6458ae0a2b73ffe6f9, type: 2}
-  m_Animations: []
+  m_Animations:
+  - {fileID: 7400000, guid: 9ddfcc039cf5de6458ae0a2b73ffe6f9, type: 2}
   m_WrapMode: 0
   m_PlayAutomatically: 1
   m_AnimatePhysics: 0

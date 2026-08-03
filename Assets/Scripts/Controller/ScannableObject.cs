@@ -25,6 +25,9 @@ public class ScannableObject : MonoBehaviour
 
     [Header("Notification Image")]
     public Image notificationImage;
+
+    [Header("Panel Screen")]
+    public GameObject InfoPanel;
 }
 
 public enum ScanType
