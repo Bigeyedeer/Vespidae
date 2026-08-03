@@ -47,11 +47,21 @@ public class EnemyHiveControl : MonoBehaviour
         if (!autoRegisterSceneWasps)
             return;
 
-        EnemyWaspControl[] sceneWasps = FindObjectsByType<EnemyWaspControl>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        EnemyWaspControl[] sceneWasps = FindObjectsByType<EnemyWaspControl>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+
         foreach (EnemyWaspControl wasp in sceneWasps)
             Register(wasp);
 
         SpawnEnemyStartup();
+
+        // TEMP TEST
+        foreach (EnemyWaspControl wasp in PrimaryInvasiveFaction)
+        {
+            if (wasp != null)
+                wasp.SetDestination(wasp.transform.position + Vector3.forward * 8f);
+        }
     }
 
     private void OnDestroy()
