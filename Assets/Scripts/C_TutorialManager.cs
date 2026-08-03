@@ -34,7 +34,58 @@ public class C_TutorialManager : MonoBehaviour
 
     private void Awake()
     {
+        ConfigureTutorialPortraitRendering();
         BindButtons();
+    }
+
+    private void ConfigureTutorialPortraitRendering()
+    {
+        int tutorialLayer = LayerMask.NameToLayer("TutorialPortrait");
+
+        if (tutorialLayer < 0)
+        {
+            Debug.LogWarning("TutorialPortrait layer is missing.");
+            return;
+        }
+
+        int tutorialMask = 1 << tutorialLayer;
+        Transform[] sceneTransforms = FindObjectsByType<Transform>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+        foreach (Transform sceneTransform in sceneTransforms)
+        {
+            if (sceneTransform.name == "Tutorial Pip Display")
+            {
+                SetLayerRecursively(sceneTransform, tutorialLayer);
+                break;
+            }
+        }
+
+        Camera[] sceneCameras = FindObjectsByType<Camera>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+        foreach (Camera sceneCamera in sceneCameras)
+        {
+            if (sceneCamera.name == "Tutorial Pip Camera")
+                sceneCamera.cullingMask = tutorialMask;
+            else
+                sceneCamera.cullingMask &= ~tutorialMask;
+        }
+    }
+
+    private static void SetLayerRecursively(
+        Transform root,
+        int layer
+    )
+    {
+        root.gameObject.layer = layer;
+
+        foreach (Transform child in root)
+            SetLayerRecursively(child, layer);
     }
 
     private void Start()
