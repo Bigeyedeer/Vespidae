@@ -12,7 +12,7 @@ public class SB_Hex_Gathering_Rules : ScriptableObject
     [SerializeField, Min(0f)] private float preyPerWaspPerTick = 10f;
     [FormerlySerializedAs("sugarPerWaspPerTick")]
     [SerializeField, Min(0f)] private float nectarPerWaspPerTick = 20f;
-    [SerializeField, Min(0f)] private float fibrePerWaspPerTick;
+    [SerializeField, Min(0f)] private float fibrePerWaspPerTick = 10f;
 
     [Header("Gathering Limits")]
     [FormerlySerializedAs("maximumGatheringWasps")]
@@ -44,11 +44,13 @@ public class SB_Hex_Gathering_Rules : ScriptableObject
         float tickInterval,
         float preyPerWasp,
         float nectarPerWasp,
+        float fibrePerWasp,
         int maximumWasps)
     {
         gatheringTickIntervalSeconds = Mathf.Max(0.1f, tickInterval);
         preyPerWaspPerTick = Mathf.Max(0f, preyPerWasp);
         nectarPerWaspPerTick = Mathf.Max(0f, nectarPerWasp);
+        fibrePerWaspPerTick = Mathf.Max(0f, fibrePerWasp);
         maximumForagersPerHex = Mathf.Max(1, maximumWasps);
     }
 #endif

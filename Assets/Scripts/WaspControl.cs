@@ -11,6 +11,7 @@ public enum WaspWorkforceState
 public class WaspControl : MonoBehaviour
 {
     [SerializeField] private WaspInfo waspInfo;
+    [SerializeField] private WaspRoleIconBillboard roleIconBillboard;
     [SerializeField] private WaspFunction assignedFunction = WaspFunction.Scout;
     [SerializeField] private NavMeshAgent navMeshAgent;
     [SerializeField, Min(0.1f)] private float flightHeight = 0.35f;
@@ -50,7 +51,10 @@ public class WaspControl : MonoBehaviour
         if (waspInfo == null)
             waspInfo = GetComponent<WaspInfo>();
 
-        WaspRoleIconBillboard.Ensure(gameObject, waspInfo);
+        if (roleIconBillboard == null)
+            roleIconBillboard = GetComponentInChildren<WaspRoleIconBillboard>(true);
+
+        roleIconBillboard?.Initialize(waspInfo);
 
         if (navMeshAgent == null)
             navMeshAgent = GetComponentInChildren<NavMeshAgent>(true);
@@ -234,6 +238,7 @@ public class WaspControl : MonoBehaviour
         navMeshAgent.baseOffset = 0f;
         navMeshAgent.autoRepath = true;
         navMeshAgent.autoBraking = true;
+        navMeshAgent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
         navMeshAgent.updatePosition = false;
         navMeshAgent.updateRotation = false;
     }

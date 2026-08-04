@@ -123,7 +123,7 @@ public static class VespidaeHexDataSetup
                 2000f,
                 new List<SB_Wasps_Info> { nativeWasp, europeanWasp, germanWasp });
 
-            gatheringRules.ConfigureForEditor(2f, 10f, 20f, 20);
+            gatheringRules.ConfigureForEditor(2f, 10f, 20f, 10f, 5);
 
             EditorUtility.SetDirty(areaInfo);
             EditorUtility.SetDirty(gatheringRules);

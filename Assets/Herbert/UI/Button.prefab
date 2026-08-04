@@ -195,15 +195,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7838337290364288556, guid: 2fb64ac66fcdba9469e92584f17a18ed, type: 3}
       propertyPath: m_fontSize
-      value: 22.8
+      value: 42.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7838337290364288556, guid: 2fb64ac66fcdba9469e92584f17a18ed, type: 3}
+      propertyPath: m_margin.x
+      value: -65.5047
+      objectReference: {fileID: 0}
+    - target: {fileID: 7838337290364288556, guid: 2fb64ac66fcdba9469e92584f17a18ed, type: 3}
+      propertyPath: m_margin.y
+      value: -19.061646
       objectReference: {fileID: 0}
     - target: {fileID: 7838337290364288556, guid: 2fb64ac66fcdba9469e92584f17a18ed, type: 3}
       propertyPath: m_margin.z
-      value: -202.57361
+      value: -348.77374
       objectReference: {fileID: 0}
     - target: {fileID: 7838337290364288556, guid: 2fb64ac66fcdba9469e92584f17a18ed, type: 3}
       propertyPath: m_fontSizeBase
-      value: 22.8
+      value: 42.2
       objectReference: {fileID: 0}
     - target: {fileID: 7838337290364288556, guid: 2fb64ac66fcdba9469e92584f17a18ed, type: 3}
       propertyPath: m_sharedMaterial

@@ -22,8 +22,19 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
     public void Initialize(HexTile hex, GameObject[] waspPrefabs)
     {
         ownerHex = hex;
+        AttachToOwnerHex();
         if (waspPrefabs != null && waspPrefabs.Length > 0)
             enemyWaspPrefabs = waspPrefabs;
+    }
+
+    private void AttachToOwnerHex()
+    {
+        if (ownerHex == null)
+            return;
+
+        Transform spawnPoint = ownerHex.HiveSpawnPoint;
+        transform.SetParent(spawnPoint, true);
+        transform.SetPositionAndRotation(spawnPoint.position, spawnPoint.rotation);
     }
 
     public EnemyWaspControl SpawnWasp(

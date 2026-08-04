@@ -72,6 +72,14 @@ public class ResourceManager : MonoBehaviour
         NotifyChanged();
     }
 
+    public void AddResources(float nectarAmount, float preyAmount, float fibreAmount)
+    {
+        nectar = Mathf.Max(0f, nectar + Mathf.Max(0f, nectarAmount));
+        prey = Mathf.Max(0f, prey + Mathf.Max(0f, preyAmount));
+        fibre = Mathf.Max(0f, fibre + Mathf.Max(0f, fibreAmount));
+        NotifyChanged();
+    }
+
     public bool CanAfford(float nectarCost, float preyCost, float fibreCost)
     {
         return nectar >= Mathf.Max(0f, nectarCost) &&

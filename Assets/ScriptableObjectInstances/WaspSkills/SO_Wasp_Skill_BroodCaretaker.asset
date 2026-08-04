@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: SO_Wasp_Skill_BroodCaretaker
   m_EditorClassIdentifier: 
   function: 3
+  roleIcon: {fileID: 21300000, guid: 56a633ccae3f2e3468f2ce12bf10ceda, type: 3}
   displayName: Brood Caretaker
   description: Feeds larvae and supports healthy brood growth.
   effectSummary: Improves brood development.

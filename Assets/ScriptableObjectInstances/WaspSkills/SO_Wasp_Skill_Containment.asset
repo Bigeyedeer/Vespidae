@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: SO_Wasp_Skill_Containment
   m_EditorClassIdentifier: 
   function: 5
+  roleIcon: {fileID: 21300000, guid: c21892e7ad99d1448a91916884ad78cf, type: 3}
   displayName: Containment
   description: Slows invasive spread and secures territory.
   effectSummary: Improves containment effectiveness.

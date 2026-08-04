@@ -103,11 +103,11 @@ public class C_MainWorldCameraFocus : MonoBehaviour
 
         focusedHex = hex;
         currentView = FocusView.Hex;
-        currentCloseUpLookPosition = hex.WaspOverviewLookPosition;
+        currentCloseUpLookPosition = hex.FocusLookPosition;
 
         BeginFocus(
-            hex.WaspOverviewPosition,
-            hex.WaspOverviewLookPosition,
+            hex.FocusPosition,
+            hex.FocusLookPosition,
             null
         );
     }
@@ -118,23 +118,41 @@ public class C_MainWorldCameraFocus : MonoBehaviour
             return;
 
         HexTile waspHex = ResolveWaspHex(wasp);
+        bool keepCurrentWaspCamera =
+            closeUpActive &&
+            currentView == FocusView.Wasp &&
+            waspHex != null &&
+            focusedHex == waspHex;
+
         if (waspHex != null)
             focusedHex = waspHex;
 
         currentView = FocusView.Wasp;
 
-        if (!closeUpActive && focusedHex != null)
-        {
-            currentCloseUpLookPosition = focusedHex.WaspOverviewLookPosition;
-            BeginFocus(
-                focusedHex.WaspOverviewPosition,
-                focusedHex.WaspOverviewLookPosition,
-                wasp);
-            return;
-        }
-
         if (hexOptionsPanel != null)
             hexOptionsPanel.Close();
+
+        if (waspHex != null)
+        {
+            if (keepCurrentWaspCamera)
+            {
+                OpenWaspView(wasp);
+                return;
+            }
+
+            Vector3 focusPosition = waspHex.WaspCloseUpPosition;
+            Vector3 lookPosition = waspHex.WaspCloseUpLookPosition;
+            currentCloseUpLookPosition = lookPosition;
+
+            if (closeUpActive)
+            {
+                StartCoroutine(BlendCloseUpToWasp(focusPosition, lookPosition, wasp));
+                return;
+            }
+
+            BeginFocus(focusPosition, lookPosition, wasp);
+            return;
+        }
 
         OpenWaspView(wasp);
     }
@@ -370,6 +388,15 @@ public class C_MainWorldCameraFocus : MonoBehaviour
         return focusedHex;
     }
 
+    private IEnumerator BlendCloseUpToWasp(
+        Vector3 targetPosition,
+        Vector3 lookPosition,
+        WaspInfo wasp)
+    {
+        yield return BlendCloseUpToPoint(targetPosition, lookPosition);
+        OpenWaspView(wasp);
+    }
+
     private IEnumerator BlendCloseUpToPoint(Vector3 targetPosition, Vector3 lookPosition)
     {
         if (closeUpCamera == null || isTransitioning)
@@ -433,7 +460,7 @@ public class C_MainWorldCameraFocus : MonoBehaviour
             yield break;
 
         isTransitioning = true;
-        currentCloseUpLookPosition = focusedHex.WaspOverviewLookPosition;
+        currentCloseUpLookPosition = focusedHex.FocusLookPosition;
 
         if (waspInfoPanel != null)
             waspInfoPanel.Close();
@@ -493,7 +520,7 @@ public class C_MainWorldCameraFocus : MonoBehaviour
             hexOptionsPanel.Open(focusedHex);
 
         currentView = FocusView.Hex;
-        currentCloseUpLookPosition = focusedHex.WaspOverviewLookPosition;
+        currentCloseUpLookPosition = focusedHex.FocusLookPosition;
         isTransitioning = false;
     }
 

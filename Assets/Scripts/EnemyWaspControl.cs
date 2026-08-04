@@ -3,6 +3,7 @@ using UnityEngine;
 public class EnemyWaspControl : MonoBehaviour
 {
     [SerializeField] private WaspInfo waspInfo;
+    [SerializeField] private WaspRoleIconBillboard roleIconBillboard;
     [SerializeField] private WaspScopeRole faction = WaspScopeRole.PrimaryInvasive;
     [SerializeField] private WaspFunction assignedFunction = WaspFunction.Scout;
     [SerializeField] private bool deriveFactionFromSpecies = true;
@@ -46,7 +47,11 @@ public class EnemyWaspControl : MonoBehaviour
     {
         if (waspInfo == null)
             waspInfo = GetComponent<WaspInfo>();
-        WaspRoleIconBillboard.Ensure(gameObject, waspInfo);
+
+        if (roleIconBillboard == null)
+            roleIconBillboard = GetComponentInChildren<WaspRoleIconBillboard>(true);
+
+        roleIconBillboard?.Initialize(waspInfo);
         CreateNavigationProxy();
         ConfigureAgent();
 
@@ -182,6 +187,7 @@ public class EnemyWaspControl : MonoBehaviour
         navMeshAgent.baseOffset = 0f;
         navMeshAgent.autoRepath = true;
         navMeshAgent.autoBraking = true;
+        navMeshAgent.obstacleAvoidanceType = UnityEngine.AI.ObstacleAvoidanceType.NoObstacleAvoidance;
         navMeshAgent.updatePosition = false;
         navMeshAgent.updateRotation = false;
     }

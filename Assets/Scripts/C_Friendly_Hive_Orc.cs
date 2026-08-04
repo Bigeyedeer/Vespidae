@@ -21,8 +21,19 @@ public class C_Friendly_Hive_Orc : MonoBehaviour
     public void Initialize(HexTile hex, GameObject waspPrefab)
     {
         ownerHex = hex;
+        AttachToOwnerHex();
         if (waspPrefab != null)
             friendlyWaspPrefab = waspPrefab;
+    }
+
+    private void AttachToOwnerHex()
+    {
+        if (ownerHex == null)
+            return;
+
+        Transform spawnPoint = ownerHex.HiveSpawnPoint;
+        transform.SetParent(spawnPoint, true);
+        transform.SetPositionAndRotation(spawnPoint.position, spawnPoint.rotation);
     }
 
     public WaspControl SpawnWasp(GameObject waspPrefab = null)

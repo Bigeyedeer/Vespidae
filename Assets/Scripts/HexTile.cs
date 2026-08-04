@@ -43,7 +43,7 @@ public class HexTile : MonoBehaviour
 
     [Header("Camera")]
     [SerializeField] private Transform focusPoint;
-    [SerializeField] private Transform waspOverviewFocusPoint;
+    [SerializeField] private Transform waspCloseUpFocusPoint;
 
     [Header("Hive Spawning")]
     [SerializeField] private Transform hiveSpawnPoint;
@@ -80,8 +80,9 @@ public class HexTile : MonoBehaviour
         (!HasFibre || FibreRemaining <= 0f);
 
     public Vector3 FocusPosition => focusPoint != null ? focusPoint.position : transform.position;
-    public Vector3 WaspOverviewPosition => waspOverviewFocusPoint != null ? waspOverviewFocusPoint.position : FocusPosition;
-    public Vector3 WaspOverviewLookPosition => transform.position + Vector3.up * 0.35f;
+    public Vector3 FocusLookPosition => transform.position + Vector3.up * 0.35f;
+    public Vector3 WaspCloseUpPosition => waspCloseUpFocusPoint != null ? waspCloseUpFocusPoint.position : FocusPosition;
+    public Vector3 WaspCloseUpLookPosition => transform.position + Vector3.up * 0.35f;
     public Transform HiveSpawnPoint => hiveSpawnPoint != null ? hiveSpawnPoint : transform.Find("HiveSpawnpoint") ?? transform;
     public C_Friendly_Hive_Orc FriendlyHive => friendlyHive;
     public bool HasFriendlyScout => GetFriendlyWaspCount(WaspFunction.Scout) > 0;
@@ -176,17 +177,39 @@ public class HexTile : MonoBehaviour
             return;
 
         gatheringTickElapsed = 0f;
-        if (HasPrey && PreyRemaining > 0f)
-            GatherPrey(foragerCount);
-        if (HasNectar && NectarRemaining > 0f)
-            GatherNectar(foragerCount);
-        if (HasFibre && FibreRemaining > 0f)
-            GatherFibre(foragerCount);
-        ResourcesChanged?.Invoke(this);
-        C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(this);
+        GatherAvailableResources(foragerCount);
 
         if (ResourcesDepleted)
             ReturnForagersToHive();
+    }
+
+    private void GatherAvailableResources(int foragerCount)
+    {
+        if (ResourceManager.Instance == null)
+        {
+            Debug.LogWarning("No ResourceManager exists in the scene.");
+            return;
+        }
+
+        float gatheredPrey = HasPrey
+            ? Mathf.Min(gatheringRules.GetPreyAmount(foragerCount), currentPrey)
+            : 0f;
+        float gatheredNectar = HasNectar
+            ? Mathf.Min(gatheringRules.GetNectarAmount(foragerCount), currentNectar)
+            : 0f;
+        float gatheredFibre = HasFibre
+            ? Mathf.Min(gatheringRules.GetFibreAmount(foragerCount), currentFibre)
+            : 0f;
+
+        currentPrey = Mathf.Max(0f, currentPrey - gatheredPrey);
+        currentNectar = Mathf.Max(0f, currentNectar - gatheredNectar);
+        currentFibre = Mathf.Max(0f, currentFibre - gatheredFibre);
+
+        if (gatheredPrey > 0f || gatheredNectar > 0f || gatheredFibre > 0f)
+            ResourceManager.Instance.AddResources(gatheredNectar, gatheredPrey, gatheredFibre);
+
+        ResourcesChanged?.Invoke(this);
+        C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(this);
     }
 
     private void OnValidate()
