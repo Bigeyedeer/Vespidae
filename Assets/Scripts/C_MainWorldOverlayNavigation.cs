@@ -1005,6 +1005,8 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
             return;
 
         SetText("HiveTraining_Title", "Native Hive");
+        SetText("nametag", "Native Hive");
+        SetText("HiveTraining_Subtitle", "Train colony roles");
         SetText(
             "HiveTraining_Resources",
             resources == null
@@ -1020,6 +1022,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         SetTrainingButton(hive, WaspFunction.Builder, "HiveTrain_Builder", "Train Builder");
         SetTrainingButton(hive, WaspFunction.Guard, "HiveTrain_Attacker", "Train Attacker");
         SetText("HiveTraining_Feedback", trainingFeedback);
+        SetNestedText("HiveTraining_Hide", "scouted", trainingFeedback);
     }
 
     private void TrainScout()
@@ -1065,6 +1068,9 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     private void ArrangeHiveTrainingLayout()
     {
         if (hiveTrainingPanel == null)
+            return;
+
+        if (FindChild("Herbert Hive Training") != null)
             return;
 
         RectTransform panelRect = hiveTrainingPanel.GetComponent<RectTransform>();
@@ -1134,7 +1140,14 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     {
         int total = hive.GetTotalWaspCount(function);
         int available = hive.GetAvailableWaspCount(function);
-        SetText(objectName, $"{roleName}: {total} total   {available} available");
+        SB_Wasp_Skill definition = hive.GetSkillDefinition(function);
+        WaspSkillCost cost = definition != null ? definition.TrainingCost : default;
+        string costText = FormatCost(cost);
+        SetText(
+            objectName,
+            string.IsNullOrEmpty(costText)
+                ? $"{roleName}  •  {total} total  •  {available} available"
+                : $"{roleName}  •  {total} total  •  {available} available  •  {costText}");
     }
 
     private void SetTrainingButton(
@@ -1147,11 +1160,12 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         if (target == null)
             return;
 
-        SB_Wasp_Skill definition = hive.GetSkillDefinition(function);
-        WaspSkillCost cost = definition != null ? definition.TrainingCost : default;
-        TMP_Text text = target.GetComponentInChildren<TMP_Text>(true);
+        GameObject labelObject = FindChild(objectName + "_Label");
+        TMP_Text text = labelObject != null
+            ? labelObject.GetComponent<TMP_Text>()
+            : target.GetComponentInChildren<TMP_Text>(true);
         if (text != null)
-            text.text = $"{label}\n{FormatCost(cost)}";
+            text.text = label;
 
         Button button = target.GetComponent<Button>();
         if (button != null)
@@ -1181,8 +1195,27 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     {
         GameObject target = FindChild(objectName);
         TMP_Text text = target != null ? target.GetComponent<TMP_Text>() : null;
+        if (text == null && target != null)
+            text = target.GetComponentInChildren<TMP_Text>(true);
         if (text != null)
             text.text = value;
+    }
+
+    private void SetNestedText(string parentName, string childName, string value)
+    {
+        GameObject parent = FindChild(parentName);
+        if (parent == null)
+            return;
+
+        TMP_Text[] texts = parent.GetComponentsInChildren<TMP_Text>(true);
+        foreach (TMP_Text text in texts)
+        {
+            if (text.gameObject.name != childName)
+                continue;
+
+            text.text = value;
+            return;
+        }
     }
 
     private void Subscribe()
