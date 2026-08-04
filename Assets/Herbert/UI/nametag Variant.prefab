@@ -24,10 +24,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: nametag Variant
       objectReference: {fileID: 0}
-    - target: {fileID: 5061412485613236538, guid: 6fcb2d7e5f402ad4599f21d1c2f71ab2, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: -27
-      objectReference: {fileID: 0}
     - target: {fileID: 5177455502799670048, guid: 6fcb2d7e5f402ad4599f21d1c2f71ab2, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
