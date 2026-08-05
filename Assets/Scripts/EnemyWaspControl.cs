@@ -22,6 +22,7 @@ public class EnemyWaspControl : MonoBehaviour
 
     private HexTile targetHex;
     private HexTile stationedHex;
+    private HexTile lastVisitedHex;
 
     private WaspWorkforceState workforceState = WaspWorkforceState.Idle;
 
@@ -37,13 +38,16 @@ public class EnemyWaspControl : MonoBehaviour
     public C_Enemy_Hive_Orc HomeHive => homeHive;
     public HexTile TargetHex => targetHex;
     public HexTile StationedHex => stationedHex;
+    public HexTile LastVisitedHex => lastVisitedHex;
+    
     public WaspWorkforceState WorkforceState => workforceState;
     public float ThreatLevel => threatLevel;
     public bool IsAlerted => alerted;
     public bool HasDestination => hasDestination;
     public Vector3 Destination => destination;
+   
 
-    private void Awake()
+    private void Awake()    
     {
         if (waspInfo == null)
             waspInfo = GetComponent<WaspInfo>();
@@ -289,6 +293,7 @@ public class EnemyWaspControl : MonoBehaviour
         hasDestination = false;
 
         stationedHex = targetHex;
+        lastVisitedHex = stationedHex;
         targetHex = null;
 
         workforceState = WaspWorkforceState.Stationed;

@@ -67,7 +67,7 @@ public class EnemyHiveControl : MonoBehaviour
         if (scoutTimer < scoutInterval)
             return;
 
-        scoutTimer = 0f;
+        scoutTimer = Random.Range(0f, scoutInterval * 0.3f);
 
         RunScoutBehaviour();
     }
@@ -218,6 +218,7 @@ public class EnemyHiveControl : MonoBehaviour
         {
             if (hive == null)
                 continue;
+            
 
             EnemyWaspControl scout = null;
 
@@ -237,6 +238,9 @@ public class EnemyHiveControl : MonoBehaviour
             }
 
             if (scout == null)
+                continue;
+            
+            if (scout.WorkforceState == WaspWorkforceState.Travelling)
                 continue;
 
             HexTile target = ChooseScoutTarget(hive);
@@ -265,14 +269,31 @@ public class EnemyHiveControl : MonoBehaviour
             if (hex == null)
                 continue;
 
-            // Don't scout our own territory
+           
             if (hex.State == HexTile.HexState.Enemy)
                 continue;
 
-            // Don't bother with locked areas
+         
             if (hex.State == HexTile.HexState.Locked)
                 continue;
+            
+            if (hex == hive.OwnerHex)
+                continue;
 
+            EnemyWaspControl scout = null;
+
+            foreach (EnemyWaspControl wasp in GetFaction(WaspScopeRole.PrimaryInvasive))
+            {
+                if (wasp != null && wasp.HomeHive == hive)
+                {
+                    scout = wasp;
+                    break;
+                }
+            }
+
+            if (scout != null && scout.LastVisitedHex == hex)
+                continue;scoutTimer = 0f;
+            
             candidates.Add(hex);
         }
 
