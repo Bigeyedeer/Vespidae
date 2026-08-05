@@ -7,11 +7,12 @@ using UnityEngine.UI;
 
 public class CombatManager : MonoBehaviour
 {
+    [Header("Collider")]
     public Collider battleArea;
     //public playerInput playerInput;
-    public CameraLockOn cameraLockOn;
-    public PlayerInput playerInput;
+   
 
+    [Header("UI Linking")]
     public GameObject battleCanvas;
     public Slider playerSlider;
     public Slider enemySlider;
@@ -19,6 +20,8 @@ public class CombatManager : MonoBehaviour
     public GameObject enemyRedImage;
     public TextMeshProUGUI battleEndText;
 
+
+    [Header("Combat Stats")]
     public float playerMaxHealth = 100f;
     public float enemyMaxHealth = 100f;
     public float playerCurrentHealth = 100f;
@@ -26,12 +29,20 @@ public class CombatManager : MonoBehaviour
     public float playerDamage = 10f;
     public float enemyDamage = 10f;
 
+    [Header("Script References")]
     public ScanningManager scanningManager;
+    public CameraLockOn cameraLockOn;
+    public PlayerInput playerInput;
 
-    
+    [Header("Bools")]
+    private bool playerTurn;
+
+
 
     void Start()
     {
+        playerTurn = true;
+        battleArea = this.GetComponent<Collider>();
         playerSlider.maxValue = playerMaxHealth;
         enemySlider.maxValue = enemyMaxHealth;
         
@@ -41,7 +52,7 @@ public class CombatManager : MonoBehaviour
 
     public void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Target"))
+        if (other.gameObject.CompareTag("Player"))
         {
             Cursor.visible = true;
             Cursor.lockState = CursorLockMode.None;
