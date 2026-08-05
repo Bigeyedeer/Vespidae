@@ -86,6 +86,7 @@ public class HexTile : MonoBehaviour
     public Transform HiveSpawnPoint => hiveSpawnPoint != null ? hiveSpawnPoint : transform.Find("HiveSpawnpoint") ?? transform;
     public C_Friendly_Hive_Orc FriendlyHive => friendlyHive;
     public bool HasFriendlyScout => GetFriendlyWaspCount(WaspFunction.Scout) > 0;
+    public bool HasEnemyScout => GetEnemyWaspCount(WaspFunction.Scout) > 0;
     public IReadOnlyCollection<WaspControl> FriendlyWasps => friendlyWasps;
     public int FriendlyWaspCount
     {
@@ -148,7 +149,8 @@ public class HexTile : MonoBehaviour
         if (!scoutingInProgress)
             return;
 
-        if (state != HexState.Unknown || !HasFriendlyScout)
+        if (state != HexState.Unknown ||
+            (!HasFriendlyScout && !HasEnemyScout))
         {
             CancelScoutingCountdown();
             return;
@@ -159,7 +161,12 @@ public class HexTile : MonoBehaviour
             return;
 
         scoutingInProgress = false;
-        Scout();
+
+        if (HasEnemyScout)
+            EnemyScout();
+        else
+            Scout();
+
         C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(this);
     }
 
@@ -181,6 +188,21 @@ public class HexTile : MonoBehaviour
 
         if (ResourcesDepleted)
             ReturnForagersToHive();
+    }
+    
+    public int GetEnemyWaspCount(WaspFunction function)
+    {
+        enemyWasps.RemoveWhere(wasp => wasp == null);
+
+        int count = 0;
+
+        foreach (EnemyWaspControl wasp in enemyWasps)
+        {
+            if (wasp.AssignedFunction == function)
+                count++;
+        }
+
+        return count;
     }
 
     private void GatherAvailableResources(int foragerCount)
@@ -229,6 +251,33 @@ public class HexTile : MonoBehaviour
         scoutingInProgress = false;
         scoutingTimeRemaining = 0f;
         state = HexState.Scouted;
+        RefreshContentVisuals();
+        RefreshHexMaterial();
+        SynchronizeRuntimeTerritoryInformation();
+        Debug.Log(HasResources ? $"{HexName} contains {Content}." : $"{HexName} is safe.");
+    }
+    
+    public void Scout(bool enemyScout)
+    {
+        Scout();
+
+        if (enemyScout)
+        {
+            Debug.Log($"{HexName} scouted by enemy.");
+        }
+    }
+    
+    public void EnemyScout()
+    {
+        if (state != HexState.Unknown)
+        {
+            Debug.LogWarning($"{HexName} cannot be scouted because its state is {state}.");
+            return;
+        }
+
+        scoutingInProgress = false;
+        scoutingTimeRemaining = 0f;
+        state = HexState.Enemy;
         RefreshContentVisuals();
         RefreshHexMaterial();
         SynchronizeRuntimeTerritoryInformation();
@@ -300,6 +349,14 @@ public class HexTile : MonoBehaviour
 
         enemyWasps.Add(wasp);
         SynchronizeRuntimeTerritoryInformation();
+
+        if (wasp.AssignedFunction == WaspFunction.Scout &&
+            state == HexState.Unknown &&
+            !scoutingInProgress)
+        {
+            scoutingInProgress = true;
+            scoutingTimeRemaining = scoutingDuration;
+        }
     }
 
     public void UnregisterEnemyWasp(EnemyWaspControl wasp)
@@ -475,7 +532,7 @@ public class HexTile : MonoBehaviour
             InitializeRuntimeResources();
     }
 
-    private bool HasResources => HasPrey || HasNectar || HasFibre;
+    public bool HasResources => HasPrey || HasNectar || HasFibre;
 
     private void CancelScoutingCountdown()
     {

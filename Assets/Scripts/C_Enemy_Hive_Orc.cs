@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class C_Enemy_Hive_Orc : MonoBehaviour
@@ -9,12 +10,23 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
     [SerializeField, Min(0f)] private float spawnHeight = 0.35f;
     [SerializeField, Min(0.05f)] private float spawnSpacing = 0.25f;
     [SerializeField, Min(0.05f)] private float spawnRowSpacing = 0.25f;
+    
 
+    private float storedPrey;
+    private float storedNectar;
+    private float storedFibre;
+    
+    public float StoredPrey => storedPrey;
+    public float StoredNectar => storedNectar;
+    public float StoredFibre => storedFibre;
+    
     private HexTile ownerHex;
     private int nextSpawnIndex;
+    private readonly List<HexTile> knownHexes = new List<HexTile>();
 
     public GameObject[] EnemyWaspPrefabs => enemyWaspPrefabs;
     public HexTile OwnerHex => ownerHex;
+    public IReadOnlyList<HexTile> KnownHexes => knownHexes;
     public Transform WaspSpawnPoint => waspSpawnPoint != null ? waspSpawnPoint : transform;
     public Transform CameraFocusPoint => cameraFocusPoint != null ? cameraFocusPoint : transform;
     public Transform CameraLookPoint => cameraLookPoint != null ? cameraLookPoint : transform;
@@ -25,6 +37,14 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
         AttachToOwnerHex();
         if (waspPrefabs != null && waspPrefabs.Length > 0)
             enemyWaspPrefabs = waspPrefabs;
+        RememberHex(ownerHex);
+    }
+    
+    public void AddResources(float prey, float nectar, float fibre)
+    {
+        storedPrey += prey;
+        storedNectar += nectar;
+        storedFibre += fibre;
     }
 
     private void AttachToOwnerHex()
@@ -67,6 +87,24 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
         return control;
     }
 
+    public void RememberHex(HexTile hex)
+    {
+        if (hex == null)
+            return;
+
+        if (knownHexes.Contains(hex))
+            return;
+
+        knownHexes.Add(hex);
+
+        Debug.Log($"{name} discovered {hex.HexName}");
+    }
+    
+    public bool KnowsHex(HexTile hex)
+    {
+        return knownHexes.Contains(hex);
+    }
+    
     private GameObject GetDefaultWaspPrefab()
     {
         return enemyWaspPrefabs != null && enemyWaspPrefabs.Length > 0 ? enemyWaspPrefabs[0] : null;

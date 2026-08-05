@@ -20,6 +20,9 @@ public class EnemyHiveControl : MonoBehaviour
     private readonly List<C_Enemy_Hive_Orc> spawnedEnemyHives = new List<C_Enemy_Hive_Orc>();
     private bool enemyStartupSpawned;
     [SerializeField] private float scoutInterval = 10f;
+    [SerializeField] private float foragerInterval = 6f;
+
+    private float foragerTimer;
 
     private float scoutTimer;
 
@@ -70,6 +73,93 @@ public class EnemyHiveControl : MonoBehaviour
         scoutTimer = Random.Range(0f, scoutInterval * 0.3f);
 
         RunScoutBehaviour();
+        
+        foragerTimer += Time.deltaTime;
+
+        if (foragerTimer >= foragerInterval)
+        {
+            foragerTimer = Random.Range(0f, foragerInterval * 0.3f);
+
+            RunForagerBehaviour();
+        }
+    }
+    
+    private void RunForagerBehaviour()
+    {
+        foreach (C_Enemy_Hive_Orc hive in spawnedEnemyHives)
+        {
+            if (hive == null)
+                continue;
+
+            EnemyWaspControl forager = null;
+
+            foreach (EnemyWaspControl wasp in GetFaction(WaspScopeRole.PrimaryInvasive))
+            {
+                if (wasp == null)
+                    continue;
+
+                if (wasp.HomeHive != hive)
+                    continue;
+
+                if (wasp.AssignedFunction != WaspFunction.Forager)
+                    continue;
+
+                forager = wasp;
+                break;
+            }
+
+            if (forager == null)
+                continue;
+
+            if (forager.WorkforceState == WaspWorkforceState.Travelling)
+                continue;
+
+            HexTile target = ChooseForagingTarget(hive);
+
+            if (target != null)
+            {
+                Debug.Log($"Enemy forager heading to {target.HexName}");
+
+                forager.DispatchToHex(target);
+            }
+        }
+    }
+    
+    private HexTile ChooseForagingTarget(C_Enemy_Hive_Orc hive)
+    {
+        if (hive == null)
+            return null;
+
+        List<HexTile> candidates = new List<HexTile>();
+
+        foreach (HexTile hex in hive.KnownHexes)
+        {
+            if (hex == null)
+                continue;
+
+            if (!hex.HasResources)
+                continue;
+
+            candidates.Add(hex);
+        }
+
+        if (candidates.Count == 0)
+            return null;
+
+        candidates.Sort((a, b) =>
+        {
+            float da = Vector3.Distance(
+                hive.OwnerHex.transform.position,
+                a.transform.position);
+
+            float db = Vector3.Distance(
+                hive.OwnerHex.transform.position,
+                b.transform.position);
+
+            return da.CompareTo(db);
+        });
+
+        return candidates[0];
     }
 
     private void OnDestroy()
@@ -182,7 +272,10 @@ public class EnemyHiveControl : MonoBehaviour
             spawnedEnemyHives.Add(hive);
             GameObject speciesPrefab = GetEnemyWaspPrefab(enemyTileIndex);
             if (spawnOneEnemyWasp)
+            {
                 hive.SpawnWasp(speciesPrefab, WaspFunction.Scout);
+                hive.SpawnWasp(speciesPrefab, WaspFunction.Forager);
+            }
 
             enemyTileIndex++;
         }
@@ -280,19 +373,8 @@ public class EnemyHiveControl : MonoBehaviour
             if (hex == hive.OwnerHex)
                 continue;
 
-            EnemyWaspControl scout = null;
-
-            foreach (EnemyWaspControl wasp in GetFaction(WaspScopeRole.PrimaryInvasive))
-            {
-                if (wasp != null && wasp.HomeHive == hive)
-                {
-                    scout = wasp;
-                    break;
-                }
-            }
-
-            if (scout != null && scout.LastVisitedHex == hex)
-                continue;scoutTimer = 0f;
+            if (hive.KnowsHex(hex))
+                continue;
             
             candidates.Add(hex);
         }

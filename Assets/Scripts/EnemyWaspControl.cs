@@ -302,6 +302,12 @@ public class EnemyWaspControl : MonoBehaviour
 
         if (stationedHex != null)
             stationedHex.RegisterEnemyWasp(this);
+        if (AssignedFunction == WaspFunction.Scout)
+        {
+            stationedHex.Scout(true);
+        }
+        if (stationedHex != null)
+            homeHive?.RememberHex(stationedHex);
     }
     
     private void SetStationaryPosition(Vector3 position)

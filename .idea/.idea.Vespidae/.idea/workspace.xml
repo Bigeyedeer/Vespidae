@@ -3,15 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="bf77c97e-4480-4d04-bab1-3e138376a787" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Vespidae/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Vespidae/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/EnemyHives/Enemy_hive.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/EnemyHives/Enemy_hive.prefab" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/FriendlyHives/Friendly_hive.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/FriendlyHives/Friendly_hive.prefab" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/HexTile.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/HexTile.prefab" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Prefabs/Wasp_pre.prefab" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Prefabs/Wasp_pre.prefab" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scenes/wasp RTS Lvl.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/wasp RTS Lvl.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/ScriptableObjectInstances/Rules/SO_DefaultHexGatheringRules.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/ScriptableObjectInstances/Rules/SO_DefaultHexGatheringRules.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/C_Enemy_Hive_Orc.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/C_Enemy_Hive_Orc.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scripts/EnemyHiveControl.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/EnemyHiveControl.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scripts/EnemyWaspControl.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/EnemyWaspControl.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/UI/Rendering Tex/RT_PipPortrait.renderTexture" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/UI/Rendering Tex/RT_PipPortrait.renderTexture" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Scripts/HexTile.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/HexTile.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,6 +16,7 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="MetaFilesCheckinStateConfiguration" checkMetaFiles="true" />
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 2
@@ -110,6 +106,7 @@
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="UnityCheckinConfiguration" checkUnsavedScenes="true" />
   <component name="UnityProjectConfiguration" hasMinimizedUI="true" />
   <component name="UnityProjectDiscoverer">
     <option name="hasUnityReference" value="true" />
