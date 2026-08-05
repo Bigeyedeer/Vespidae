@@ -5,6 +5,7 @@ using UnityEngine;
 public class CameraLockOn : MonoBehaviour
 {
     private StarterAssetsInputs _Input;  // StarterAssetsInputs reference
+    public ThirdPersonController thirdPersonController;
     //public GameObject followCamera;
     //public GameObject lockCamera;
     public ScanningManager scanningManager;
@@ -14,7 +15,7 @@ public class CameraLockOn : MonoBehaviour
 
     [Tooltip("Current Lookat Targer")]
     public Transform CurrentTarget { get; private set; }
-    public bool isLockedOn { get; private set; }
+    public bool isLockedOn { get; set; }
 
     [SerializeField] private float lockDistance = 20f;
 
@@ -47,8 +48,8 @@ public class CameraLockOn : MonoBehaviour
 
             scanningManager.CancelScan();
 
-            CurrentTarget = null;
-            isLockedOn = false;
+            ForceUnlock();
+            thirdPersonController.SyncCameraRotation();
         }
         else
         {
@@ -65,7 +66,7 @@ public class CameraLockOn : MonoBehaviour
             Debug.Log("Locked onto " + CurrentTarget.name);
 
             isLockedOn = true;
-            scanningManager.BeginScan();
+            scanningManager.BeginScan(CurrentTarget.GetComponent<ScannableObject>());
         }
 
         Debug.Log($"After: isLockedOn = {isLockedOn}");
@@ -93,5 +94,14 @@ public class CameraLockOn : MonoBehaviour
         }
 
         return nearest;
+    }
+
+    public void ForceUnlock()
+    {
+        scanningManager.CancelScan();
+
+        CurrentTarget = null;
+        isLockedOn = false;
+
     }
 }

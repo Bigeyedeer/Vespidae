@@ -666,7 +666,8 @@ PrefabInstance:
       propertyPath: m_Name
       value: Wasp Model
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4039971419675225439, guid: bce307b07fd022341a5d90074913c240, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 2581721465438862083, guid: bce307b07fd022341a5d90074913c240, type: 3}
@@ -1023,6 +1024,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 916ff7d5a1f378d4cb0dec2e6add3089, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CameraLockOn
+  scanningManager: {fileID: 0}
   lookatOffset: 1
   lockDistance: 20
 --- !u!4 &6868731442445740122 stripped
