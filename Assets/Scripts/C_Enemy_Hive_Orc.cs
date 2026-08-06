@@ -8,6 +8,7 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
     [SerializeField] private Transform cameraFocusPoint;
     [SerializeField] private Transform cameraLookPoint;
     [SerializeField] private HiveCombatant combatant;
+    [SerializeField] private WaspScopeRole faction = WaspScopeRole.PrimaryInvasive;
     [SerializeField, Min(0f)] private float spawnHeight = 0.35f;
     [SerializeField, Min(0.05f)] private float spawnSpacing = 0.25f;
     [SerializeField, Min(0.05f)] private float spawnRowSpacing = 0.25f;
@@ -34,6 +35,7 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
     public Transform CameraLookPoint => cameraLookPoint != null ? cameraLookPoint : transform;
     public HiveCombatant Combatant => combatant;
     public GameObject DefaultWaspPrefab => defaultWaspPrefab != null ? defaultWaspPrefab : GetDefaultWaspPrefab();
+    public WaspScopeRole Faction => faction;
 
     public void Initialize(HexTile hex, GameObject[] waspPrefabs)
     {
@@ -44,6 +46,7 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
         AttachToOwnerHex();
         if (waspPrefabs != null && waspPrefabs.Length > 0)
             enemyWaspPrefabs = waspPrefabs;
+        UpdateFactionFromPrefab(DefaultWaspPrefab);
         RememberHex(ownerHex);
         ownerHex?.SetEnemyHive(this);
     }
@@ -88,6 +91,7 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
             Debug.LogWarning($"{prefab.name} does not contain an EnemyWaspControl component.");
         else
         {
+            control.SetFaction(faction);
             control.InitializeEnemyWasp(this, function);
             nextSpawnIndex++;
         }
@@ -98,7 +102,18 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
     public void SetDefaultWaspPrefab(GameObject prefab)
     {
         if (prefab != null)
+        {
             defaultWaspPrefab = prefab;
+            UpdateFactionFromPrefab(prefab);
+            ownerHex?.SetEnemyHive(this);
+        }
+    }
+
+    private void UpdateFactionFromPrefab(GameObject prefab)
+    {
+        WaspInfo info = prefab != null ? prefab.GetComponent<WaspInfo>() : null;
+        if (info != null && info.SpeciesInfo != null)
+            faction = info.SpeciesInfo.ScopeRole;
     }
 
     public void RememberHex(HexTile hex)

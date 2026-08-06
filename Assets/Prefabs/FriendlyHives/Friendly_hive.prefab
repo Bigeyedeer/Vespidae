@@ -140,8 +140,8 @@ MonoBehaviour:
   cameraFocusPoint: {fileID: 8504784497948960327}
   cameraLookPoint: {fileID: 1142092297507619910}
   combatant: {fileID: 3825431540949300015}
-  spawnSpacing: 0.25
-  spawnRowSpacing: 0.25
+  spawnSpacing: 0.15
+  spawnRowSpacing: 0.15
 --- !u!114 &2662493003264945764
 MonoBehaviour:
   m_ObjectHideFlags: 0

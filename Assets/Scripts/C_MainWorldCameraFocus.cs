@@ -32,6 +32,9 @@ public class C_MainWorldCameraFocus : MonoBehaviour
     [SerializeField, Min(0.001f)] private float closeUpZoomSensitivity = 0.02f;
     [SerializeField, Min(0.1f)] private float minimumCloseUpZoomDistance = 1.5f;
     [SerializeField, Min(0.1f)] private float maximumCloseUpZoomDistance = 20f;
+    [SerializeField, Min(0.1f)] private float closeUpZoomAcceleration = 28f;
+    [SerializeField, Min(0.1f)] private float maximumCloseUpZoomSpeed = 70f;
+    [SerializeField, Min(0.1f)] private float closeUpZoomDeceleration = 42f;
 
     private Vector3 mapStartPosition;
     private Quaternion mapStartRotation;
@@ -46,6 +49,10 @@ public class C_MainWorldCameraFocus : MonoBehaviour
     private float hexViewFieldOfView;
     private bool hasHexView;
     private Vector3 currentCloseUpLookPosition;
+    private float closeUpZoomVelocity;
+
+    private const float ReferenceZoomSensitivity = 0.02f;
+    private const float ScrollUnitsPerNotch = 120f;
 
     public bool IsCloseUpActive => closeUpActive;
     public bool IsTransitioning => isTransitioning;
@@ -259,23 +266,62 @@ public class C_MainWorldCameraFocus : MonoBehaviour
     {
         if (!closeUpActive ||
             isTransitioning ||
-            closeUpCamera == null ||
-            Mathf.Abs(scrollAmount) < 0.01f)
+            closeUpCamera == null)
         {
+            closeUpZoomVelocity = 0f;
             return false;
         }
+
+        float deltaTime = Mathf.Max(Time.unscaledDeltaTime, 0.001f);
+        float sensitivityMultiplier = Mathf.Max(0.05f, closeUpZoomSensitivity / ReferenceZoomSensitivity);
+
+        if (Mathf.Abs(scrollAmount) >= 0.01f)
+        {
+            float direction = Mathf.Sign(scrollAmount);
+            float notchStrength = Mathf.Clamp(
+                Mathf.Abs(scrollAmount) / ScrollUnitsPerNotch,
+                0.25f,
+                4f);
+
+            if (!Mathf.Approximately(closeUpZoomVelocity, 0f) &&
+                Mathf.Sign(closeUpZoomVelocity) != direction)
+            {
+                closeUpZoomVelocity = 0f;
+            }
+
+            closeUpZoomVelocity += direction * notchStrength * closeUpZoomAcceleration * sensitivityMultiplier;
+            closeUpZoomVelocity = Mathf.Clamp(
+                closeUpZoomVelocity,
+                -maximumCloseUpZoomSpeed * sensitivityMultiplier,
+                maximumCloseUpZoomSpeed * sensitivityMultiplier);
+        }
+        else
+        {
+            closeUpZoomVelocity = Mathf.MoveTowards(
+                closeUpZoomVelocity,
+                0f,
+                closeUpZoomDeceleration * sensitivityMultiplier * deltaTime);
+        }
+
+        if (Mathf.Abs(closeUpZoomVelocity) < 0.01f)
+            return false;
 
         Vector3 fromTarget = closeUpCamera.transform.position - currentCloseUpLookPosition;
         float currentDistance = fromTarget.magnitude;
         if (currentDistance <= 0.001f)
             return false;
 
-        float zoomStep = Mathf.Abs(scrollAmount) * closeUpZoomSensitivity;
         float desiredDistance = Mathf.Clamp(
-            currentDistance - Mathf.Sign(scrollAmount) * zoomStep,
+            currentDistance - closeUpZoomVelocity * deltaTime,
             minimumCloseUpZoomDistance,
             maximumCloseUpZoomDistance
         );
+
+        if (Mathf.Approximately(currentDistance, desiredDistance))
+        {
+            closeUpZoomVelocity = 0f;
+            return false;
+        }
 
         closeUpCamera.transform.position =
             currentCloseUpLookPosition + fromTarget.normalized * desiredDistance;
@@ -294,10 +340,16 @@ public class C_MainWorldCameraFocus : MonoBehaviour
     private void ApplyCloseUpScrollZoom()
     {
         if (!enableCloseUpZoom || Mouse.current == null)
+        {
+            closeUpZoomVelocity = 0f;
             return;
+        }
 
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+        {
+            closeUpZoomVelocity = 0f;
             return;
+        }
 
         ZoomCloseUp(Mouse.current.scroll.ReadValue().y);
     }

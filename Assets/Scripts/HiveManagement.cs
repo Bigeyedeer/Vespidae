@@ -453,7 +453,7 @@ public class HiveManagement : MonoBehaviour
                     return false;
                 int maximum = target.CombatController != null
                     ? target.CombatController.MaximumAttackersPerSide
-                    : 5;
+                    : 20;
                 return target.State != HexTile.HexState.Locked &&
                        GetAssignedWaspCount(target, function) < maximum &&
                        GetAvailableWaspCount(function) > 0;
@@ -662,7 +662,7 @@ public class HiveManagement : MonoBehaviour
         }
 
         CleanupFriendlyWasps();
-        int maximum = target.CombatController != null ? target.CombatController.MaximumAttackersPerSide : 5;
+        int maximum = target.CombatController != null ? target.CombatController.MaximumAttackersPerSide : 20;
         int assigned = GetAssignedWaspCount(target, WaspFunction.Guard);
         int availableSlots = Mathf.Max(0, maximum - assigned);
         int moved = 0;

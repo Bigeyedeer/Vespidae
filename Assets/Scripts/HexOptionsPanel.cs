@@ -226,12 +226,22 @@ public class HexOptionsPanel : MonoBehaviour
         if (selectedHex.EnemyWaspCount <= 0)
             return string.Empty;
 
-        return
-            "\nEnemy wasps\n" +
-            $"Scout: {selectedHex.GetEnemyWaspCount(WaspFunction.Scout)}   " +
-            $"Forager: {selectedHex.GetEnemyWaspCount(WaspFunction.Forager)}   " +
-            $"Builder: {selectedHex.GetEnemyWaspCount(WaspFunction.Builder)}\n" +
-            $"Guard: {selectedHex.GetEnemyWaspCount(WaspFunction.Guard)}";
+        StringBuilder details = new StringBuilder("\nEnemy wasps\n");
+        AppendEnemyFactionDetails(details, WaspScopeRole.PrimaryInvasive, "Primary invasive");
+        AppendEnemyFactionDetails(details, WaspScopeRole.SecondaryInvasive, "Secondary invasive");
+        return details.ToString().TrimEnd();
+    }
+
+    private void AppendEnemyFactionDetails(StringBuilder details, WaspScopeRole faction, string label)
+    {
+        int scout = selectedHex.GetEnemyWaspCount(faction, WaspFunction.Scout);
+        int forager = selectedHex.GetEnemyWaspCount(faction, WaspFunction.Forager);
+        int builder = selectedHex.GetEnemyWaspCount(faction, WaspFunction.Builder);
+        int guard = selectedHex.GetEnemyWaspCount(faction, WaspFunction.Guard);
+        if (scout + forager + builder + guard <= 0)
+            return;
+
+        details.AppendLine($"{label}: Scout {scout}   Forager {forager}   Builder {builder}   Guard {guard}");
     }
 
     private string BuildHiveHealthDetails()
@@ -296,9 +306,10 @@ public class HexOptionsPanel : MonoBehaviour
         HiveManagement hive = HiveManagement.GetOrCreate();
         int available = hive != null ? hive.GetAvailableWaspCount(WaspFunction.Guard) : 0;
         int assigned = hive != null ? hive.GetAssignedWaspCount(selectedHex, WaspFunction.Guard) : 0;
+        int maximum = selectedHex.CombatController != null ? selectedHex.CombatController.MaximumAttackersPerSide : 20;
         bool canSend = hive != null && hive.CanDispatchToHex(selectedHex, WaspFunction.Guard);
         SetSingleAction(
-            canSend ? $"Send Attacker\n{available} available  {assigned}/5 sent" : $"No Attacker Available\n{assigned}/5 sent",
+            canSend ? $"Send Attacker\n{available} available  {assigned}/{maximum} sent" : $"No Attacker Available\n{assigned}/{maximum} sent",
             () => Dispatch(WaspFunction.Guard),
             canSend);
 

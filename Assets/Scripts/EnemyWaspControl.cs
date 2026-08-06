@@ -246,7 +246,15 @@ public class EnemyWaspControl : MonoBehaviour
     {
         homeHive = hive;
         assignedFunction = function;
-        waspInfo?.SetRuntimeAssignment(null, function, true);
+        if (homeHive != null)
+            SetFaction(homeHive.Faction);
+        SB_Wasps_Info species = SpeciesInfo;
+        if (species == null && homeHive != null && homeHive.DefaultWaspPrefab != null)
+        {
+            WaspInfo prefabInfo = homeHive.DefaultWaspPrefab.GetComponent<WaspInfo>();
+            species = prefabInfo != null ? prefabInfo.SpeciesInfo : null;
+        }
+        waspInfo?.SetRuntimeAssignment(species, function, true, faction);
         combatant?.Initialize(true);
         workforceState = WaspWorkforceState.Idle;
         returningToHive = false;

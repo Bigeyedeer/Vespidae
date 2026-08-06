@@ -36,22 +36,22 @@ public class EnemyHiveControl : MonoBehaviour
     [SerializeField, Min(30f)] private float expansionIntervalMinimum = 180f;
     [SerializeField, Min(30f)] private float expansionIntervalMaximum = 300f;
     [SerializeField, Min(60f)] private float enemySkillProgressionInterval = 600f;
-    [SerializeField, Range(1, 5)] private int maximumIdleGuardReserve = 5;
+    [SerializeField, Range(1, 20)] private int maximumIdleGuardReserve = 20;
 
     private readonly Dictionary<WaspScopeRole, List<EnemyWaspControl>> factions = new Dictionary<WaspScopeRole, List<EnemyWaspControl>>();
     private readonly List<C_Enemy_Hive_Orc> spawnedEnemyHives = new List<C_Enemy_Hive_Orc>();
     private readonly Dictionary<C_Enemy_Hive_Orc, float> guardTrainingTimers = new Dictionary<C_Enemy_Hive_Orc, float>();
     private readonly Dictionary<C_Enemy_Hive_Orc, float> guardTrainingIntervals = new Dictionary<C_Enemy_Hive_Orc, float>();
-    private readonly HashSet<HexTile> pendingCombatTargets = new HashSet<HexTile>();
-    private readonly int[] skillLevels = new int[Enum.GetValues(typeof(WaspFunction)).Length];
+    private readonly Dictionary<HexTile, HashSet<WaspScopeRole>> pendingCombatTargets = new Dictionary<HexTile, HashSet<WaspScopeRole>>();
+    private readonly Dictionary<WaspScopeRole, int[]> factionSkillLevels = new Dictionary<WaspScopeRole, int[]>();
+    private readonly Dictionary<WaspScopeRole, float> skillProgressionTimers = new Dictionary<WaspScopeRole, float>();
+    private readonly Dictionary<WaspScopeRole, int> progressionFunctionIndexes = new Dictionary<WaspScopeRole, int>();
     private readonly WaspFunction[] progressionFunctions = { WaspFunction.Scout, WaspFunction.Guard };
     private bool enemyStartupSpawned;
     private float decisionTimer;
     private float scoutTimer;
     private float scoutInterval;
-    private float skillProgressionTimer;
     private float enemyElapsedTime;
-    private int progressionFunctionIndex;
     private int nextExpansionHiveIndex;
 
     public IReadOnlyList<EnemyWaspControl> NativeFaction => GetFaction(WaspScopeRole.NativePlayer);
@@ -74,6 +74,7 @@ public class EnemyHiveControl : MonoBehaviour
 
         Instance = this;
         EnsureFactions();
+        EnsureFactionSkills();
         scoutInterval = GetNextExpansionInterval();
     }
 
@@ -119,7 +120,13 @@ public class EnemyHiveControl : MonoBehaviour
 
     public int GetSkillLevel(WaspFunction function)
     {
-        return skillLevels[(int)function];
+        return GetSkillLevel(WaspScopeRole.PrimaryInvasive, function);
+    }
+
+    public int GetSkillLevel(WaspScopeRole faction, WaspFunction function)
+    {
+        EnsureFactionSkills();
+        return factionSkillLevels[NormalizeEnemyFaction(faction)][(int)function];
     }
 
     public SB_Wasp_Skill GetSkillDefinition(WaspFunction function)
@@ -138,8 +145,13 @@ public class EnemyHiveControl : MonoBehaviour
 
     public float GetEffectiveValue(WaspFunction function, WaspSkillStat stat)
     {
+        return GetEffectiveValue(WaspScopeRole.PrimaryInvasive, function, stat);
+    }
+
+    public float GetEffectiveValue(WaspScopeRole faction, WaspFunction function, WaspSkillStat stat)
+    {
         SB_Wasp_Skill definition = GetSkillDefinition(function);
-        return definition != null ? definition.GetEffectiveValue(stat, GetSkillLevel(function)) : 1f;
+        return definition != null ? definition.GetEffectiveValue(stat, GetSkillLevel(faction, function)) : 1f;
     }
 
     public void Register(EnemyWaspControl wasp)
@@ -163,8 +175,24 @@ public class EnemyHiveControl : MonoBehaviour
         if (target == null)
             return;
 
-        pendingCombatTargets.Add(target);
-        DispatchGuards(target);
+        foreach (WaspScopeRole faction in GetRespondingFactions(target))
+            RequestCombatResponse(target, faction);
+    }
+
+    public void RequestCombatResponse(HexTile target, WaspScopeRole faction)
+    {
+        if (target == null)
+            return;
+
+        faction = NormalizeEnemyFaction(faction);
+        if (!pendingCombatTargets.TryGetValue(target, out HashSet<WaspScopeRole> factionsForTarget))
+        {
+            factionsForTarget = new HashSet<WaspScopeRole>();
+            pendingCombatTargets[target] = factionsForTarget;
+        }
+
+        factionsForTarget.Add(faction);
+        DispatchGuards(target, faction);
     }
 
     public void RefreshRegistration(EnemyWaspControl wasp)
@@ -217,12 +245,17 @@ public class EnemyHiveControl : MonoBehaviour
             return;
 
         HexTile[] tiles = FindObjectsByType<HexTile>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        int enemyTileIndex = 0;
+        List<HexTile> enemyTiles = new List<HexTile>();
         foreach (HexTile tile in tiles)
         {
-            if (tile == null || tile.State != HexTile.HexState.Enemy)
-                continue;
+            if (tile != null && tile.State == HexTile.HexState.Enemy)
+                enemyTiles.Add(tile);
+        }
+        enemyTiles.Sort((left, right) => right.transform.position.z.CompareTo(left.transform.position.z));
 
+        int enemyTileIndex = 0;
+        foreach (HexTile tile in enemyTiles)
+        {
             Transform spawnPoint = tile.HiveSpawnPoint;
             GameObject hiveObject = Instantiate(enemyHivePrefab, spawnPoint.position, spawnPoint.rotation);
             C_Enemy_Hive_Orc hive = hiveObject.GetComponent<C_Enemy_Hive_Orc>();
@@ -275,10 +308,20 @@ public class EnemyHiveControl : MonoBehaviour
 
     public int GetAssignedWaspCount(HexTile target, WaspFunction function)
     {
+        return GetAssignedWaspCount(target, function, WaspScopeRole.PrimaryInvasive) +
+               GetAssignedWaspCount(target, function, WaspScopeRole.SecondaryInvasive);
+    }
+
+    public int GetAssignedWaspCount(HexTile target, WaspFunction function, WaspScopeRole faction)
+    {
         int count = 0;
+        faction = NormalizeEnemyFaction(faction);
         foreach (EnemyWaspControl wasp in GetAllWasps())
         {
-            if (wasp != null && wasp.AssignedFunction == function && (wasp.TargetHex == target || wasp.StationedHex == target))
+            if (wasp != null &&
+                wasp.Faction == faction &&
+                wasp.AssignedFunction == function &&
+                (wasp.TargetHex == target || wasp.StationedHex == target))
                 count++;
         }
         return count;
@@ -313,23 +356,33 @@ public class EnemyHiveControl : MonoBehaviour
 
     private void UpdateSkillProgression()
     {
-        skillProgressionTimer += Time.deltaTime;
-        if (skillProgressionTimer < enemySkillProgressionInterval)
+        EnsureFactionSkills();
+        AdvanceFactionSkills(WaspScopeRole.PrimaryInvasive);
+        AdvanceFactionSkills(WaspScopeRole.SecondaryInvasive);
+    }
+
+    private void AdvanceFactionSkills(WaspScopeRole faction)
+    {
+        faction = NormalizeEnemyFaction(faction);
+        skillProgressionTimers[faction] += Time.deltaTime;
+        if (skillProgressionTimers[faction] < enemySkillProgressionInterval)
             return;
 
-        skillProgressionTimer = 0f;
+        skillProgressionTimers[faction] = 0f;
+        int[] levels = factionSkillLevels[faction];
+        int progressionIndex = progressionFunctionIndexes[faction];
 
         for (int offset = 0; offset < progressionFunctions.Length; offset++)
         {
-            int index = (progressionFunctionIndex + offset) % progressionFunctions.Length;
+            int index = (progressionIndex + offset) % progressionFunctions.Length;
             WaspFunction function = progressionFunctions[index];
             SB_Wasp_Skill definition = GetSkillDefinition(function);
-            if (definition == null || skillLevels[(int)function] >= definition.MaximumLevel)
+            if (definition == null || levels[(int)function] >= definition.MaximumLevel)
                 continue;
 
-            skillLevels[(int)function]++;
-            progressionFunctionIndex = (index + 1) % progressionFunctions.Length;
-            foreach (EnemyWaspControl wasp in GetAllWasps())
+            levels[(int)function]++;
+            progressionFunctionIndexes[faction] = (index + 1) % progressionFunctions.Length;
+            foreach (EnemyWaspControl wasp in GetFaction(faction))
             {
                 if (wasp != null && wasp.AssignedFunction == function)
                     wasp.RefreshSkillStats();
@@ -361,9 +414,17 @@ public class EnemyHiveControl : MonoBehaviour
     private void RunCombatResponse()
     {
         HexTile[] tiles = FindObjectsByType<HexTile>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        pendingCombatTargets.RemoveWhere(target => target == null || !RequiresCombatResponse(target));
-        foreach (HexTile target in new List<HexTile>(pendingCombatTargets))
-            DispatchGuards(target);
+        foreach (HexTile target in new List<HexTile>(pendingCombatTargets.Keys))
+        {
+            if (target == null || !RequiresCombatResponse(target))
+            {
+                pendingCombatTargets.Remove(target);
+                continue;
+            }
+
+            foreach (WaspScopeRole faction in new List<WaspScopeRole>(pendingCombatTargets[target]))
+                DispatchGuards(target, faction);
+        }
 
         foreach (HexTile tile in tiles)
         {
@@ -373,8 +434,8 @@ public class EnemyHiveControl : MonoBehaviour
                 tile.CombatController.ConflictState == HexConflictState.AttackerBattle ||
                 tile.CombatController.ConflictState == HexConflictState.HiveAssault)
             {
-                pendingCombatTargets.Add(tile);
-                DispatchGuards(tile);
+                foreach (WaspScopeRole faction in GetRespondingFactions(tile))
+                    RequestCombatResponse(tile, faction);
             }
         }
 
@@ -386,7 +447,7 @@ public class EnemyHiveControl : MonoBehaviour
             {
                 if (neighbour != null && neighbour.State == HexTile.HexState.Owned)
                 {
-                    DispatchGuards(neighbour);
+                    DispatchGuards(neighbour, hive.Faction);
                     break;
                 }
             }
@@ -402,34 +463,35 @@ public class EnemyHiveControl : MonoBehaviour
                target.State == HexTile.HexState.Owned;
     }
 
-    private void DispatchGuards(HexTile target)
+    private void DispatchGuards(HexTile target, WaspScopeRole faction)
     {
         if (target == null)
             return;
 
-        int maximum = target.CombatController != null ? target.CombatController.MaximumAttackersPerSide : 5;
-        int assigned = GetAssignedWaspCount(target, WaspFunction.Guard);
-        int desired = Mathf.Clamp(target.GetFriendlyWaspCount(WaspFunction.Guard) + 1, 1, maximum);
+        faction = NormalizeEnemyFaction(faction);
+        int maximum = target.CombatController != null ? target.CombatController.MaximumAttackersPerSide : 20;
+        int assigned = GetAssignedWaspCount(target, WaspFunction.Guard, faction);
+        int desired = Mathf.Clamp(GetOpposingGuardCount(target, faction) + 1, 1, maximum);
         int toSend = Mathf.Max(0, desired - assigned);
         if (toSend <= 0)
             return;
 
         List<C_Enemy_Hive_Orc> orderedHives = new List<C_Enemy_Hive_Orc>(spawnedEnemyHives);
-        orderedHives.RemoveAll(hive => hive == null || hive.OwnerHex == null);
+        orderedHives.RemoveAll(hive => hive == null || hive.OwnerHex == null || hive.Faction != faction);
         orderedHives.Sort((left, right) =>
             Vector3.SqrMagnitude(left.OwnerHex.transform.position - target.transform.position)
                 .CompareTo(Vector3.SqrMagnitude(right.OwnerHex.transform.position - target.transform.position)));
 
         foreach (C_Enemy_Hive_Orc hive in orderedHives)
         {
-            foreach (EnemyWaspControl wasp in GetAllWasps())
+            foreach (EnemyWaspControl wasp in GetFaction(faction))
             {
                 if (toSend <= 0)
                     return;
                 if (wasp == null || wasp.HomeHive != hive || wasp.AssignedFunction != WaspFunction.Guard || !wasp.IsAvailable)
                     continue;
 
-                int formationIndex = target.EnemyWaspCount + GetAssignedWaspCount(target, WaspFunction.Guard);
+                int formationIndex = target.EnemyWaspCount + GetAssignedWaspCount(target, WaspFunction.Guard, faction);
                 Vector3 position = target.GetWaspFormationPosition(formationIndex, 0.25f, 0.25f);
                 if (wasp.DispatchToHex(target, position))
                     toSend--;
@@ -499,7 +561,10 @@ public class EnemyHiveControl : MonoBehaviour
         if (HexProgressionManager.Instance == null || hive?.OwnerHex == null)
             return null;
 
-        HexTile source = scout != null && scout.StationedHex != null && scout.StationedHex.State == HexTile.HexState.Enemy
+        HexTile source = scout != null &&
+            scout.StationedHex != null &&
+            scout.StationedHex.State == HexTile.HexState.Enemy &&
+            scout.StationedHex.EnemyOwnerFaction == hive.Faction
             ? scout.StationedHex
             : hive.OwnerHex;
         foreach (HexTile candidate in HexProgressionManager.Instance.GetConnectedHexes(source))
@@ -530,16 +595,95 @@ public class EnemyHiveControl : MonoBehaviour
         factions[WaspScopeRole.SecondaryInvasive] = new List<EnemyWaspControl>();
     }
 
+    private void EnsureFactionSkills()
+    {
+        EnsureFactionSkillSet(WaspScopeRole.PrimaryInvasive);
+        EnsureFactionSkillSet(WaspScopeRole.SecondaryInvasive);
+    }
+
+    private void EnsureFactionSkillSet(WaspScopeRole faction)
+    {
+        faction = NormalizeEnemyFaction(faction);
+        int length = Enum.GetValues(typeof(WaspFunction)).Length;
+        if (!factionSkillLevels.TryGetValue(faction, out int[] levels) || levels == null || levels.Length != length)
+            factionSkillLevels[faction] = new int[length];
+        if (!skillProgressionTimers.ContainsKey(faction))
+            skillProgressionTimers[faction] = 0f;
+        if (!progressionFunctionIndexes.ContainsKey(faction))
+            progressionFunctionIndexes[faction] = 0;
+    }
+
+    private IEnumerable<WaspScopeRole> GetRespondingFactions(HexTile target)
+    {
+        HashSet<WaspScopeRole> result = new HashSet<WaspScopeRole>();
+        if (target == null)
+            return result;
+
+        if (target.State == HexTile.HexState.Enemy)
+            result.Add(NormalizeEnemyFaction(target.EnemyOwnerFaction));
+
+        if (target.EnemyHive != null)
+            result.Add(NormalizeEnemyFaction(target.EnemyHive.Faction));
+
+        foreach (EnemyWaspControl wasp in target.EnemyWasps)
+        {
+            if (wasp != null &&
+                (wasp.AssignedFunction == WaspFunction.Scout || wasp.AssignedFunction == WaspFunction.Guard))
+            {
+                result.Add(NormalizeEnemyFaction(wasp.Faction));
+            }
+        }
+
+        if (result.Count == 0)
+            result.Add(WaspScopeRole.PrimaryInvasive);
+
+        return result;
+    }
+
+    private int GetOpposingGuardCount(HexTile target, WaspScopeRole faction)
+    {
+        int count = target != null ? target.GetFriendlyWaspCount(WaspFunction.Guard) : 0;
+        if (target != null)
+        {
+            foreach (EnemyWaspControl wasp in target.EnemyWasps)
+            {
+                if (wasp != null && wasp.Faction != faction && wasp.AssignedFunction == WaspFunction.Guard)
+                    count++;
+            }
+        }
+        return Mathf.Max(0, count);
+    }
+
     private void RemoveFromAllFactions(EnemyWaspControl wasp)
     {
         foreach (List<EnemyWaspControl> faction in factions.Values)
             faction.Remove(wasp);
     }
 
+    private static WaspScopeRole NormalizeEnemyFaction(WaspScopeRole faction)
+    {
+        return faction == WaspScopeRole.SecondaryInvasive
+            ? WaspScopeRole.SecondaryInvasive
+            : WaspScopeRole.PrimaryInvasive;
+    }
+
     private GameObject GetEnemyWaspPrefab(int speciesIndex)
     {
         if (enemyWaspPrefabs == null || enemyWaspPrefabs.Length == 0)
             return null;
+
+        List<GameObject> invasivePrefabs = new List<GameObject>();
+        foreach (GameObject prefab in enemyWaspPrefabs)
+        {
+            WaspInfo info = prefab != null ? prefab.GetComponent<WaspInfo>() : null;
+            SB_Wasps_Info species = info != null ? info.SpeciesInfo : null;
+            if (species != null && species.ScopeRole != WaspScopeRole.NativePlayer)
+                invasivePrefabs.Add(prefab);
+        }
+
+        if (invasivePrefabs.Count > 0)
+            return invasivePrefabs[Mathf.Clamp(speciesIndex, 0, invasivePrefabs.Count - 1)];
+
         return enemyWaspPrefabs[Mathf.Clamp(speciesIndex, 0, enemyWaspPrefabs.Length - 1)];
     }
 }

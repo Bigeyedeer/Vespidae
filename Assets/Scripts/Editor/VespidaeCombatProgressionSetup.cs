@@ -447,14 +447,16 @@ public static class VespidaeCombatProgressionSetup
         if (guard == null)
             return;
         SerializedObject serialized = new SerializedObject(guard);
+        serialized.FindProperty("maximumLevel").intValue = 5;
+        serialized.FindProperty("effectSummary").stringValue = "Increases attacker damage and attack speed.";
         serialized.FindProperty("baseMaximumHealth").floatValue = 100f;
-        serialized.FindProperty("maximumHealthPerLevel").floatValue = 15f;
+        serialized.FindProperty("maximumHealthPerLevel").floatValue = 10f;
         serialized.FindProperty("baseAttackDamage").floatValue = 10f;
-        serialized.FindProperty("attackDamagePerLevel").floatValue = 2f;
+        serialized.FindProperty("attackDamagePerLevel").floatValue = 5f;
         serialized.FindProperty("baseDefence").floatValue = 1f;
         serialized.FindProperty("defencePerLevel").floatValue = 0.1f;
         serialized.FindProperty("baseAttackSpeed").floatValue = 1f;
-        serialized.FindProperty("attackSpeedPerLevel").floatValue = 0.15f;
+        serialized.FindProperty("attackSpeedPerLevel").floatValue = 0.25f;
         serialized.ApplyModifiedPropertiesWithoutUndo();
         EditorUtility.SetDirty(guard);
     }

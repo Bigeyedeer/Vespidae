@@ -20,6 +20,7 @@ public class HexTile : MonoBehaviour
 
     [Header("Territory State")]
     [SerializeField] private HexState state = HexState.Unknown;
+    [SerializeField] private WaspScopeRole enemyOwnerFaction = WaspScopeRole.PrimaryInvasive;
     [SerializeField] private GameObject antGroup;
 
     private float currentPrey;
@@ -53,6 +54,7 @@ public class HexTile : MonoBehaviour
 
     [Header("Hive Spawning")]
     [SerializeField] private Transform hiveSpawnPoint;
+    [SerializeField, Min(0f)] private float waspFormationHiveOffset = 0.45f;
 
     [Header("Scouting")]
     [SerializeField, Min(0.1f)] private float scoutingDuration = 10f;
@@ -94,6 +96,7 @@ public class HexTile : MonoBehaviour
     public Transform HiveSpawnPoint => hiveSpawnPoint != null ? hiveSpawnPoint : transform.Find("HiveSpawnpoint") ?? transform;
     public C_Friendly_Hive_Orc FriendlyHive => friendlyHive;
     public C_Enemy_Hive_Orc EnemyHive => enemyHive;
+    public WaspScopeRole EnemyOwnerFaction => enemyHive != null ? enemyHive.Faction : enemyOwnerFaction;
     public HexCombatController CombatController => combatController;
     public bool HasFriendlyScout => GetFriendlyWaspCount(WaspFunction.Scout) > 0;
     public bool HasEnemyScout => GetEnemyWaspCount(WaspFunction.Scout) > 0;
@@ -128,7 +131,7 @@ public class HexTile : MonoBehaviour
         float horizontalSpacing,
         float rowSpacing)
     {
-        Vector3 center = transform.position;
+        Vector3 center = GetWaspFormationCenter();
         if (spawnIndex <= 0)
             return center;
 
@@ -141,6 +144,22 @@ public class HexTile : MonoBehaviour
         AddFormationPositions(positions, center, 1f, 1, 1f, 1, horizontalSpacing, rowSpacing);
 
         return spawnIndex < positions.Count ? positions[spawnIndex] : center;
+    }
+
+    private Vector3 GetWaspFormationCenter()
+    {
+        Vector3 center = transform.position;
+        Transform spawnPoint = HiveSpawnPoint;
+        if (spawnPoint == null || waspFormationHiveOffset <= 0f)
+            return center;
+
+        Vector3 direction = spawnPoint.position - center;
+        direction.y = 0f;
+        if (direction.sqrMagnitude <= 0.0001f)
+            return center;
+
+        Vector3 shiftedCenter = center + direction.normalized * Mathf.Min(waspFormationHiveOffset, direction.magnitude);
+        return ContainsFormationPoint(shiftedCenter) ? shiftedCenter : center;
     }
 
     private void Start()
@@ -226,6 +245,21 @@ public class HexTile : MonoBehaviour
         return count;
     }
 
+    public int GetEnemyWaspCount(WaspScopeRole faction, WaspFunction function)
+    {
+        enemyWasps.RemoveWhere(wasp => wasp == null);
+
+        int count = 0;
+
+        foreach (EnemyWaspControl wasp in enemyWasps)
+        {
+            if (wasp.Faction == faction && wasp.AssignedFunction == function)
+                count++;
+        }
+
+        return count;
+    }
+
     private void GatherAvailableResources(int foragerCount)
     {
         if (ResourceManager.Instance == null)
@@ -294,6 +328,11 @@ public class HexTile : MonoBehaviour
     
     public void EnemyScout()
     {
+        EnemyScout(FindFirstEnemyScoutFaction());
+    }
+
+    public void EnemyScout(WaspScopeRole faction)
+    {
         if (state != HexState.Unknown && state != HexState.Locked)
         {
             Debug.LogWarning($"{HexName} cannot be scouted because its state is {state}.");
@@ -302,6 +341,7 @@ public class HexTile : MonoBehaviour
 
         scoutingInProgress = false;
         scoutingTimeRemaining = 0f;
+        enemyOwnerFaction = NormalizeEnemyFaction(faction);
         state = HexState.Enemy;
         RefreshContentVisuals();
         RefreshHexMaterial();
@@ -545,6 +585,8 @@ public class HexTile : MonoBehaviour
     public void SetEnemyHive(C_Enemy_Hive_Orc hive)
     {
         enemyHive = hive;
+        if (hive != null)
+            enemyOwnerFaction = NormalizeEnemyFaction(hive.Faction);
         NotifyCombatInformationChanged();
     }
 
@@ -559,6 +601,12 @@ public class HexTile : MonoBehaviour
 
     public void CaptureForEnemy()
     {
+        CaptureForEnemy(enemyOwnerFaction);
+    }
+
+    public void CaptureForEnemy(WaspScopeRole faction)
+    {
+        enemyOwnerFaction = NormalizeEnemyFaction(faction);
         state = HexState.Enemy;
         RefreshStateVisuals();
         HexProgressionManager.Instance?.NotifyEnemyClaimed(this);
@@ -650,12 +698,30 @@ public class HexTile : MonoBehaviour
         scoutingInProgress = true;
         float scoutingSpeed = HasEnemyScout
             ? EnemyHiveControl.Instance != null
-                ? EnemyHiveControl.Instance.GetEffectiveValue(WaspFunction.Scout, WaspSkillStat.Identification)
+                ? EnemyHiveControl.Instance.GetEffectiveValue(FindFirstEnemyScoutFaction(), WaspFunction.Scout, WaspSkillStat.Identification)
                 : 1f
             : HiveManagement.Instance != null
                 ? HiveManagement.Instance.GetEffectiveValue(WaspFunction.Scout, WaspSkillStat.Identification)
                 : 1f;
         scoutingTimeRemaining = scoutingDuration / Mathf.Max(0.1f, scoutingSpeed);
+    }
+
+    private WaspScopeRole FindFirstEnemyScoutFaction()
+    {
+        enemyWasps.RemoveWhere(wasp => wasp == null);
+        foreach (EnemyWaspControl wasp in enemyWasps)
+        {
+            if (wasp.AssignedFunction == WaspFunction.Scout)
+                return NormalizeEnemyFaction(wasp.Faction);
+        }
+        return enemyOwnerFaction;
+    }
+
+    private static WaspScopeRole NormalizeEnemyFaction(WaspScopeRole faction)
+    {
+        return faction == WaspScopeRole.SecondaryInvasive
+            ? WaspScopeRole.SecondaryInvasive
+            : WaspScopeRole.PrimaryInvasive;
     }
 
     private bool ContainsFormationPoint(Vector3 worldPosition)

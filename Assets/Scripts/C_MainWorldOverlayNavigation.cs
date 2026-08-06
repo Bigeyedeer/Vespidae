@@ -206,6 +206,10 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     {
         if (waspInfoPanel != null)
         {
+            WaspInfoPanel panel = waspInfoPanel.GetComponent<WaspInfoPanel>();
+            if (panel != null)
+                panel.Close();
+
             waspInfoPanel.SetActive(false);
         }
 
@@ -1284,10 +1288,15 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
 
         Button button = buttonObject.GetComponent<Button>();
         if (button == null)
+            button = buttonObject.GetComponentInChildren<Button>(true);
+        if (button == null)
+            button = buttonObject.GetComponentInParent<Button>(true);
+        if (button == null)
         {
             return;
         }
 
+        button.interactable = true;
         button.onClick.RemoveListener(action);
         button.onClick.AddListener(action);
     }

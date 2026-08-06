@@ -20,6 +20,9 @@ public class CameraCursorMovement : MonoBehaviour
     [SerializeField, Min(0.001f)] private float hexZoomSensitivity = 0.02f;
     [SerializeField, Min(0.1f)] private float minimumHexZoomDistance = 4f;
     [SerializeField, Min(0.1f)] private float maximumHexZoomDistance = 30f;
+    [SerializeField, Min(0.1f)] private float hexZoomAcceleration = 32f;
+    [SerializeField, Min(0.1f)] private float maximumHexZoomSpeed = 85f;
+    [SerializeField, Min(0.1f)] private float hexZoomDeceleration = 48f;
 
     private Vector3 startingPosition;
     private Vector3 movementVelocity;
@@ -27,6 +30,10 @@ public class CameraCursorMovement : MonoBehaviour
     private bool movementEnabled = true;
     private bool isDragging;
     private Vector2 previousDragPosition;
+    private float hexZoomVelocity;
+
+    private const float ReferenceZoomSensitivity = 0.02f;
+    private const float ScrollUnitsPerNotch = 120f;
 
     public bool MovementEnabled => movementEnabled;
     public float ScrollWheelZoomSpeed
@@ -48,13 +55,11 @@ public class CameraCursorMovement : MonoBehaviour
         if (!movementEnabled || Mouse.current == null)
         {
             isDragging = false;
+            hexZoomVelocity = 0f;
             return;
         }
 
         Vector2 mousePosition = Mouse.current.position.ReadValue();
-
-        if (!isDragging && ApplyHexHoverZoom())
-            return;
 
         if (enableMiddleMouseDrag &&
             Mouse.current.middleButton.wasPressedThisFrame)
@@ -62,6 +67,7 @@ public class CameraCursorMovement : MonoBehaviour
             isDragging = true;
             previousDragPosition = mousePosition;
             movementVelocity = Vector3.zero;
+            hexZoomVelocity = 0f;
             return;
         }
 
@@ -93,6 +99,9 @@ public class CameraCursorMovement : MonoBehaviour
             isDragging = false;
             movementVelocity = Vector3.zero;
         }
+
+        if (ApplyHexHoverZoom())
+            return;
 
         ApplyCursorPanning(mousePosition);
     }
@@ -157,6 +166,7 @@ public class CameraCursorMovement : MonoBehaviour
     {
         movementEnabled = enabled;
         isDragging = false;
+        hexZoomVelocity = 0f;
 
         if (!enabled)
             movementVelocity = Vector3.zero;
@@ -167,11 +177,46 @@ public class CameraCursorMovement : MonoBehaviour
         startingPosition = transform.position;
         movementVelocity = Vector3.zero;
         isDragging = false;
+        hexZoomVelocity = 0f;
     }
 
     public bool ZoomTowardsHex(HexTile hex, float scrollAmount)
     {
-        if (!movementEnabled || hex == null || Mathf.Abs(scrollAmount) < 0.01f)
+        if (!movementEnabled || hex == null)
+            return false;
+
+        float deltaTime = Mathf.Max(Time.unscaledDeltaTime, 0.001f);
+        float sensitivityMultiplier = Mathf.Max(0.05f, hexZoomSensitivity / ReferenceZoomSensitivity);
+
+        if (Mathf.Abs(scrollAmount) >= 0.01f)
+        {
+            float direction = Mathf.Sign(scrollAmount);
+            float notchStrength = Mathf.Clamp(
+                Mathf.Abs(scrollAmount) / ScrollUnitsPerNotch,
+                0.25f,
+                4f);
+
+            if (!Mathf.Approximately(hexZoomVelocity, 0f) &&
+                Mathf.Sign(hexZoomVelocity) != direction)
+            {
+                hexZoomVelocity = 0f;
+            }
+
+            hexZoomVelocity += direction * notchStrength * hexZoomAcceleration * sensitivityMultiplier;
+            hexZoomVelocity = Mathf.Clamp(
+                hexZoomVelocity,
+                -maximumHexZoomSpeed * sensitivityMultiplier,
+                maximumHexZoomSpeed * sensitivityMultiplier);
+        }
+        else
+        {
+            hexZoomVelocity = Mathf.MoveTowards(
+                hexZoomVelocity,
+                0f,
+                hexZoomDeceleration * sensitivityMultiplier * deltaTime);
+        }
+
+        if (Mathf.Abs(hexZoomVelocity) < 0.01f)
             return false;
 
         Vector3 target = hex.transform.position;
@@ -180,12 +225,17 @@ public class CameraCursorMovement : MonoBehaviour
         if (currentDistance <= 0.001f)
             return false;
 
-        float zoomStep = Mathf.Abs(scrollAmount) * hexZoomSensitivity;
         float desiredDistance = Mathf.Clamp(
-            currentDistance - Mathf.Sign(scrollAmount) * zoomStep,
+            currentDistance - hexZoomVelocity * deltaTime,
             minimumHexZoomDistance,
             maximumHexZoomDistance
         );
+
+        if (Mathf.Approximately(currentDistance, desiredDistance))
+        {
+            hexZoomVelocity = 0f;
+            return false;
+        }
 
         Vector3 desiredPosition = target + fromTarget.normalized * desiredDistance;
         Vector3 movement = desiredPosition - transform.position;
@@ -201,6 +251,7 @@ public class CameraCursorMovement : MonoBehaviour
             hexMouseRaycaster == null ||
             !hexMouseRaycaster.CanZoomCurrentHex)
         {
+            hexZoomVelocity = 0f;
             return false;
         }
 

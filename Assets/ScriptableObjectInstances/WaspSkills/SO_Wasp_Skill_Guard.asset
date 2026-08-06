@@ -16,8 +16,8 @@ MonoBehaviour:
   roleIcon: {fileID: 21300000, guid: 17471f14bd8a9ef4cbdfca8ccade5beb, type: 3}
   displayName: Guard
   description: Defends the native colony from threats.
-  effectSummary: Improves colony defence.
-  maximumLevel: 3
+  effectSummary: Increases attacker damage and attack speed.
+  maximumLevel: 5
   trainingCost:
     nectar: 10
     prey: 15
@@ -51,7 +51,7 @@ MonoBehaviour:
   buildSpeedPerLevel: 0.1
   broodCarePerLevel: 0.1
   defencePerLevel: 0.1
-  attackSpeedPerLevel: 0.15
+  attackSpeedPerLevel: 0.25
   identificationPerLevel: 0.1
-  maximumHealthPerLevel: 15
-  attackDamagePerLevel: 2
+  maximumHealthPerLevel: 10
+  attackDamagePerLevel: 5

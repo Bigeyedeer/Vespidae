@@ -102,7 +102,7 @@ public class WaspControlGroupManager : MonoBehaviour
             if (result.AnyMoved)
                 feedbackText.text = $"Moved {result.Moved}/{result.Requested} attackers to {target.HexName}.";
             else if (result.Capped > 0)
-                feedbackText.text = "The target already has five assigned attackers.";
+                feedbackText.text = "The target already has the maximum assigned attackers.";
             else
                 feedbackText.text = "The selected attackers cannot move to that hex.";
         }

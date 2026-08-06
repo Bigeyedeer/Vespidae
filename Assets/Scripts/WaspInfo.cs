@@ -11,6 +11,7 @@ public class WaspInfo : MonoBehaviour
 
     private SB_Wasps_Info runtimeSpecies;
     private WaspFunction runtimeFunction;
+    private WaspScopeRole runtimeFaction = WaspScopeRole.NativePlayer;
     private bool hasRuntimeFunction;
     private bool usesEnemySkillLevels;
 
@@ -26,7 +27,7 @@ public class WaspInfo : MonoBehaviour
             ? assignedSkill.Function
             : WaspFunction.Scout;
     public int SkillLevel => usesEnemySkillLevels
-        ? EnemyHiveControl.Instance != null ? EnemyHiveControl.Instance.GetSkillLevel(FunctionRole) : 0
+        ? EnemyHiveControl.Instance != null ? EnemyHiveControl.Instance.GetSkillLevel(runtimeFaction, FunctionRole) : 0
         : HiveManagement.Instance != null ? HiveManagement.Instance.GetSkillLevel(FunctionRole) : 0;
     public SB_Wasp_Skill SkillDefinition
     {
@@ -55,12 +56,13 @@ public class WaspInfo : MonoBehaviour
     public float AttackDamage => GetSkillValue(WaspSkillStat.AttackDamage);
     public event Action AssignmentChanged;
 
-    public void SetRuntimeAssignment(SB_Wasps_Info species, WaspFunction function, bool enemy = false)
+    public void SetRuntimeAssignment(SB_Wasps_Info species, WaspFunction function, bool enemy = false, WaspScopeRole faction = WaspScopeRole.NativePlayer)
     {
         if (species != null)
             runtimeSpecies = species;
 
         runtimeFunction = function;
+        runtimeFaction = enemy && species != null ? species.ScopeRole : faction;
         hasRuntimeFunction = true;
         usesEnemySkillLevels = enemy;
         AssignmentChanged?.Invoke();
@@ -69,7 +71,7 @@ public class WaspInfo : MonoBehaviour
     public float GetSkillValue(WaspSkillStat stat)
     {
         if (usesEnemySkillLevels && EnemyHiveControl.Instance != null)
-            return EnemyHiveControl.Instance.GetEffectiveValue(FunctionRole, stat);
+            return EnemyHiveControl.Instance.GetEffectiveValue(runtimeFaction, FunctionRole, stat);
 
         if (HiveManagement.Instance != null)
             return HiveManagement.Instance.GetEffectiveValue(FunctionRole, stat);

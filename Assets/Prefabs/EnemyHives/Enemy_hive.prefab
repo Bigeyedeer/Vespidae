@@ -143,9 +143,10 @@ MonoBehaviour:
   cameraFocusPoint: {fileID: 8754027064390558151}
   cameraLookPoint: {fileID: 3999726117985601304}
   combatant: {fileID: 723196048040147600}
+  faction: 1
   spawnHeight: 0.35
-  spawnSpacing: 0.25
-  spawnRowSpacing: 0.25
+  spawnSpacing: 0.15
+  spawnRowSpacing: 0.15
 --- !u!114 &985582087321575919
 MonoBehaviour:
   m_ObjectHideFlags: 0
