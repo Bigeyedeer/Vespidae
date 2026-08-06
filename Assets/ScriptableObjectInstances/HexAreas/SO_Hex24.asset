@@ -14,12 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_24_paarl_granite_reach
   areaName: Paarl Granite Reach
-  areaDescription: Granite outcrops are lined with hardy shrubs that yield durable nest material.
+  areaDescription: Granite outcrops are lined with hardy shrubs that yield durable
+    nest material.
   habitatCue: Granite fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_25_franschhoek_valley
+  - hex_31_west_coast_bloom
+  - hex_33_piketberg_escarpment
+  - hex_05_table_mountain_edge
+  - hex_34_tulbagh_mountain_bowl
   resourceType: 4
   startingPrey: 795
   startingNectar: 744

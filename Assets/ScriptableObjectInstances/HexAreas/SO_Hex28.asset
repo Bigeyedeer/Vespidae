@@ -14,12 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_28_swartland_verge
   areaName: Swartland Verge
-  areaDescription: A contested-looking verge of renosterveld remnants with prey cover and strong stems.
+  areaDescription: A contested-looking verge of renosterveld remnants with prey cover
+    and strong stems.
   habitatCue: Swartland renosterveld
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_10_cederberg_heights
+  - hex_11_breede_river_basin
+  - hex_27_malmesbury_grainlands
+  - hex_35_ceres_basin
+  - hex_21_kuils_river_lowlands
   resourceType: 5
   startingPrey: 900
   startingNectar: 635

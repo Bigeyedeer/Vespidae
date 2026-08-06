@@ -14,12 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_05_table_mountain_edge
   areaName: Table Mountain Edge
-  areaDescription: Wind-cut slopes of Table Mountain carry scattered flowering patches rich in nectar.
+  areaDescription: Wind-cut slopes of Table Mountain carry scattered flowering patches
+    rich in nectar.
   habitatCue: Peninsula sandstone fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_36_worcester_drylands
+  - hex_29_atlantis_sandfields
+  - hex_25_franschhoek_valley
+  - hex_24_paarl_granite_reach
   resourceType: 2
   startingPrey: 595
   startingNectar: 1210

@@ -14,13 +14,16 @@ public class HexOptionsPanel : MonoBehaviour
     [SerializeField] private Button primaryActionButton;
     [SerializeField] private TMP_Text primaryActionButtonText;
     [SerializeField] private Button closeActionButton;
+    [SerializeField] private TMP_Text closeActionButtonText;
     [SerializeField] private RectTransform actionButtonContainer;
 
     private HexTile selectedHex;
     private Button foragerActionButton;
     private Button builderActionButton;
+    private Button attackerActionButton;
     private TMP_Text foragerActionButtonText;
     private TMP_Text builderActionButtonText;
+    private TMP_Text attackerActionButtonText;
     private RectTransform primaryActionRect;
     private Vector2 primaryDefaultPosition;
     private Vector2 primaryDefaultSize;
@@ -34,12 +37,7 @@ public class HexOptionsPanel : MonoBehaviour
         EnsureDispatchButtons();
         ConfigureInformationLayout();
         ConfigureActionLayout();
-
-        if (closeActionButton != null)
-        {
-            closeActionButton.onClick.RemoveAllListeners();
-            closeActionButton.onClick.AddListener(Close);
-        }
+        HideCloseAction();
     }
 
     private void Update()
@@ -67,6 +65,10 @@ public class HexOptionsPanel : MonoBehaviour
         UnsubscribeFromHex();
         selectedHex = hex;
         selectedHex.ResourcesChanged += OnHexResourcesChanged;
+        selectedHex.OccupantsChanged += OnHexOccupantsChanged;
+        selectedHex.StateChanged += OnHexStateChanged;
+        if (selectedHex.CombatController != null)
+            selectedHex.CombatController.ConflictChanged += OnConflictChanged;
         actionFeedback = string.Empty;
         displayedSeconds = int.MinValue;
         gameObject.SetActive(true);
@@ -89,12 +91,21 @@ public class HexOptionsPanel : MonoBehaviour
         if (hexNameText != null)
             hexNameText.text = selectedHex.HexName;
         if (stateText != null)
-            stateText.text = $"Status: {selectedHex.State}";
+            stateText.text = selectedHex.CombatController != null && selectedHex.CombatController.ConflictState != HexConflictState.None
+                ? $"Status: {selectedHex.CombatController.ConflictState}"
+                : $"Status: {selectedHex.State}";
 
         RefreshDetails();
         HideDispatchButtons();
+        HideCloseAction();
         if (primaryActionButton == null)
             return;
+
+        if (selectedHex.CombatController != null && selectedHex.CombatController.ConflictState != HexConflictState.None)
+        {
+            ConfigureConflictActions();
+            return;
+        }
 
         switch (selectedHex.State)
         {
@@ -108,7 +119,7 @@ public class HexOptionsPanel : MonoBehaviour
                 ConfigureOwnedHex();
                 break;
             case HexTile.HexState.Enemy:
-                SetSingleAction("Enemy Territory", null, false);
+                ConfigureEnemyHex();
                 break;
             case HexTile.HexState.Locked:
                 if (discoveryText != null)
@@ -133,7 +144,7 @@ public class HexOptionsPanel : MonoBehaviour
 
         int foragerCount = selectedHex.GetFriendlyWaspCount(WaspFunction.Forager);
         discoveryText.text =
-            $"{BuildResourceDetails(foragerCount)}\n\n{BuildFriendlyWaspDetails()}";
+            $"{BuildResourceDetails(foragerCount)}\n\n{BuildFriendlyWaspDetails()}\n{BuildEnemyWaspDetails()}{BuildHiveHealthDetails()}";
     }
 
     private string BuildResourceDetails(int foragerCount)
@@ -210,6 +221,30 @@ public class HexOptionsPanel : MonoBehaviour
             $"Contain: {selectedHex.GetFriendlyWaspCount(WaspFunction.Containment)}";
     }
 
+    private string BuildEnemyWaspDetails()
+    {
+        if (selectedHex.EnemyWaspCount <= 0)
+            return string.Empty;
+
+        return
+            "\nEnemy wasps\n" +
+            $"Scout: {selectedHex.GetEnemyWaspCount(WaspFunction.Scout)}   " +
+            $"Forager: {selectedHex.GetEnemyWaspCount(WaspFunction.Forager)}   " +
+            $"Builder: {selectedHex.GetEnemyWaspCount(WaspFunction.Builder)}\n" +
+            $"Guard: {selectedHex.GetEnemyWaspCount(WaspFunction.Guard)}";
+    }
+
+    private string BuildHiveHealthDetails()
+    {
+        HiveCombatant friendly = selectedHex.FriendlyHive != null ? selectedHex.FriendlyHive.Combatant : null;
+        HiveCombatant enemy = selectedHex.EnemyHive != null ? selectedHex.EnemyHive.Combatant : null;
+        if (friendly != null)
+            return $"\nFriendly hive: {friendly.CurrentHealth:0}/{friendly.MaximumHealth:0}";
+        if (enemy != null && selectedHex.IsPlayerAccessible)
+            return $"\nEnemy hive: {enemy.CurrentHealth:0}/{enemy.MaximumHealth:0}";
+        return string.Empty;
+    }
+
     private void ConfigureInformationLayout()
     {
         if (discoveryText == null)
@@ -248,6 +283,35 @@ public class HexOptionsPanel : MonoBehaviour
             WaspFunction.Builder,
             "Builder",
             hive);
+        SetDispatchAction(
+            attackerActionButton,
+            attackerActionButtonText,
+            WaspFunction.Guard,
+            "Attacker",
+            hive);
+    }
+
+    private void ConfigureConflictActions()
+    {
+        HiveManagement hive = HiveManagement.GetOrCreate();
+        int available = hive != null ? hive.GetAvailableWaspCount(WaspFunction.Guard) : 0;
+        int assigned = hive != null ? hive.GetAssignedWaspCount(selectedHex, WaspFunction.Guard) : 0;
+        bool canSend = hive != null && hive.CanDispatchToHex(selectedHex, WaspFunction.Guard);
+        SetSingleAction(
+            canSend ? $"Send Attacker\n{available} available  {assigned}/5 sent" : $"No Attacker Available\n{assigned}/5 sent",
+            () => Dispatch(WaspFunction.Guard),
+            canSend);
+
+        if (selectedHex.HasFriendlyScout)
+            ConfigureCloseAction("Recall Scout", RecallScout);
+    }
+
+    private void ConfigureEnemyHex()
+    {
+        HiveManagement hive = HiveManagement.GetOrCreate();
+        int available = hive != null ? hive.GetAvailableWaspCount(WaspFunction.Guard) : 0;
+        bool canSend = hive != null && hive.CanDispatchToHex(selectedHex, WaspFunction.Guard);
+        SetSingleAction(canSend ? $"Send Attacker\n{available} available" : "No Attacker Available", () => Dispatch(WaspFunction.Guard), canSend);
     }
 
     private void ConfigureScoutAction()
@@ -323,9 +387,42 @@ public class HexOptionsPanel : MonoBehaviour
         RefreshPanel();
     }
 
+    private void RecallScout()
+    {
+        bool recalled = HiveManagement.GetOrCreate()?.TryRecallScout(selectedHex) == true;
+        actionFeedback = recalled ? "Scout returning to its home hive." : "Scout could not return to its home hive.";
+        Close();
+    }
+
+    private void ConfigureCloseAction(string label, UnityEngine.Events.UnityAction action)
+    {
+        if (closeActionButton == null)
+            return;
+
+        closeActionButton.gameObject.SetActive(true);
+        closeActionButton.onClick.RemoveAllListeners();
+        closeActionButton.interactable = action != null;
+        if (closeActionButtonText == null)
+            closeActionButtonText = closeActionButton.GetComponentInChildren<TMP_Text>(true);
+        if (closeActionButtonText != null)
+            closeActionButtonText.text = label;
+        if (action != null)
+            closeActionButton.onClick.AddListener(action);
+    }
+
+    private void HideCloseAction()
+    {
+        if (closeActionButton == null)
+            return;
+
+        closeActionButton.onClick.RemoveAllListeners();
+        closeActionButton.gameObject.SetActive(false);
+    }
+
     private void EnsureDispatchButtons()
     {
-        if (primaryActionButton == null || foragerActionButton != null || builderActionButton != null)
+        if (primaryActionButton == null ||
+            (foragerActionButton != null && builderActionButton != null && attackerActionButton != null))
             return;
 
         primaryActionRect = primaryActionButton.GetComponent<RectTransform>();
@@ -334,8 +431,12 @@ public class HexOptionsPanel : MonoBehaviour
 
         primaryDefaultPosition = primaryActionRect.anchoredPosition;
         primaryDefaultSize = primaryActionRect.sizeDelta;
-        foragerActionButton = CreateActionClone("Send Forager Button", out foragerActionButtonText);
-        builderActionButton = CreateActionClone("Send Builder Button", out builderActionButtonText);
+        if (foragerActionButton == null)
+            foragerActionButton = CreateActionClone("Send Forager Button", out foragerActionButtonText);
+        if (builderActionButton == null)
+            builderActionButton = CreateActionClone("Send Builder Button", out builderActionButtonText);
+        if (attackerActionButton == null)
+            attackerActionButton = CreateActionClone("Send Attacker Button", out attackerActionButtonText);
         HideDispatchButtons();
     }
 
@@ -361,6 +462,7 @@ public class HexOptionsPanel : MonoBehaviour
             ConfigureActionButton(primaryActionButton);
             ConfigureActionButton(foragerActionButton);
             ConfigureActionButton(builderActionButton);
+            ConfigureActionButton(attackerActionButton);
             ConfigureActionButton(closeActionButton);
             return;
         }
@@ -369,7 +471,8 @@ public class HexOptionsPanel : MonoBehaviour
         {
             primaryActionButton.GetComponent<RectTransform>(),
             foragerActionButton != null ? foragerActionButton.GetComponent<RectTransform>() : null,
-            builderActionButton != null ? builderActionButton.GetComponent<RectTransform>() : null
+            builderActionButton != null ? builderActionButton.GetComponent<RectTransform>() : null,
+            attackerActionButton != null ? attackerActionButton.GetComponent<RectTransform>() : null
         };
 
         float width = 136f;
@@ -405,6 +508,8 @@ public class HexOptionsPanel : MonoBehaviour
             foragerActionButton.gameObject.SetActive(false);
         if (builderActionButton != null)
             builderActionButton.gameObject.SetActive(false);
+        if (attackerActionButton != null)
+            attackerActionButton.gameObject.SetActive(false);
     }
 
     private void ConfigureActionLayout()
@@ -426,6 +531,7 @@ public class HexOptionsPanel : MonoBehaviour
         ConfigureActionButton(primaryActionButton);
         ConfigureActionButton(foragerActionButton);
         ConfigureActionButton(builderActionButton);
+        ConfigureActionButton(attackerActionButton);
         ConfigureActionButton(closeActionButton);
     }
 
@@ -438,7 +544,7 @@ public class HexOptionsPanel : MonoBehaviour
         if (rect == null)
             return;
 
-        rect.sizeDelta = new Vector2(200f, 90f);
+        rect.sizeDelta = new Vector2(176f, 90f);
         rect.localScale = Vector3.one * 0.5f;
     }
 
@@ -475,10 +581,31 @@ public class HexOptionsPanel : MonoBehaviour
     private void UnsubscribeFromHex()
     {
         if (selectedHex != null)
+        {
             selectedHex.ResourcesChanged -= OnHexResourcesChanged;
+            selectedHex.OccupantsChanged -= OnHexOccupantsChanged;
+            selectedHex.StateChanged -= OnHexStateChanged;
+            if (selectedHex.CombatController != null)
+                selectedHex.CombatController.ConflictChanged -= OnConflictChanged;
+        }
     }
 
     private void OnHexResourcesChanged(HexTile hex)
+    {
+        RefreshPanel();
+    }
+
+    private void OnHexOccupantsChanged(HexTile hex)
+    {
+        RefreshPanel();
+    }
+
+    private void OnHexStateChanged(HexTile hex)
+    {
+        RefreshPanel();
+    }
+
+    private void OnConflictChanged(HexCombatController controller)
     {
         RefreshPanel();
     }

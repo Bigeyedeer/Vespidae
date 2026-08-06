@@ -14,12 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_16_constantia_valley
   areaName: Constantia Valley
-  areaDescription: Sheltered valley gardens and fynbos edges provide both flowers and easy hunting.
+  areaDescription: Sheltered valley gardens and fynbos edges provide both flowers
+    and easy hunting.
   habitatCue: Valley fynbos edge
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_19_muizenberg_strand
+  - hex_23_stellenbosch_foothills
+  - hex_22_tygerberg_watch
+  - hex_18_noordhoek_expanse
+  - hex_21_kuils_river_lowlands
+  - hex_17_hout_bay_gate
   resourceType: 3
   startingPrey: 880
   startingNectar: 1240

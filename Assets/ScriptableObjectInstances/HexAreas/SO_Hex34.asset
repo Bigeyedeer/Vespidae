@@ -14,12 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_34_tulbagh_mountain_bowl
   areaName: Tulbagh Mountain Bowl
-  areaDescription: A mountain bowl with insect-rich shrubland and grasses suitable for colony repairs.
+  areaDescription: A mountain bowl with insect-rich shrubland and grasses suitable
+    for colony repairs.
   habitatCue: Mountain valley fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_31_west_coast_bloom
+  - hex_33_piketberg_escarpment
+  - hex_04_silvermine_pass
+  - hex_24_paarl_granite_reach
   resourceType: 5
   startingPrey: 1190
   startingNectar: 872

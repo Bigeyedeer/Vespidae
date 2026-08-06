@@ -14,12 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_25_franschhoek_valley
   areaName: Franschhoek Valley
-  areaDescription: A warm valley mosaic of flowers and insect activity makes for productive colony forage.
+  areaDescription: A warm valley mosaic of flowers and insect activity makes for
+    productive colony forage.
   habitatCue: Valley fynbos mosaic
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_24_paarl_granite_reach
+  - hex_29_atlantis_sandfields
+  - hex_32_darling_flowerlands
+  - hex_33_piketberg_escarpment
+  - hex_05_table_mountain_edge
+  - hex_30_langebaan_salt_coast
   resourceType: 3
   startingPrey: 1270
   startingNectar: 980

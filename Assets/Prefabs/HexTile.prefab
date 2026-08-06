@@ -175,6 +175,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9b91373c844f0b14f8935a86745b0a32, type: 3}
       insertIndex: -1
       addedObject: {fileID: -2113238935650449420}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 9b91373c844f0b14f8935a86745b0a32, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4337367624160803525}
   m_SourcePrefab: {fileID: 100100000, guid: 9b91373c844f0b14f8935a86745b0a32, type: 3}
 --- !u!23 &363958811557819211 stripped
 MeshRenderer:
@@ -243,6 +246,7 @@ MonoBehaviour:
   gatheringRules: {fileID: 11400000, guid: 6d8f0a2b4c5e7193b7d9f1a3c6e8b025, type: 2}
   state: 1
   antGroup: {fileID: 0}
+  combatController: {fileID: 4337367624160803525}
   hexRenderer: {fileID: 363958811557819211}
   ownedMaterial: {fileID: 2100000, guid: 0850e5843bcc473489968124ba89a797, type: 2}
   unknownMaterial: {fileID: 2100000, guid: b887df67fc04da34e84210deb77cd093, type: 2}
@@ -253,3 +257,18 @@ MonoBehaviour:
   waspCloseUpFocusPoint: {fileID: 777000000000000002}
   hiveSpawnPoint: {fileID: 8047022245518074020}
   scoutingDuration: 10
+--- !u!114 &4337367624160803525
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2165658491143410334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3559001c991e8924a927f6cc29063402, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HexCombatController
+  hexTile: {fileID: -2113238935650449420}
+  maximumAttackersPerSide: 5
+  reinforcementResponseTime: 5

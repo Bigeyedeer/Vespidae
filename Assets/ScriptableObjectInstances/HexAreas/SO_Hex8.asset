@@ -14,12 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_08_agulhas_wilds
   areaName: Agulhas Wilds
-  areaDescription: Exposed coastal scrub provides prey among dune plants and weathered fibre for nest repair.
+  areaDescription: Exposed coastal scrub provides prey among dune plants and weathered
+    fibre for nest repair.
   habitatCue: Agulhas coastal fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_14_hoerikwaggo_rise
+  - hex_27_malmesbury_grainlands
+  - hex_37_robertson_riverlands
+  - hex_10_cederberg_heights
+  - hex_13_camissa_springs
+  - hex_09_elgin_bloomlands
   resourceType: 5
   startingPrey: 760
   startingNectar: 1180

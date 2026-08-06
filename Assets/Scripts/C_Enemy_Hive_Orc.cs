@@ -7,6 +7,7 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
     [SerializeField] private Transform waspSpawnPoint;
     [SerializeField] private Transform cameraFocusPoint;
     [SerializeField] private Transform cameraLookPoint;
+    [SerializeField] private HiveCombatant combatant;
     [SerializeField, Min(0f)] private float spawnHeight = 0.35f;
     [SerializeField, Min(0.05f)] private float spawnSpacing = 0.25f;
     [SerializeField, Min(0.05f)] private float spawnRowSpacing = 0.25f;
@@ -22,6 +23,7 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
     
     private HexTile ownerHex;
     private int nextSpawnIndex;
+    private GameObject defaultWaspPrefab;
     private readonly List<HexTile> knownHexes = new List<HexTile>();
 
     public GameObject[] EnemyWaspPrefabs => enemyWaspPrefabs;
@@ -30,14 +32,20 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
     public Transform WaspSpawnPoint => waspSpawnPoint != null ? waspSpawnPoint : transform;
     public Transform CameraFocusPoint => cameraFocusPoint != null ? cameraFocusPoint : transform;
     public Transform CameraLookPoint => cameraLookPoint != null ? cameraLookPoint : transform;
+    public HiveCombatant Combatant => combatant;
+    public GameObject DefaultWaspPrefab => defaultWaspPrefab != null ? defaultWaspPrefab : GetDefaultWaspPrefab();
 
     public void Initialize(HexTile hex, GameObject[] waspPrefabs)
     {
         ownerHex = hex;
+        if (combatant == null)
+            combatant = GetComponent<HiveCombatant>();
+        combatant?.Initialize(hex, true);
         AttachToOwnerHex();
         if (waspPrefabs != null && waspPrefabs.Length > 0)
             enemyWaspPrefabs = waspPrefabs;
         RememberHex(ownerHex);
+        ownerHex?.SetEnemyHive(this);
     }
     
     public void AddResources(float prey, float nectar, float fibre)
@@ -61,7 +69,7 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
         GameObject waspPrefab = null,
         WaspFunction function = WaspFunction.Scout)
     {
-        GameObject prefab = waspPrefab != null ? waspPrefab : GetDefaultWaspPrefab();
+        GameObject prefab = waspPrefab != null ? waspPrefab : DefaultWaspPrefab;
         if (prefab == null)
         {
             Debug.LogWarning($"{name} has no enemy wasp prefab assigned.");
@@ -85,6 +93,12 @@ public class C_Enemy_Hive_Orc : MonoBehaviour
         }
 
         return control;
+    }
+
+    public void SetDefaultWaspPrefab(GameObject prefab)
+    {
+        if (prefab != null)
+            defaultWaspPrefab = prefab;
     }
 
     public void RememberHex(HexTile hex)

@@ -8,6 +8,12 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
 {
     public static C_MainWorldOverlayNavigation Instance { get; private set; }
     public static bool IsPaused => Instance != null && Instance.isPaused;
+    public bool BlocksWorldInput => isPaused ||
+                                    IsActive(skillsPanel) ||
+                                    IsActive(waspInfoPanel) ||
+                                    IsActive(hiveTrainingPanel) ||
+                                    IsActive(builderHivePanel) ||
+                                    IsActive(friendlyWaspPanel);
 
     [SerializeField] private GameObject waspInfoPanel;
     [SerializeField] private GameObject skillsPanel;
@@ -45,6 +51,11 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
 
     private const string ScrollSpeedPreferenceKey = "Vespidae.ScrollWheelZoomSpeed";
     private const float DefaultScrollWheelZoomSpeed = 0.02f;
+
+    private static bool IsActive(GameObject target)
+    {
+        return target != null && target.activeInHierarchy;
+    }
 
     private void Awake()
     {
@@ -222,6 +233,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     public void ReturnToPreviousView()
     {
         HideFriendlyWaspActions();
+        mainWorldNavigation?.CloseHexOptions();
         cameraFocus?.ReturnToPreviousView();
     }
 

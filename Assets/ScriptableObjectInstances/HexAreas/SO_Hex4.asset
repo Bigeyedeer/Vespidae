@@ -14,12 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_04_silvermine_pass
   areaName: Silvermine Pass
-  areaDescription: A cool mountain pass where insects gather in pockets between sandstone outcrops.
+  areaDescription: A cool mountain pass where insects gather in pockets between sandstone
+    outcrops.
   habitatCue: Sandstone fynbos pass
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_34_tulbagh_mountain_bowl
+  - hex_31_west_coast_bloom
   resourceType: 1
   startingPrey: 930
   startingNectar: 1289

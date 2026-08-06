@@ -1,20 +1,84 @@
+using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+[Serializable]
+public class HiveSkillCardBinding
+{
+    [SerializeField] private WaspFunction function;
+    [SerializeField] private GameObject cardRoot;
+    [SerializeField] private TMP_Text titleText;
+    [SerializeField] private TMP_Text descriptionText;
+    [SerializeField] private TMP_Text levelText;
+    [SerializeField] private TMP_Text costText;
+    [SerializeField] private TMP_Text effectText;
+    [SerializeField] private Text legacyTitleText;
+    [SerializeField] private Text legacyDescriptionText;
+    [SerializeField] private Text legacyLevelText;
+    [SerializeField] private Text legacyCostText;
+    [SerializeField] private Text legacyEffectText;
+    [SerializeField] private Button upgradeButton;
+
+    public WaspFunction Function => function;
+    public GameObject CardRoot => cardRoot;
+    public TMP_Text TitleText => titleText;
+    public TMP_Text DescriptionText => descriptionText;
+    public TMP_Text LevelText => levelText;
+    public TMP_Text CostText => costText;
+    public TMP_Text EffectText => effectText;
+    public Button UpgradeButton => upgradeButton;
+    public bool HasSeparateLevelText => levelText != null || legacyLevelText != null;
+    public bool HasSeparateEffectText => effectText != null || legacyEffectText != null;
+
+    public void SetTitle(string value)
+    {
+        if (titleText != null) titleText.text = value;
+        if (legacyTitleText != null) legacyTitleText.text = value;
+    }
+
+    public void SetDescription(string value)
+    {
+        if (descriptionText != null) descriptionText.text = value;
+        if (legacyDescriptionText != null) legacyDescriptionText.text = value;
+    }
+
+    public void SetLevel(string value)
+    {
+        if (levelText != null) levelText.text = value;
+        if (legacyLevelText != null) legacyLevelText.text = value;
+    }
+
+    public void SetCost(string value)
+    {
+        if (costText != null) costText.text = value;
+        if (legacyCostText != null) legacyCostText.text = value;
+    }
+
+    public void SetEffect(string value)
+    {
+        if (effectText != null) effectText.text = value;
+        if (legacyEffectText != null) legacyEffectText.text = value;
+    }
+}
+
 public class C_HiveSkillsPanel : MonoBehaviour
 {
-    private static readonly WaspFunction[] cardFunctions =
-    {
-        WaspFunction.Scout,
-        WaspFunction.Forager,
-        WaspFunction.Builder,
-        WaspFunction.BroodCaretaker,
-        WaspFunction.Guard,
-        WaspFunction.Containment
-    };
+    [SerializeField] private List<HiveSkillCardBinding> cards = new List<HiveSkillCardBinding>();
 
     private HiveManagement hive;
+
+    private void OnEnable()
+    {
+        Subscribe();
+        Refresh();
+    }
+
+    private void OnDisable()
+    {
+        Unsubscribe();
+    }
 
     public void Refresh()
     {
@@ -22,84 +86,80 @@ public class C_HiveSkillsPanel : MonoBehaviour
         if (hive == null)
             return;
 
-        for (int index = 0; index < cardFunctions.Length; index++)
+        foreach (HiveSkillCardBinding card in cards)
         {
-            WaspFunction function = cardFunctions[index];
-            SB_Wasp_Skill definition = hive.GetSkillDefinition(function);
+            if (card == null)
+                continue;
+
+            SB_Wasp_Skill definition = hive.GetSkillDefinition(card.Function);
             if (definition == null)
+            {
+                if (card.CardRoot != null)
+                    card.CardRoot.SetActive(false);
                 continue;
+            }
 
-            int level = hive.GetSkillLevel(function);
+            if (card.CardRoot != null)
+                card.CardRoot.SetActive(true);
+            int level = hive.GetSkillLevel(card.Function);
             WaspSkillCost cost = definition.GetUpgradeCost(level + 1);
-            SetText($"Skills_CardTitle_{index}", $"{definition.DisplayName}  Lv {level}");
-            SetText($"Skills_CardDesc_{index}", definition.Description);
-            SetText($"Skills_CardCost_{index}",
-                level >= definition.MaximumLevel
-                    ? "MAX LEVEL"
-                    : $"Upgrade: {FormatCost(cost)}");
+            card.SetTitle(card.HasSeparateLevelText ? definition.DisplayName : $"{definition.DisplayName}  Lv {level}");
+            card.SetDescription(card.HasSeparateEffectText ? definition.Description : $"{definition.Description}\n{definition.EffectSummary}");
+            card.SetLevel($"Level {level}/{definition.MaximumLevel}");
+            card.SetEffect(definition.EffectSummary);
+            card.SetCost(level >= definition.MaximumLevel ? "MAX LEVEL" : FormatCost(cost));
 
-            GameObject card = FindSceneObject($"Skills_Card_{index}");
-            Button button = card != null ? card.GetComponent<Button>() : null;
-            if (button == null)
+            if (card.UpgradeButton == null)
                 continue;
 
-            button.onClick.RemoveAllListeners();
-            int capturedIndex = index;
-            button.onClick.AddListener(() => Upgrade(capturedIndex));
-            button.interactable = hive.CanUpgrade(function);
+            card.UpgradeButton.onClick.RemoveAllListeners();
+            WaspFunction capturedFunction = card.Function;
+            card.UpgradeButton.onClick.AddListener(() => Upgrade(capturedFunction));
+            card.UpgradeButton.interactable = hive.CanUpgrade(card.Function);
         }
     }
 
-    private void Upgrade(int index)
+    private void Upgrade(WaspFunction function)
     {
-        if (hive == null || index < 0 || index >= cardFunctions.Length)
-            return;
-
-        hive.TryUpgrade(cardFunctions[index]);
+        hive?.TryUpgrade(function);
         Refresh();
     }
 
-    private string FormatCost(WaspSkillCost cost)
+    private void Subscribe()
     {
-        string result = string.Empty;
+        hive = HiveManagement.GetOrCreate();
+        if (hive != null)
+        {
+            hive.SkillsChanged -= Refresh;
+            hive.SkillsChanged += Refresh;
+        }
+
+        if (ResourceManager.Instance != null)
+        {
+            ResourceManager.Instance.ResourcesChanged -= Refresh;
+            ResourceManager.Instance.ResourcesChanged += Refresh;
+        }
+    }
+
+    private void Unsubscribe()
+    {
+        if (HiveManagement.Instance != null)
+            HiveManagement.Instance.SkillsChanged -= Refresh;
+        if (ResourceManager.Instance != null)
+            ResourceManager.Instance.ResourcesChanged -= Refresh;
+    }
+
+    private static string FormatCost(WaspSkillCost cost)
+    {
+        List<string> parts = new List<string>();
         if (cost.nectar > 0f)
-            result += $"Nectar {cost.nectar:0} ";
+            parts.Add($"Nectar {cost.nectar:0}");
         if (cost.prey > 0f)
-            result += $"Prey {cost.prey:0} ";
+            parts.Add($"Prey {cost.prey:0}");
         if (cost.fibre > 0f)
-            result += $"Fibre {cost.fibre:0} ";
+            parts.Add($"Fibre {cost.fibre:0}");
         if (cost.skillPoints > 0)
-            result += $"Points {cost.skillPoints}";
-        return result.Trim();
-    }
-
-    private void SetText(string objectName, string value)
-    {
-        GameObject target = FindSceneObject(objectName);
-        if (target == null)
-            return;
-
-        TMP_Text tmp = target.GetComponent<TMP_Text>();
-        if (tmp != null)
-        {
-            tmp.text = value;
-            return;
-        }
-
-        Text legacy = target.GetComponent<Text>();
-        if (legacy != null)
-            legacy.text = value;
-    }
-
-    private GameObject FindSceneObject(string objectName)
-    {
-        GameObject[] objects = Resources.FindObjectsOfTypeAll<GameObject>();
-        foreach (GameObject sceneObject in objects)
-        {
-            if (sceneObject != null && sceneObject.scene.IsValid() && sceneObject.name == objectName)
-                return sceneObject;
-        }
-
-        return null;
+            parts.Add($"Points {cost.skillPoints}");
+        return string.Join("  ", parts);
     }
 }

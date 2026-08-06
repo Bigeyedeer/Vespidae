@@ -18,6 +18,7 @@ public class HexMouseRaycaster : MonoBehaviour
     [SerializeField] private C_MainWorldNavigation mainWorldNavigation;
     [SerializeField] private C_MainWorldCameraFocus cameraFocus;
     [SerializeField] private HexOptionsPanel optionsPanel;
+    [SerializeField] private WaspControlGroupManager controlGroupManager;
 
     [Header("Debug")]
     [SerializeField] private bool showDebugRay;
@@ -40,6 +41,9 @@ public class HexMouseRaycaster : MonoBehaviour
     {
         if (mainCamera == null)
             mainCamera = Camera.main;
+
+        if (controlGroupManager == null)
+            controlGroupManager = GetComponent<WaspControlGroupManager>();
 
         if (hexLayer.value == 0)
         {
@@ -64,15 +68,17 @@ public class HexMouseRaycaster : MonoBehaviour
             inHexView = false;
         }
 
+        if (Mouse.current.rightButton.wasPressedThisFrame)
+            TryIssueGroupOrder();
+
         if (inHexView)
         {
-            ClearCurrentHover();
-
             if (cameraFocus == null || !cameraFocus.IsCloseUpActive)
                 return;
 
             DetectCloseUpInteractable();
-            if (Mouse.current.leftButton.wasPressedThisFrame)
+            if (Mouse.current.leftButton.wasReleasedThisFrame &&
+                (controlGroupManager == null || !controlGroupManager.ShouldSuppressWorldClickThisFrame))
                 TrySelectCloseUpInteractable();
 
             return;
@@ -80,8 +86,30 @@ public class HexMouseRaycaster : MonoBehaviour
 
         DetectHexUnderCursor();
 
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        if (Mouse.current.leftButton.wasReleasedThisFrame &&
+            (controlGroupManager == null || !controlGroupManager.ShouldSuppressWorldClickThisFrame))
             TrySelectCurrentHex();
+    }
+
+    private void TryIssueGroupOrder()
+    {
+        if (controlGroupManager == null || !controlGroupManager.HasSelection || IsPointerOverUi())
+            return;
+
+        if (C_MainWorldOverlayNavigation.Instance != null && C_MainWorldOverlayNavigation.Instance.BlocksWorldInput)
+            return;
+
+        Camera activeCamera = cameraFocus != null ? cameraFocus.ActiveCamera : mainCamera;
+        if (activeCamera == null)
+            return;
+
+        Ray ray = activeCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
+        if (!Physics.Raycast(ray, out RaycastHit hit, rayDistance, hexLayer, QueryTriggerInteraction.Ignore))
+            return;
+
+        HexTile target = hit.collider.GetComponentInParent<HexTile>();
+        if (target != null)
+            controlGroupManager.TryMoveSelectedToHex(target);
     }
 
     private void DetectHexUnderCursor()
@@ -169,6 +197,8 @@ public class HexMouseRaycaster : MonoBehaviour
         C_Enemy_Hive_Orc hoveredEnemyHive = null;
         HiveHoverEffect hoverEffect = null;
         WaspInfo hoveredWasp = null;
+        HexHoverEffect hoveredHex = null;
+        HexTile hoveredTile = null;
 
         foreach (RaycastHit hit in hits)
         {
@@ -194,6 +224,25 @@ public class HexMouseRaycaster : MonoBehaviour
                 hoveredWasp = wasp;
                 break;
             }
+
+            HexTile tile = hit.collider.GetComponentInParent<HexTile>();
+            if (tile != null && hoveredTile == null)
+            {
+                hoveredTile = tile;
+                hoveredHex = tile.GetComponent<HexHoverEffect>();
+            }
+        }
+
+        if (hoveredHex != currentHoveredHex)
+        {
+            ClearCurrentHover();
+            currentHoveredHex = hoveredHex;
+            currentHexTile = hoveredTile;
+            currentHoveredHex?.SetHovered(true);
+        }
+        else
+        {
+            currentHexTile = hoveredTile;
         }
 
         if (hoverEffect != currentHoveredHive)
@@ -232,6 +281,15 @@ public class HexMouseRaycaster : MonoBehaviour
                 mainWorldNavigation.SelectWasp(currentWasp);
             else
                 cameraFocus?.FocusOnWasp(currentWasp);
+            return;
+        }
+
+        if (currentHexTile != null)
+        {
+            if (mainWorldNavigation != null)
+                mainWorldNavigation.SelectHex(currentHexTile);
+            else
+                cameraFocus?.FocusOnHex(currentHexTile);
         }
     }
 

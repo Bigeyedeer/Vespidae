@@ -27,6 +27,14 @@ public class C_MainWorldNavigation : MonoBehaviour
         }
 
         selectedHex = hex;
+        selectedWasp = null;
+        selectedHive = null;
+        selectedEnemyHive = null;
+        C_MainWorldOverlayNavigation navigation = ResolveOverlayNavigation();
+        navigation?.CloseWaspInfo();
+        navigation?.HideFriendlyWaspActions();
+        navigation?.HideHiveTraining();
+        waspInfoPanel?.Close();
         cameraFocus?.FocusOnHex(hex);
         hexOptionsPanel?.Open(hex);
         C_MainWorldHUD.GetOrCreate()?.ShowSelectedHex(hex);
@@ -101,6 +109,11 @@ public class C_MainWorldNavigation : MonoBehaviour
         ResolveOverlayNavigation()?.CloseAllPanels();
         hexOptionsPanel?.Close();
         waspInfoPanel?.Close();
+    }
+
+    public void CloseHexOptions()
+    {
+        hexOptionsPanel?.Close();
     }
 
     public void ReturnToMenu()

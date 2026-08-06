@@ -28,19 +28,30 @@ MonoBehaviour:
     prey: 0
     fibre: 25
     skillPoints: 0
+  hiveConstructionCost:
+    nectar: 0
+    prey: 0
+    fibre: 0
+    skillPoints: 0
   baseScoutingRange: 1
   baseMovementSpeed: 1
   baseGatheringMultiplier: 1
+  baseGatheringSpeed: 1
   baseBuildSpeed: 1
   baseBroodCare: 1
   baseDefence: 1
   baseAttackSpeed: 1
   baseIdentification: 1
+  baseMaximumHealth: 100
+  baseAttackDamage: 10
   scoutingRangePerLevel: 0.25
   movementSpeedPerLevel: 0.05
   gatheringMultiplierPerLevel: 0.1
+  gatheringSpeedPerLevel: 0.1
   buildSpeedPerLevel: 0.1
   broodCarePerLevel: 0.1
   defencePerLevel: 0.1
-  attackSpeedPerLevel: 0.1
+  attackSpeedPerLevel: 0.15
   identificationPerLevel: 0.1
+  maximumHealthPerLevel: 15
+  attackDamagePerLevel: 2

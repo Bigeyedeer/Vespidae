@@ -1,11 +1,30 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
+public readonly struct WaspMoveOrderResult
+{
+    public WaspMoveOrderResult(int requested, int moved, int rejected, int capped)
+    {
+        Requested = requested;
+        Moved = moved;
+        Rejected = rejected;
+        Capped = capped;
+    }
+
+    public int Requested { get; }
+    public int Moved { get; }
+    public int Rejected { get; }
+    public int Capped { get; }
+    public bool AnyMoved => Moved > 0;
+}
 
 public class HiveManagement : MonoBehaviour
 {
     public static HiveManagement Instance { get; private set; }
     public event Action WorkforceChanged;
+    public event Action SkillsChanged;
 
     [Header("Role Skill Assets")]
     [SerializeField] private SB_Wasp_Skill scoutSkill;
@@ -21,6 +40,7 @@ public class HiveManagement : MonoBehaviour
     [SerializeField] private float scoutDispatchCost = 1f;
     [SerializeField] private float foragerDispatchCost = 1f;
     [SerializeField] private float builderDispatchCost = 2f;
+    [SerializeField, Min(0.1f)] private float baseHiveConstructionTime = 5f;
 
     [Header("Colony Upkeep")]
     [SerializeField] private float upkeepInterval = 10f;
@@ -52,6 +72,7 @@ public class HiveManagement : MonoBehaviour
     private readonly List<C_Friendly_Hive_Orc> spawnedFriendlyHives = new List<C_Friendly_Hive_Orc>();
     private readonly List<WaspControl> friendlyWasps = new List<WaspControl>();
     private bool friendlyStartupSpawned;
+    private readonly HashSet<HexTile> hiveConstructionInProgress = new HashSet<HexTile>();
 
     public int Workers => workers;
     public float ColonyStrength => colonyStrength;
@@ -221,6 +242,9 @@ public class HiveManagement : MonoBehaviour
 
         skillPoints -= cost.skillPoints;
         skillLevels[(int)function] = nextLevel;
+        foreach (WaspControl wasp in friendlyWasps)
+            wasp?.Combatant?.RefreshStats(false);
+        SkillsChanged?.Invoke();
         RefreshHud();
         return true;
     }
@@ -412,6 +436,8 @@ public class HiveManagement : MonoBehaviour
         switch (function)
         {
             case WaspFunction.Scout:
+                if (HexProgressionManager.Instance != null && !HexProgressionManager.Instance.CanPlayerTarget(target))
+                    return false;
                 if (target.State == HexTile.HexState.Unknown)
                     return !HasScoutAssignedTo(target) && GetAvailableWaspCount(function) > 0;
                 return target.State == HexTile.HexState.Owned && GetAvailableWaspCount(function) > 0;
@@ -422,6 +448,15 @@ public class HiveManagement : MonoBehaviour
                        GetAvailableWaspCount(function) > 0;
             case WaspFunction.Builder:
                 return target.State == HexTile.HexState.Owned && GetAvailableWaspCount(function) > 0;
+            case WaspFunction.Guard:
+                if (HexProgressionManager.Instance != null && !HexProgressionManager.Instance.CanPlayerTarget(target))
+                    return false;
+                int maximum = target.CombatController != null
+                    ? target.CombatController.MaximumAttackersPerSide
+                    : 5;
+                return target.State != HexTile.HexState.Locked &&
+                       GetAssignedWaspCount(target, function) < maximum &&
+                       GetAvailableWaspCount(function) > 0;
             default:
                 return false;
         }
@@ -519,21 +554,39 @@ public class HiveManagement : MonoBehaviour
         if (!resources.TrySpend(cost.nectar, cost.prey, cost.fibre))
             return false;
 
+        hiveConstructionInProgress.Add(target);
+        StartCoroutine(BuildHiveAfterDelay(target, cost));
+        return true;
+    }
+
+    private IEnumerator BuildHiveAfterDelay(HexTile target, WaspSkillCost cost)
+    {
+        float buildSpeed = Mathf.Max(0.1f, GetEffectiveValue(WaspFunction.Builder, WaspSkillStat.BuildSpeed));
+        yield return new WaitForSeconds(baseHiveConstructionTime / buildSpeed);
+
+        if (target == null || target.State != HexTile.HexState.Owned || target.FriendlyHive != null)
+        {
+            hiveConstructionInProgress.Remove(target);
+            Refund(cost);
+            yield break;
+        }
+
         Transform spawnPoint = target.HiveSpawnPoint;
         GameObject hiveObject = Instantiate(friendlyHivePrefab, spawnPoint.position, spawnPoint.rotation);
         C_Friendly_Hive_Orc hive = hiveObject.GetComponent<C_Friendly_Hive_Orc>();
         if (hive == null)
         {
             Destroy(hiveObject);
+            hiveConstructionInProgress.Remove(target);
             Refund(cost);
-            return false;
+            yield break;
         }
 
         hive.Initialize(target, friendlyWaspPrefab);
         spawnedFriendlyHives.Add(hive);
         target.SetFriendlyHive(hive);
+        hiveConstructionInProgress.Remove(target);
         NotifyWorkforceChanged();
-        return true;
     }
 
     public bool CanBuildHive(WaspControl builder)
@@ -551,6 +604,7 @@ public class HiveManagement : MonoBehaviour
         if (target == null ||
             target.State != HexTile.HexState.Owned ||
             target.FriendlyHive != null ||
+            hiveConstructionInProgress.Contains(target) ||
             definition == null ||
             resources == null ||
             friendlyHivePrefab == null)
@@ -576,6 +630,93 @@ public class HiveManagement : MonoBehaviour
         if (wasp == null || !friendlyWasps.Remove(wasp))
             return;
 
+        NotifyWorkforceChanged();
+    }
+
+    public bool TryRecallScout(HexTile target)
+    {
+        if (target == null)
+            return false;
+
+        CleanupFriendlyWasps();
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp != null &&
+                wasp.AssignedFunction == WaspFunction.Scout &&
+                wasp.StationedHex == target)
+            {
+                return wasp.ReturnToHomeHive();
+            }
+        }
+        return false;
+    }
+
+    public WaspMoveOrderResult TryMoveAttackers(IReadOnlyList<WaspControl> selectedWasps, HexTile target)
+    {
+        int requested = selectedWasps != null ? selectedWasps.Count : 0;
+        if (requested == 0 || target == null ||
+            target.State == HexTile.HexState.Locked ||
+            (HexProgressionManager.Instance != null && !HexProgressionManager.Instance.CanPlayerTarget(target)))
+        {
+            return new WaspMoveOrderResult(requested, 0, requested, 0);
+        }
+
+        CleanupFriendlyWasps();
+        int maximum = target.CombatController != null ? target.CombatController.MaximumAttackersPerSide : 5;
+        int assigned = GetAssignedWaspCount(target, WaspFunction.Guard);
+        int availableSlots = Mathf.Max(0, maximum - assigned);
+        int moved = 0;
+        int rejected = 0;
+        int capped = 0;
+        HashSet<WaspControl> processed = new HashSet<WaspControl>();
+
+        foreach (WaspControl wasp in selectedWasps)
+        {
+            if (wasp == null || !processed.Add(wasp) ||
+                wasp.AssignedFunction != WaspFunction.Guard ||
+                !wasp.IsAlive || wasp.IsCombatLocked)
+            {
+                rejected++;
+                continue;
+            }
+
+            if (wasp.TargetHex == target || wasp.StationedHex == target)
+            {
+                rejected++;
+                continue;
+            }
+
+            if (availableSlots <= 0)
+            {
+                capped++;
+                continue;
+            }
+
+            int formationIndex = target.FriendlyWaspCount + GetIncomingWaspCount(target);
+            Vector3 destination = target.GetWaspFormationPosition(formationIndex, 0.25f, 0.25f);
+            if (wasp.TryIssueGuardMoveOrder(target, destination))
+            {
+                moved++;
+                availableSlots--;
+            }
+            else
+            {
+                rejected++;
+            }
+        }
+
+        NotifyWorkforceChanged();
+        return new WaspMoveOrderResult(requested, moved, rejected, capped);
+    }
+
+    public void HandleHiveDestroyed(C_Friendly_Hive_Orc hive)
+    {
+        if (hive == null)
+            return;
+
+        spawnedFriendlyHives.Remove(hive);
+        if (hive.OwnerHex != null && hive.OwnerHex.FriendlyHive == hive)
+            hive.OwnerHex.SetFriendlyHive(null);
         NotifyWorkforceChanged();
     }
 

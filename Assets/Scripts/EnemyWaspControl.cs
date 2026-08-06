@@ -4,6 +4,7 @@ public class EnemyWaspControl : MonoBehaviour
 {
     [SerializeField] private WaspInfo waspInfo;
     [SerializeField] private WaspRoleIconBillboard roleIconBillboard;
+    [SerializeField] private WaspCombatant combatant;
     [SerializeField] private WaspScopeRole faction = WaspScopeRole.PrimaryInvasive;
     [SerializeField] private WaspFunction assignedFunction = WaspFunction.Scout;
     [SerializeField] private bool deriveFactionFromSpecies = true;
@@ -13,6 +14,7 @@ public class EnemyWaspControl : MonoBehaviour
     [SerializeField, Min(0.1f)] private float navMeshSampleRadius = 8f;
     [SerializeField, Min(0.01f)] private float arrivalDistance = 0.25f;
     [SerializeField, Min(1f)] private float turnSpeed = 12f;
+    [SerializeField, Min(0.1f)] private float baseAgentSpeed = 3.5f;
 
     private Vector3 destination;
     private bool hasDestination;
@@ -30,6 +32,8 @@ public class EnemyWaspControl : MonoBehaviour
 
     private Vector3 stationaryNavPosition;
     private bool hasStationaryPosition;
+    private bool returningToHive;
+    private Vector3 homePosition;
 
     public WaspInfo WaspInfo => waspInfo;
     public SB_Wasps_Info SpeciesInfo => waspInfo != null ? waspInfo.SpeciesInfo : null;
@@ -45,6 +49,8 @@ public class EnemyWaspControl : MonoBehaviour
     public bool IsAlerted => alerted;
     public bool HasDestination => hasDestination;
     public Vector3 Destination => destination;
+    public bool IsAvailable => workforceState == WaspWorkforceState.Idle;
+    public WaspCombatant Combatant => combatant;
    
 
     private void Awake()    
@@ -54,6 +60,9 @@ public class EnemyWaspControl : MonoBehaviour
 
         if (roleIconBillboard == null)
             roleIconBillboard = GetComponentInChildren<WaspRoleIconBillboard>(true);
+
+        if (combatant == null)
+            combatant = GetComponent<WaspCombatant>();
 
         roleIconBillboard?.Initialize(waspInfo);
         CreateNavigationProxy();
@@ -95,11 +104,16 @@ public class EnemyWaspControl : MonoBehaviour
     
     public bool DispatchToHex(HexTile hex)
     {
+        return DispatchToHex(hex, hex != null ? hex.transform.position : Vector3.zero);
+    }
+
+    public bool DispatchToHex(HexTile hex, Vector3 targetPosition)
+    {
         if (hex == null)
             return false;
 
         if (!EnsureAgentOnNavMesh() ||
-            !TrySamplePosition(hex.transform.position, out UnityEngine.AI.NavMeshHit hit))
+            !TrySamplePosition(targetPosition, out UnityEngine.AI.NavMeshHit hit))
         {
             return false;
         }
@@ -184,7 +198,7 @@ public class EnemyWaspControl : MonoBehaviour
 
         navMeshAgent.radius = 0.15f;
         navMeshAgent.height = 0.3f;
-        navMeshAgent.speed = 3.5f;
+        RefreshAgentSpeed();
         navMeshAgent.acceleration = 8f;
         navMeshAgent.angularSpeed = 240f;
         navMeshAgent.stoppingDistance = 0.2f;
@@ -232,11 +246,19 @@ public class EnemyWaspControl : MonoBehaviour
     {
         homeHive = hive;
         assignedFunction = function;
-        waspInfo?.SetRuntimeAssignment(null, function);
-        homeHive?.OwnerHex?.RegisterEnemyWasp(this);
+        waspInfo?.SetRuntimeAssignment(null, function, true);
+        combatant?.Initialize(true);
+        workforceState = WaspWorkforceState.Idle;
+        returningToHive = false;
+        homePosition = transform.position;
         if (!PlaceOnNavMesh(transform.position))
         {
             Debug.LogError($"{name} failed to place on NavMesh.");
+        }
+        else
+        {
+            homePosition = navMeshAgent.nextPosition;
+            SetStationaryPosition(homePosition);
         }
     }
 
@@ -246,11 +268,19 @@ public class EnemyWaspControl : MonoBehaviour
         deriveFactionFromSpecies = false;
         EnemyHiveControl.Instance?.RefreshRegistration(this);
     }
+
+    public void RefreshSkillStats()
+    {
+        ConfigureAgent();
+        combatant?.RefreshStats(false);
+    }
     
     private void Update()
     {
         if (navMeshAgent == null || !navMeshAgent.enabled || !navMeshAgent.isOnNavMesh)
             return;
+
+        RefreshAgentSpeed();
         
         if (workforceState != WaspWorkforceState.Travelling && hasStationaryPosition)
         {
@@ -292,6 +322,16 @@ public class EnemyWaspControl : MonoBehaviour
 
         hasDestination = false;
 
+        if (returningToHive)
+        {
+            returningToHive = false;
+            targetHex = null;
+            stationedHex = null;
+            workforceState = WaspWorkforceState.Idle;
+            SetStationaryPosition(navMeshAgent.nextPosition);
+            return;
+        }
+
         stationedHex = targetHex;
         lastVisitedHex = stationedHex;
         targetHex = null;
@@ -302,10 +342,6 @@ public class EnemyWaspControl : MonoBehaviour
 
         if (stationedHex != null)
             stationedHex.RegisterEnemyWasp(this);
-        if (AssignedFunction == WaspFunction.Scout)
-        {
-            stationedHex.Scout(true);
-        }
         if (stationedHex != null)
             homeHive?.RememberHex(stationedHex);
     }
@@ -322,5 +358,55 @@ public class EnemyWaspControl : MonoBehaviour
             return SpeciesInfo.ScopeRole;
 
         return faction;
+    }
+
+    public bool ReturnToHomeHive()
+    {
+        if (homeHive == null || workforceState != WaspWorkforceState.Stationed)
+            return false;
+
+        if (!EnsureAgentOnNavMesh() || !TrySamplePosition(homePosition, out UnityEngine.AI.NavMeshHit hit))
+            return false;
+
+        HexTile previousHex = stationedHex;
+        stationedHex = null;
+        targetHex = null;
+        destination = hit.position;
+        hasDestination = TrySetPath(destination);
+        if (!hasDestination)
+        {
+            stationedHex = previousHex;
+            return false;
+        }
+
+        previousHex?.UnregisterEnemyWasp(this);
+        returningToHive = true;
+        hasStationaryPosition = false;
+        workforceState = WaspWorkforceState.Travelling;
+        return true;
+    }
+
+    public void DestroyFromCombat()
+    {
+        stationedHex?.UnregisterEnemyWasp(this);
+        EnemyHiveControl.Instance?.Unregister(this);
+        Destroy(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        stationedHex?.UnregisterEnemyWasp(this);
+        EnemyHiveControl.Instance?.Unregister(this);
+        if (navigationProxy != null)
+            Destroy(navigationProxy);
+    }
+
+    private void RefreshAgentSpeed()
+    {
+        if (navMeshAgent == null)
+            return;
+
+        float multiplier = waspInfo != null ? Mathf.Max(0.1f, waspInfo.MovementSpeedMultiplier) : 1f;
+        navMeshAgent.speed = baseAgentSpeed * multiplier;
     }
 }

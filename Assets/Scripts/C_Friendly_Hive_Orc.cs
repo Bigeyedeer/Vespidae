@@ -6,6 +6,7 @@ public class C_Friendly_Hive_Orc : MonoBehaviour
     [SerializeField] private Transform waspSpawnPoint;
     [SerializeField] private Transform cameraFocusPoint;
     [SerializeField] private Transform cameraLookPoint;
+    [SerializeField] private HiveCombatant combatant;
     [SerializeField, Min(0.05f)] private float spawnSpacing = 0.25f;
     [SerializeField, Min(0.05f)] private float spawnRowSpacing = 0.25f;
 
@@ -17,10 +18,14 @@ public class C_Friendly_Hive_Orc : MonoBehaviour
     public Transform WaspSpawnPoint => waspSpawnPoint != null ? waspSpawnPoint : transform;
     public Transform CameraFocusPoint => cameraFocusPoint != null ? cameraFocusPoint : transform;
     public Transform CameraLookPoint => cameraLookPoint != null ? cameraLookPoint : transform;
+    public HiveCombatant Combatant => combatant;
 
     public void Initialize(HexTile hex, GameObject waspPrefab)
     {
         ownerHex = hex;
+        if (combatant == null)
+            combatant = GetComponent<HiveCombatant>();
+        combatant?.Initialize(hex, false);
         AttachToOwnerHex();
         if (waspPrefab != null)
             friendlyWaspPrefab = waspPrefab;

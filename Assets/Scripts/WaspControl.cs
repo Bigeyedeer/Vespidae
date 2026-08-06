@@ -12,12 +12,15 @@ public class WaspControl : MonoBehaviour
 {
     [SerializeField] private WaspInfo waspInfo;
     [SerializeField] private WaspRoleIconBillboard roleIconBillboard;
+    [SerializeField] private WaspCombatant combatant;
+    [SerializeField] private GameObject selectionIndicatorRoot;
     [SerializeField] private WaspFunction assignedFunction = WaspFunction.Scout;
     [SerializeField] private NavMeshAgent navMeshAgent;
     [SerializeField, Min(0.1f)] private float flightHeight = 0.35f;
     [SerializeField, Min(0.1f)] private float navMeshSampleRadius = 8f;
     [SerializeField, Min(0.01f)] private float arrivalDistance = 0.25f;
     [SerializeField, Min(1f)] private float turnSpeed = 12f;
+    [SerializeField, Min(0.1f)] private float baseAgentSpeed = 3.5f;
 
     private Vector3 destination;
     private bool hasDestination;
@@ -42,9 +45,13 @@ public class WaspControl : MonoBehaviour
     public HexTile TargetHex => targetHex;
     public HexTile StationedHex => stationedHex;
     public WaspWorkforceState WorkforceState => workforceState;
-    public bool IsAvailable => workforceState == WaspWorkforceState.Idle ||
-                               assignedFunction == WaspFunction.Scout && returningToHive;
+    public bool IsAvailable => workforceState == WaspWorkforceState.Idle;
     public NavMeshAgent NavigationAgent => navMeshAgent;
+    public WaspCombatant Combatant => combatant;
+    public bool IsAlive => combatant == null || combatant.IsAlive;
+    public bool IsCombatLocked => stationedHex != null &&
+                                  stationedHex.CombatController != null &&
+                                  stationedHex.CombatController.IsCombatantEngaged(combatant);
 
     private void Awake()
     {
@@ -54,7 +61,13 @@ public class WaspControl : MonoBehaviour
         if (roleIconBillboard == null)
             roleIconBillboard = GetComponentInChildren<WaspRoleIconBillboard>(true);
 
+        if (combatant == null)
+            combatant = GetComponent<WaspCombatant>();
+
         roleIconBillboard?.Initialize(waspInfo);
+
+        if (selectionIndicatorRoot != null)
+            selectionIndicatorRoot.SetActive(false);
 
         if (navMeshAgent == null)
             navMeshAgent = GetComponentInChildren<NavMeshAgent>(true);
@@ -70,6 +83,8 @@ public class WaspControl : MonoBehaviour
     {
         if (navMeshAgent == null || !navMeshAgent.enabled || !navMeshAgent.isOnNavMesh)
             return;
+
+        RefreshAgentSpeed();
 
         if (workforceState != WaspWorkforceState.Travelling && hasStationaryPosition)
         {
@@ -102,6 +117,8 @@ public class WaspControl : MonoBehaviour
     public void SetSelected(bool value)
     {
         selected = value;
+        if (selectionIndicatorRoot != null)
+            selectionIndicatorRoot.SetActive(value);
     }
 
     public void SetDestination(Vector3 worldPosition)
@@ -132,6 +149,7 @@ public class WaspControl : MonoBehaviour
         homeHive = hive;
         assignedFunction = function;
         waspInfo?.SetRuntimeAssignment(species, function);
+        combatant?.Initialize(false);
         workforceState = WaspWorkforceState.Idle;
         targetHex = null;
         stationedHex = null;
@@ -173,6 +191,40 @@ public class WaspControl : MonoBehaviour
         if (!hasDestination)
         {
             targetHex = null;
+            return false;
+        }
+
+        workforceState = WaspWorkforceState.Travelling;
+        HiveManagement.Instance?.NotifyWorkforceChanged();
+        return true;
+    }
+
+    public bool TryIssueGuardMoveOrder(HexTile hex, Vector3 targetPosition)
+    {
+        if (hex == null || assignedFunction != WaspFunction.Guard || !IsAlive || IsCombatLocked)
+            return false;
+
+        if (!EnsureAgentOnNavMesh() || !TrySamplePosition(targetPosition, out NavMeshHit hit))
+            return false;
+
+        NavMeshPath path = new NavMeshPath();
+        if (!navMeshAgent.CalculatePath(hit.position, path) || path.status != NavMeshPathStatus.PathComplete)
+            return false;
+
+        HexTile previousStationedHex = stationedHex;
+        previousStationedHex?.UnregisterFriendlyWasp(this);
+        targetHex = hex;
+        stationedHex = null;
+        returningToHive = false;
+        hasStationaryPosition = false;
+        destination = hit.position;
+        hasDestination = navMeshAgent.SetPath(path);
+        if (!hasDestination)
+        {
+            targetHex = null;
+            stationedHex = previousStationedHex;
+            if (previousStationedHex != null)
+                previousStationedHex.RegisterFriendlyWasp(this);
             return false;
         }
 
@@ -231,7 +283,7 @@ public class WaspControl : MonoBehaviour
 
         navMeshAgent.radius = 0.15f;
         navMeshAgent.height = 0.3f;
-        navMeshAgent.speed = 3.5f;
+        RefreshAgentSpeed();
         navMeshAgent.acceleration = 8f;
         navMeshAgent.angularSpeed = 240f;
         navMeshAgent.stoppingDistance = 0.2f;
@@ -340,9 +392,27 @@ public class WaspControl : MonoBehaviour
 
     private void OnDestroy()
     {
+        selected = false;
         stationedHex?.UnregisterFriendlyWasp(this);
         HiveManagement.Instance?.UnregisterFriendlyWasp(this);
         if (navigationProxy != null)
             Destroy(navigationProxy);
+    }
+
+    public void DestroyFromCombat()
+    {
+        if (stationedHex != null)
+            stationedHex.UnregisterFriendlyWasp(this);
+        HiveManagement.Instance?.UnregisterFriendlyWasp(this);
+        Destroy(gameObject);
+    }
+
+    private void RefreshAgentSpeed()
+    {
+        if (navMeshAgent == null)
+            return;
+
+        float multiplier = waspInfo != null ? Mathf.Max(0.1f, waspInfo.MovementSpeedMultiplier) : 1f;
+        navMeshAgent.speed = baseAgentSpeed * multiplier;
     }
 }

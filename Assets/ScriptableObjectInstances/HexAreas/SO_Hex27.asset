@@ -14,12 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_27_malmesbury_grainlands
   areaName: Malmesbury Grainlands
-  areaDescription: Field edges and remaining natural patches supply flowers alongside dry stalk fibre.
+  areaDescription: Field edges and remaining natural patches supply flowers alongside
+    dry stalk fibre.
   habitatCue: Swartland field margin
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_08_agulhas_wilds
+  - hex_10_cederberg_heights
+  - hex_28_swartland_verge
+  - hex_21_kuils_river_lowlands
+  - hex_37_robertson_riverlands
+  - hex_17_hout_bay_gate
   resourceType: 6
   startingPrey: 1206
   startingNectar: 1110

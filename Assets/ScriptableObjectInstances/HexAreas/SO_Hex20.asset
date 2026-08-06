@@ -14,12 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_20_cape_point_threshold
   areaName: Cape Point Threshold
-  areaDescription: A wind-battered cape where roaming insects form a valuable but exposed prey source.
+  areaDescription: A wind-battered cape where roaming insects form a valuable but
+    exposed prey source.
   habitatCue: Maritime fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_26_wellington_shield
+  - hex_37_robertson_riverlands
+  - hex_42_cape_floral_heartland
+  - hex_38_caledon_grassveld
+  - hex_17_hout_bay_gate
+  - hex_18_noordhoek_expanse
   resourceType: 1
   startingPrey: 1220
   startingNectar: 853

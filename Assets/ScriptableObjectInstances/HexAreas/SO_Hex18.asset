@@ -14,12 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_18_noordhoek_expanse
   areaName: Noordhoek Expanse
-  areaDescription: Broad sandy vegetation contains long grasses and dry stems suitable for fibre collection.
+  areaDescription: Broad sandy vegetation contains long grasses and dry stems suitable
+    for fibre collection.
   habitatCue: Sand fynbos plain
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_39_hermanus_coastal_rise
+  - hex_19_muizenberg_strand
+  - hex_16_constantia_valley
+  - hex_17_hout_bay_gate
+  - hex_42_cape_floral_heartland
+  - hex_20_cape_point_threshold
   resourceType: 4
   startingPrey: 774
   startingNectar: 507

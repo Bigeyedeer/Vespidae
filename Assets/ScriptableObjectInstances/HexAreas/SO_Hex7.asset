@@ -14,12 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_07_cape_flats_frontier
   areaName: Cape Flats Frontier
-  areaDescription: Lowland sand fynbos on the urban edge, offering flower forage and flexible building material.
+  areaDescription: Lowland sand fynbos on the urban edge, offering flower forage
+    and flexible building material.
   habitatCue: Cape Flats sand fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_12_false_bay_crossing
   resourceType: 6
   startingPrey: 869
   startingNectar: 1140

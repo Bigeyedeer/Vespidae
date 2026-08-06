@@ -14,12 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_29_atlantis_sandfields
   areaName: Atlantis Sandfields
-  areaDescription: Sparse sandveld flowers offer a modest but valuable nectar reserve on the dry flats.
+  areaDescription: Sparse sandveld flowers offer a modest but valuable nectar reserve
+    on the dry flats.
   habitatCue: Atlantis sand fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_36_worcester_drylands
+  - hex_30_langebaan_salt_coast
+  - hex_05_table_mountain_edge
+  - hex_41_de_hoop_sanctuary
+  - hex_25_franschhoek_valley
+  - hex_23_stellenbosch_foothills
   resourceType: 2
   startingPrey: 679
   startingNectar: 690

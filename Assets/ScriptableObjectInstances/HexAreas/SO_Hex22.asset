@@ -14,12 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_22_tygerberg_watch
   areaName: Tygerberg Watch
-  areaDescription: Elevated renosterveld patches give a clear view over prey routes and dry building stems.
+  areaDescription: Elevated renosterveld patches give a clear view over prey routes
+    and dry building stems.
   habitatCue: Tygerberg renosterveld
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_23_stellenbosch_foothills
+  - hex_16_constantia_valley
+  - hex_36_worcester_drylands
+  - hex_21_kuils_river_lowlands
+  - hex_35_ceres_basin
   resourceType: 5
   startingPrey: 680
   startingNectar: 1199

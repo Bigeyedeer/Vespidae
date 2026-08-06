@@ -14,12 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_10_cederberg_heights
   areaName: Cederberg Heights
-  areaDescription: Dry highland vegetation yields tough reeds and plant fibres between rocky ledges.
+  areaDescription: Dry highland vegetation yields tough reeds and plant fibres between
+    rocky ledges.
   habitatCue: Cederberg sandstone fynbos
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_13_camissa_springs
+  - hex_28_swartland_verge
+  - hex_27_malmesbury_grainlands
+  - hex_08_agulhas_wilds
+  - hex_12_false_bay_crossing
+  - hex_11_breede_river_basin
   resourceType: 4
   startingPrey: 1280
   startingNectar: 725

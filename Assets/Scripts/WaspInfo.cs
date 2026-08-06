@@ -12,6 +12,7 @@ public class WaspInfo : MonoBehaviour
     private SB_Wasps_Info runtimeSpecies;
     private WaspFunction runtimeFunction;
     private bool hasRuntimeFunction;
+    private bool usesEnemySkillLevels;
 
     public SB_Wasps_Info SpeciesInfo => runtimeSpecies != null ? runtimeSpecies : speciesInfo;
     public string CommonName => SpeciesInfo != null ? SpeciesInfo.CommonName : string.Empty;
@@ -24,13 +25,18 @@ public class WaspInfo : MonoBehaviour
         : assignedSkill != null
             ? assignedSkill.Function
             : WaspFunction.Scout;
-    public int SkillLevel => HiveManagement.Instance != null ? HiveManagement.Instance.GetSkillLevel(FunctionRole) : 0;
+    public int SkillLevel => usesEnemySkillLevels
+        ? EnemyHiveControl.Instance != null ? EnemyHiveControl.Instance.GetSkillLevel(FunctionRole) : 0
+        : HiveManagement.Instance != null ? HiveManagement.Instance.GetSkillLevel(FunctionRole) : 0;
     public SB_Wasp_Skill SkillDefinition
     {
         get
         {
             if (assignedSkill != null && assignedSkill.Function == FunctionRole)
                 return assignedSkill;
+
+            if (usesEnemySkillLevels && EnemyHiveControl.Instance != null)
+                return EnemyHiveControl.Instance.GetSkillDefinition(FunctionRole) ?? assignedSkill;
 
             return HiveManagement.Instance?.GetSkillDefinition(FunctionRole) ?? assignedSkill;
         }
@@ -39,25 +45,32 @@ public class WaspInfo : MonoBehaviour
     public float ScoutingRange => GetSkillValue(WaspSkillStat.ScoutingRange);
     public float MovementSpeedMultiplier => GetSkillValue(WaspSkillStat.MovementSpeed);
     public float GatheringMultiplier => GetSkillValue(WaspSkillStat.GatheringMultiplier);
+    public float GatheringSpeedMultiplier => GetSkillValue(WaspSkillStat.GatheringSpeed);
     public float BuildSpeedMultiplier => GetSkillValue(WaspSkillStat.BuildSpeed);
     public float BroodCareMultiplier => GetSkillValue(WaspSkillStat.BroodCare);
     public float DefenceMultiplier => GetSkillValue(WaspSkillStat.Defence);
     public float AttackSpeedMultiplier => GetSkillValue(WaspSkillStat.AttackSpeed);
     public float IdentificationMultiplier => GetSkillValue(WaspSkillStat.Identification);
+    public float MaximumHealth => GetSkillValue(WaspSkillStat.MaximumHealth);
+    public float AttackDamage => GetSkillValue(WaspSkillStat.AttackDamage);
     public event Action AssignmentChanged;
 
-    public void SetRuntimeAssignment(SB_Wasps_Info species, WaspFunction function)
+    public void SetRuntimeAssignment(SB_Wasps_Info species, WaspFunction function, bool enemy = false)
     {
         if (species != null)
             runtimeSpecies = species;
 
         runtimeFunction = function;
         hasRuntimeFunction = true;
+        usesEnemySkillLevels = enemy;
         AssignmentChanged?.Invoke();
     }
 
     public float GetSkillValue(WaspSkillStat stat)
     {
+        if (usesEnemySkillLevels && EnemyHiveControl.Instance != null)
+            return EnemyHiveControl.Instance.GetEffectiveValue(FunctionRole, stat);
+
         if (HiveManagement.Instance != null)
             return HiveManagement.Instance.GetEffectiveValue(FunctionRole, stat);
 

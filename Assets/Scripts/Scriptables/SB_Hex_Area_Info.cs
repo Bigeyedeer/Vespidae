@@ -114,6 +114,11 @@ public class SB_Hex_Area_Info : ScriptableObject
     }
 
 #if UNITY_EDITOR
+    public void ConfigureConnectionsForEditor(List<string> ids)
+    {
+        connectedHexIds = ids ?? new List<string>();
+    }
+
     public void ConfigureForEditor(
         string id,
         string name,

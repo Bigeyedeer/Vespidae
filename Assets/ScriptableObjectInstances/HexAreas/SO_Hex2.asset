@@ -14,12 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_02_renosterveld_reach
   areaName: Renosterveld Reach
-  areaDescription: Rolling renosterveld grassland with seasonal blooms and dry stems suited to colony building.
+  areaDescription: Rolling renosterveld grassland with seasonal blooms and dry stems
+    suited to colony building.
   habitatCue: Renosterveld grassland
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_40_stanford_marshes
+  - hex_01_fynbos_crown
+  - hex_39_hermanus_coastal_rise
   resourceType: 6
   startingPrey: 985
   startingNectar: 710

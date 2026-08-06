@@ -16,9 +16,9 @@ public class ResourceManager : MonoBehaviour
 
     [Header("Starting Resources")]
     [SerializeField] private bool resetResourcesOnStart = true;
-    [SerializeField, Min(0f)] private float startingNectar = 150f;
-    [SerializeField, Min(0f)] private float startingPrey = 150f;
-    [SerializeField, Min(0f)] private float startingFibre = 300f;
+    [SerializeField, Min(0f)] private float startingNectar = 300f;
+    [SerializeField, Min(0f)] private float startingPrey = 300f;
+    [SerializeField, Min(0f)] private float startingFibre = 500f;
 
     [Header("UI")]
     [SerializeField] private C_MainWorldHUD hud;

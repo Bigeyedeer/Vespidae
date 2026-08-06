@@ -14,12 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_31_west_coast_bloom
   areaName: West Coast Bloom
-  areaDescription: Seasonal flower displays draw insects and create one of the best mixed forage sites.
+  areaDescription: Seasonal flower displays draw insects and create one of the best
+    mixed forage sites.
   habitatCue: West Coast flower veld
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_24_paarl_granite_reach
+  - hex_34_tulbagh_mountain_bowl
+  - hex_04_silvermine_pass
   resourceType: 3
   startingPrey: 730
   startingNectar: 1160

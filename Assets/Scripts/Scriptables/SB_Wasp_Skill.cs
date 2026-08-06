@@ -23,11 +23,14 @@ public enum WaspSkillStat
     ScoutingRange,
     MovementSpeed,
     GatheringMultiplier,
+    GatheringSpeed,
     BuildSpeed,
     BroodCare,
     Defence,
     AttackSpeed,
-    Identification
+    Identification,
+    MaximumHealth,
+    AttackDamage
 }
 
 [CreateAssetMenu(fileName = "SO_Wasp_Skill", menuName = "Vespidae Wars/Wasp Skill")]
@@ -50,21 +53,27 @@ public class SB_Wasp_Skill : ScriptableObject
     [SerializeField] private float baseScoutingRange = 1f;
     [SerializeField] private float baseMovementSpeed = 1f;
     [SerializeField] private float baseGatheringMultiplier = 1f;
+    [SerializeField] private float baseGatheringSpeed = 1f;
     [SerializeField] private float baseBuildSpeed = 1f;
     [SerializeField] private float baseBroodCare = 1f;
     [SerializeField] private float baseDefence = 1f;
     [SerializeField] private float baseAttackSpeed = 1f;
     [SerializeField] private float baseIdentification = 1f;
+    [SerializeField, Min(1f)] private float baseMaximumHealth = 100f;
+    [SerializeField, Min(0f)] private float baseAttackDamage = 10f;
 
     [Header("Upgrade Values Per Level")]
     [SerializeField] private float scoutingRangePerLevel = 0.25f;
     [SerializeField] private float movementSpeedPerLevel = 0.05f;
     [SerializeField] private float gatheringMultiplierPerLevel = 0.1f;
+    [SerializeField] private float gatheringSpeedPerLevel = 0.1f;
     [SerializeField] private float buildSpeedPerLevel = 0.1f;
     [SerializeField] private float broodCarePerLevel = 0.1f;
     [SerializeField] private float defencePerLevel = 0.1f;
     [SerializeField] private float attackSpeedPerLevel = 0.1f;
     [SerializeField] private float identificationPerLevel = 0.1f;
+    [SerializeField] private float maximumHealthPerLevel = 15f;
+    [SerializeField] private float attackDamagePerLevel = 2f;
 
     public WaspFunction Function => function;
     public Sprite RoleIcon => roleIcon;
@@ -97,6 +106,8 @@ public class SB_Wasp_Skill : ScriptableObject
                 return baseMovementSpeed + movementSpeedPerLevel * clampedLevel;
             case WaspSkillStat.GatheringMultiplier:
                 return baseGatheringMultiplier + gatheringMultiplierPerLevel * clampedLevel;
+            case WaspSkillStat.GatheringSpeed:
+                return baseGatheringSpeed + gatheringSpeedPerLevel * clampedLevel;
             case WaspSkillStat.BuildSpeed:
                 return baseBuildSpeed + buildSpeedPerLevel * clampedLevel;
             case WaspSkillStat.BroodCare:
@@ -107,6 +118,10 @@ public class SB_Wasp_Skill : ScriptableObject
                 return baseAttackSpeed + attackSpeedPerLevel * clampedLevel;
             case WaspSkillStat.Identification:
                 return baseIdentification + identificationPerLevel * clampedLevel;
+            case WaspSkillStat.MaximumHealth:
+                return baseMaximumHealth + maximumHealthPerLevel * clampedLevel;
+            case WaspSkillStat.AttackDamage:
+                return baseAttackDamage + attackDamagePerLevel * clampedLevel;
             default:
                 return 1f;
         }

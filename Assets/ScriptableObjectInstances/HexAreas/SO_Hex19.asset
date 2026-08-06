@@ -14,12 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SB_Hex_Area_Info
   areaId: hex_19_muizenberg_strand
   areaName: Muizenberg Strand
-  areaDescription: Coastal vegetation supports hunting around dune scrub and flowering strandveld plants.
+  areaDescription: Coastal vegetation supports hunting around dune scrub and flowering
+    strandveld plants.
   habitatCue: Dune strandveld
   territoryState: 0
   riskState: 0
   visibilityState: 0
-  connectedHexIds: []
+  connectedHexIds:
+  - hex_16_constantia_valley
+  - hex_18_noordhoek_expanse
+  - hex_23_stellenbosch_foothills
+  - hex_39_hermanus_coastal_rise
+  - hex_41_de_hoop_sanctuary
+  - hex_40_stanford_marshes
   resourceType: 3
   startingPrey: 990
   startingNectar: 700

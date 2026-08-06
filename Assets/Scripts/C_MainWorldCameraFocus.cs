@@ -98,12 +98,18 @@ public class C_MainWorldCameraFocus : MonoBehaviour
 
     public void FocusOnHex(HexTile hex)
     {
-        if (hex == null)
+        if (hex == null || isTransitioning)
             return;
 
         focusedHex = hex;
         currentView = FocusView.Hex;
         currentCloseUpLookPosition = hex.FocusLookPosition;
+
+        if (closeUpActive)
+        {
+            StartCoroutine(BlendCloseUpToHex(hex));
+            return;
+        }
 
         BeginFocus(
             hex.FocusPosition,
@@ -395,6 +401,27 @@ public class C_MainWorldCameraFocus : MonoBehaviour
     {
         yield return BlendCloseUpToPoint(targetPosition, lookPosition);
         OpenWaspView(wasp);
+    }
+
+    private IEnumerator BlendCloseUpToHex(HexTile hex)
+    {
+        if (hex == null)
+            yield break;
+
+        waspInfoPanel?.Close();
+        C_MainWorldOverlayNavigation.Instance?.CloseWaspInfo();
+        C_MainWorldOverlayNavigation.Instance?.HideFriendlyWaspActions();
+        C_MainWorldOverlayNavigation.Instance?.HideHiveTraining();
+
+        yield return BlendCloseUpToPoint(hex.FocusPosition, hex.FocusLookPosition);
+
+        currentView = FocusView.Hex;
+        currentCloseUpLookPosition = hex.FocusLookPosition;
+        hexViewPosition = closeUpCamera.transform.position;
+        hexViewRotation = closeUpCamera.transform.rotation;
+        hexViewFieldOfView = closeUpCamera.fieldOfView;
+        hasHexView = true;
+        hexOptionsPanel?.Open(hex);
     }
 
     private IEnumerator BlendCloseUpToPoint(Vector3 targetPosition, Vector3 lookPosition)
