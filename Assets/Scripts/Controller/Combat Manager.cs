@@ -19,6 +19,7 @@ public class CombatManager : MonoBehaviour
     public GameObject playerRedImage;
     public GameObject enemyRedImage;
     public TextMeshProUGUI battleEndText;
+    public Button attackButton;
 
 
     [Header("Combat Stats")]
@@ -29,6 +30,11 @@ public class CombatManager : MonoBehaviour
     public float playerDamage = 10f;
     public float enemyDamage = 10f;
 
+    [Header("Visuals")]
+    public float healthLerpSpeed = 1f;
+    private float displayedPlayerHealth;
+    private float displayedEnemyHealth;
+
     [Header("Script References")]
     public ScanningManager scanningManager;
     public CameraLockOn cameraLockOn;
@@ -37,17 +43,34 @@ public class CombatManager : MonoBehaviour
     [Header("Bools")]
     private bool playerTurn;
 
+    [Header("Animation IDs")]
+    public Animator playerAnimator;
+    public Animator enemyAnimator;
+    private int _animIDFighting;
+    private int _animIDSting;
+    private int _animIDTackle;
+    public float animationDuration = 1f;
+
 
 
     void Start()
     {
         playerTurn = true;
-        battleArea = this.GetComponent<Collider>();
+        battleArea = GetComponent<Collider>();
         playerSlider.maxValue = playerMaxHealth;
         enemySlider.maxValue = enemyMaxHealth;
         
 
         ResetCombatValues();
+
+        _animIDFighting = Animator.StringToHash("Fighting");
+        _animIDSting = Animator.StringToHash("Sting");
+        _animIDTackle = Animator.StringToHash("Tackle");
+    }
+
+    private void Update()
+    {
+        LerpSliderValue();
     }
 
     public void OnTriggerEnter(Collider other)
@@ -62,14 +85,21 @@ public class CombatManager : MonoBehaviour
 
             cameraLockOn.ForceUnlock();
 
+            playerAnimator.SetBool(_animIDFighting, true);
+            enemyAnimator.SetBool(_animIDFighting, true);
+
             battleArea.enabled = false; //turn off collider
             battleCanvas.SetActive(true); // turn on Combat UI
             playerInput.enabled = false; //turn off movement
+            attackButton.interactable = true;
+            playerTurn = true;
+            StopAllCoroutines();
             //cameraLockOn.enabled = false; //turn off lock on
 
             //scanningManager.CancelScan();
             //cameraLockOn.isLockedOn = false;
 
+            
             
         }
     }
@@ -84,6 +114,9 @@ public class CombatManager : MonoBehaviour
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
 
+        playerAnimator.SetBool(_animIDFighting, false);
+        enemyAnimator.SetBool(_animIDFighting, false);
+
         ResetCombatValues();
         battleArea.enabled = false;
         battleCanvas.SetActive(false);
@@ -92,6 +125,7 @@ public class CombatManager : MonoBehaviour
 
         yield return new WaitForSeconds(3f);
         battleArea.enabled = true;
+
         
     }
 
@@ -104,35 +138,103 @@ public class CombatManager : MonoBehaviour
         playerCurrentHealth = 0;
         enemyCurrentHealth = 0;
 
+        displayedPlayerHealth = playerCurrentHealth;
+        displayedEnemyHealth = enemyCurrentHealth;
+
         battleEndText.text = "BATTLE START";
     }
+    public IEnumerator DisableButton()
+    {
+        attackButton.interactable = false;
+        yield return new WaitWhile(() => playerTurn);
 
-    public void DoDamage(bool PlayerRequest)
+        attackButton.interactable = true;
+    }
+
+    public void PlayerAttack()
+    {
+        if (!playerTurn)
+            return;
+
+        StartCoroutine(PlayerAttackSequence());
+    }
+
+    private IEnumerator PlayerAttackSequence()
+    {
+        playerTurn = false;
+        attackButton.interactable = false;
+
+        // Play player's attack animation
+        yield return StartCoroutine(AnimatedAttack(true));
+
+        // Damage enemy AFTER animation
+        enemyCurrentHealth += playerDamage;
+
+        DisplayDamage(true);
+
+        checkHealthPoints();
+
+        if (enemyCurrentHealth >= enemyMaxHealth)
+            yield break;
+
+        // Small pause before enemy reacts
+        yield return new WaitForSeconds(0.5f);
+
+        StartCoroutine(EnemyAttackSequence());
+    }
+
+    private IEnumerator EnemyAttackSequence()
+    {
+        // Play enemy attack animation
+        yield return StartCoroutine(AnimatedAttack(false));
+
+        // Damage player
+        playerCurrentHealth += enemyDamage;
+
+        DisplayDamage(false);
+
+        checkHealthPoints();
+
+        if (playerCurrentHealth >= playerMaxHealth)
+            yield break;
+
+        yield return new WaitForSeconds(0.5f);
+
+        playerTurn = true;
+        attackButton.interactable = true;
+    }
+
+    /*public void DoDamage(bool PlayerRequest)
     {
         if (!PlayerRequest)//Enemy Doing Damage
         {
+
             //UI update
             playerCurrentHealth += enemyDamage;
-            playerSlider.value = playerCurrentHealth;
-           //playerSlider.value = Mathf.Lerp(playerSlider.value, playerCurrentHealth, .5f); animate slider
+            //playerSlider.value = playerCurrentHealth;
+           //playerSlider.value = Mathf.Lerp(playerSlider.value, playerCurrentHealth, .5); animate slider
 
             DisplayDamage(PlayerRequest);
 
             checkHealthPoints();
+
+            playerTurn = true;
 
         }
         else//Player Doing Damage
         {
             //UI update
             enemyCurrentHealth += playerDamage;
-            enemySlider.value = enemyCurrentHealth; 
+            //enemySlider.value = enemyCurrentHealth; handled in LerpSliderValue()
 
             DisplayDamage(PlayerRequest);
 
             checkHealthPoints();
 
+            StartCoroutine(DisableButton());
+
         }
-    }
+    } not using DoDamage Anymore)*/ 
 
     public void DisplayDamage(bool PlayerRequest)
     {
@@ -140,16 +242,11 @@ public class CombatManager : MonoBehaviour
         {
             //red damage display
             StartCoroutine(FlashDamage(playerRedImage));
-            
-            //animations
-
         }
         else//Player Doing Damage
         {
-            //red mat
+            //red damage display
             StartCoroutine(FlashDamage(enemyRedImage));
-
-            //animations
         }
     }
 
@@ -160,6 +257,65 @@ public class CombatManager : MonoBehaviour
         yield return new WaitForSeconds(0.3f);
 
         image.SetActive(false);
+    }
+
+   /* private IEnumerator AnimatedAttack(bool playerAttack)
+    {
+        int anim = UnityEngine.Random.Range(0, 2) == 0
+            ? _animIDSting
+            : _animIDTackle;
+
+        if (playerAttack)
+        {
+            playerAnimator.SetTrigger(anim);
+            yield return new WaitForSeconds(animationDuration);
+            //playerAnimator.SetTrigger(anim);
+        }
+
+        else
+        {
+            enemyAnimator.SetTrigger(anim);
+            yield return new WaitForSeconds(animationDuration);
+            //playerAnimator.SetTrigger(anim);
+        }
+            
+
+        
+    }*/
+
+    private IEnumerator AnimatedAttack(bool playerAttack)
+    {
+        Animator animator = playerAttack ? playerAnimator : enemyAnimator;
+
+        int anim = Random.Range(0, 2) == 0
+            ? _animIDSting
+            : _animIDTackle;
+
+        animator.SetTrigger(anim);
+
+        // Wait until the animator leaves the attack state
+        yield return null;
+
+        while (animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
+        {
+            yield return null;
+        }
+    }
+
+    public void LerpSliderValue()
+    {
+        displayedPlayerHealth = Mathf.Lerp(
+            displayedPlayerHealth,
+            playerCurrentHealth,
+            Time.deltaTime * healthLerpSpeed);
+
+        displayedEnemyHealth = Mathf.Lerp(
+            displayedEnemyHealth,
+            enemyCurrentHealth,
+            Time.deltaTime * healthLerpSpeed);
+
+        playerSlider.value = displayedPlayerHealth;
+        enemySlider.value = displayedEnemyHealth;
     }
 
     public void checkHealthPoints()
