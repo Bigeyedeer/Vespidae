@@ -18,6 +18,27 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     [SerializeField] private GameObject waspInfoPanel;
     [SerializeField] private GameObject skillsPanel;
     [SerializeField] private GameObject hiveTrainingPanel;
+    [SerializeField, Tooltip("Optional. Assign your own text element to show the control list in the options panel; one is created automatically when this is empty.")]
+    private TMP_Text keybindsText;
+
+    /// <summary>
+    /// The control list shown in the pause options panel. Kept in one place so both the procedural
+    /// and prefab-based pause menus show exactly the same thing.
+    /// </summary>
+    private const string KeybindSummary =
+        "<b>CONTROLS</b>\n" +
+        "Left Click   -   Select a hex / open its panel\n" +
+        "Shift + Left Click   -   Add or remove a wasp from the selection\n" +
+        "Left Click + Drag   -   Box-select wasps\n" +
+        "Shift + Drag   -   Add boxed wasps to the selection\n" +
+        "Right Click   -   Send selected wasps to that hex\n" +
+        "Double Right Click   -   Clear the selection\n" +
+        "1 - 5   -   Select control group\n" +
+        "Ctrl + 1 - 5   -   Assign control group\n" +
+        "Middle Mouse + Drag   -   Pan the camera\n" +
+        "Scroll Wheel   -   Zoom in and out\n" +
+        "H   -   Toggle map-only view\n" +
+        "Esc   -   Pause / resume";
     [SerializeField] private GameObject pauseMenuPrefab;
     [SerializeField] private Key skillsKey = Key.K;
 
@@ -679,25 +700,26 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
             "PauseOptionsTitle",
             pauseOptions.transform,
             "OPTIONS",
-            new Vector2(0f, 76f),
-            new Vector2(360f, 38f),
+            new Vector2(0f, 172f),
+            new Vector2(360f, 34f),
             22f);
         CreateText(
             "PauseScrollSpeedLabel",
             pauseOptions.transform,
             "Scroll wheel zoom speed",
-            new Vector2(0f, 22f),
-            new Vector2(360f, 30f),
-            18f);
+            new Vector2(0f, 138f),
+            new Vector2(360f, 26f),
+            17f);
         scrollSpeedValueText = CreateText(
             "PauseScrollSpeedValue",
             pauseOptions.transform,
             string.Empty,
-            new Vector2(0f, -12f),
-            new Vector2(180f, 24f),
-            16f);
-        scrollSpeedSlider = CreateSlider(pauseOptions.transform, new Vector2(0f, -48f));
-        CreateButton(pauseOptions.transform, "PauseOptionsBack", "BACK", -118f, ShowPauseMain);
+            new Vector2(0f, 112f),
+            new Vector2(180f, 22f),
+            15f);
+        scrollSpeedSlider = CreateSlider(pauseOptions.transform, new Vector2(0f, 84f));
+        CreateKeybindsText(pauseOptions.transform, new Vector2(0f, -44f), new Vector2(430f, 216f), 13f);
+        CreateButton(pauseOptions.transform, "PauseOptionsBack", "BACK", -178f, ShowPauseMain);
 
         float speed = PlayerPrefs.GetFloat(
             ScrollSpeedPreferenceKey,
@@ -793,16 +815,17 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         CreatePauseOptionsText(
             pauseOptions.transform,
             "SCROLL ZOOM SPEED",
-            new Vector2(0f, 72f),
-            new Vector2(310f, 36f),
+            new Vector2(0f, 150f),
+            new Vector2(310f, 32f),
             20f);
         scrollSpeedValueText = CreatePauseOptionsText(
             pauseOptions.transform,
             string.Empty,
-            new Vector2(0f, 22f),
-            new Vector2(180f, 28f),
+            new Vector2(0f, 118f),
+            new Vector2(180f, 26f),
             18f);
-        scrollSpeedSlider = CreateSlider(pauseOptions.transform, new Vector2(0f, -22f));
+        scrollSpeedSlider = CreateSlider(pauseOptions.transform, new Vector2(0f, 88f));
+        CreateKeybindsText(pauseOptions.transform, new Vector2(0f, -24f), new Vector2(420f, 200f), 13f);
 
         Button backButton = Instantiate(resumeButton, pauseOptions.transform);
         backButton.gameObject.name = "PauseOptionsBack";
@@ -810,7 +833,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         backRect.anchorMin = new Vector2(0.5f, 0.5f);
         backRect.anchorMax = new Vector2(0.5f, 0.5f);
         backRect.pivot = new Vector2(0.5f, 0.5f);
-        backRect.anchoredPosition = new Vector2(0f, -112f);
+        backRect.anchoredPosition = new Vector2(0f, -152f);
         backRect.sizeDelta = new Vector2(350f, 100f);
         backRect.localScale = Vector3.one * 0.5f;
         ConfigureHerbertPauseButton(backButton, "BACK", ShowPauseMain);
@@ -848,6 +871,32 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         text.enableAutoSizing = true;
         text.fontSizeMin = 20f;
         text.fontSizeMax = 34f;
+    }
+
+    /// <summary>
+    /// Fills in the control list. If a text element was assigned in the inspector that one is used
+    /// as-is, otherwise a left-aligned block is built inside the options panel.
+    /// </summary>
+    private TMP_Text CreateKeybindsText(Transform parent, Vector2 position, Vector2 size, float fontSize)
+    {
+        if (keybindsText != null)
+        {
+            keybindsText.text = KeybindSummary;
+            return keybindsText;
+        }
+
+        TMP_Text text = CreateText("PauseOptionsKeybinds", parent, KeybindSummary, position, size, fontSize);
+        text.alignment = TextAlignmentOptions.TopLeft;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+        text.color = new Color(0.82f, 0.88f, 0.82f, 1f);
+        if (pauseTitleText != null)
+        {
+            text.font = pauseTitleText.font;
+            text.fontSharedMaterial = pauseTitleText.fontSharedMaterial;
+        }
+
+        keybindsText = text;
+        return text;
     }
 
     private TMP_Text CreatePauseOptionsText(

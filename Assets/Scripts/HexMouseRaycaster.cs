@@ -96,6 +96,10 @@ public class HexMouseRaycaster : MonoBehaviour
         if (controlGroupManager == null || !controlGroupManager.HasSelection || IsPointerOverUi())
             return;
 
+        // A double right-click is a deselect, not a move order.
+        if (controlGroupManager.ShouldSuppressOrderThisFrame)
+            return;
+
         if (C_MainWorldOverlayNavigation.Instance != null && C_MainWorldOverlayNavigation.Instance.BlocksWorldInput)
             return;
 

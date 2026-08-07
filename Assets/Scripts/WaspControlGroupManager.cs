@@ -34,6 +34,8 @@ public class WaspControlGroupManager : MonoBehaviour
     [SerializeField, Range(1, 40)] private int maximumSelection = 20;
     [SerializeField, Min(2f)] private float dragThreshold = 10f;
     [SerializeField, Min(1f)] private float selectionRayDistance = 1000f;
+    [SerializeField, Min(0.05f), Tooltip("Maximum gap between two right-clicks for them to count as a double-click deselect.")]
+    private float doubleClickWindow = 0.3f;
 
     private readonly List<WaspControl> currentSelection = new List<WaspControl>();
     private readonly List<WaspControl>[] groups =
@@ -49,11 +51,18 @@ public class WaspControlGroupManager : MonoBehaviour
     private bool pointerDown;
     private bool dragging;
     private int suppressClickFrame = -1;
+    private int suppressOrderFrame = -1;
+    private float lastRightClickTime = -10f;
     private int activeGroup = -1;
 
     public bool HasSelection => currentSelection.Count > 0;
     public bool IsDragging => dragging;
     public bool ShouldSuppressWorldClickThisFrame => suppressClickFrame == Time.frameCount;
+    /// <summary>
+    /// True on the frame a double right-click cleared the selection, so that second click is not
+    /// also read as a move order.
+    /// </summary>
+    public bool ShouldSuppressOrderThisFrame => suppressOrderFrame == Time.frameCount;
     public IReadOnlyList<WaspControl> CurrentSelection => currentSelection;
 
     private void Awake()
@@ -87,7 +96,41 @@ public class WaspControlGroupManager : MonoBehaviour
         }
 
         HandleGroupKeys();
+        HandleDoubleRightClickDeselect();
         HandleDragSelection();
+    }
+
+    /// <summary>
+    /// Double right-click clears the current selection. Runs before the hex raycaster (execution
+    /// order -100) so it can flag the frame and stop the second click issuing a move order.
+    /// </summary>
+    private void HandleDoubleRightClickDeselect()
+    {
+        if (Mouse.current == null || !Mouse.current.rightButton.wasPressedThisFrame)
+            return;
+
+        float now = Time.unscaledTime;
+        bool isSecondClick = now - lastRightClickTime <= doubleClickWindow;
+        // Reset rather than keep the stamp, so a triple click is not read as two overlapping pairs.
+        lastRightClickTime = isSecondClick ? -10f : now;
+
+        if (!isSecondClick || IsPointerOverUi())
+            return;
+
+        suppressOrderFrame = Time.frameCount;
+        ClearSelection();
+    }
+
+    public void ClearSelection()
+    {
+        bool had = currentSelection.Count > 0;
+        ApplySelection(null);
+        activeGroup = -1;
+
+        if (feedbackText != null)
+            feedbackText.text = had ? "Selection cleared." : "No wasps selected.";
+
+        RefreshHud();
     }
 
     public WaspMoveOrderResult TryMoveSelectedToHex(HexTile target)
