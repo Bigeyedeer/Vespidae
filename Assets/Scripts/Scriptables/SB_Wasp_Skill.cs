@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 [Serializable]
 public struct WaspSkillCost
@@ -31,6 +32,15 @@ public enum WaspSkillStat
     Identification,
     MaximumHealth,
     AttackDamage
+}
+
+[Serializable]
+public struct WaspSkillStatPreview
+{
+    public WaspSkillStat stat;
+    public float currentValue;
+    public float nextValue;
+    public float increment;
 }
 
 [CreateAssetMenu(fileName = "SO_Wasp_Skill", menuName = "Vespidae Wars/Wasp Skill")]
@@ -74,6 +84,10 @@ public class SB_Wasp_Skill : ScriptableObject
     [SerializeField] private float identificationPerLevel = 0.1f;
     [SerializeField] private float maximumHealthPerLevel = 15f;
     [SerializeField] private float attackDamagePerLevel = 2f;
+
+    [Header("Upgrade Preview")]
+    [SerializeField, Tooltip("Stats listed on this skill's upgrade card. Leave empty to use the sensible defaults for this role.")]
+    private List<WaspSkillStat> upgradeStats = new List<WaspSkillStat>();
 
     public WaspFunction Function => function;
     public Sprite RoleIcon => roleIcon;
@@ -124,6 +138,127 @@ public class SB_Wasp_Skill : ScriptableObject
                 return baseAttackDamage + attackDamagePerLevel * clampedLevel;
             default:
                 return 1f;
+        }
+    }
+
+    public float GetIncrementPerLevel(WaspSkillStat stat)
+    {
+        switch (stat)
+        {
+            case WaspSkillStat.ScoutingRange:
+                return scoutingRangePerLevel;
+            case WaspSkillStat.MovementSpeed:
+                return movementSpeedPerLevel;
+            case WaspSkillStat.GatheringMultiplier:
+                return gatheringMultiplierPerLevel;
+            case WaspSkillStat.GatheringSpeed:
+                return gatheringSpeedPerLevel;
+            case WaspSkillStat.BuildSpeed:
+                return buildSpeedPerLevel;
+            case WaspSkillStat.BroodCare:
+                return broodCarePerLevel;
+            case WaspSkillStat.Defence:
+                return defencePerLevel;
+            case WaspSkillStat.AttackSpeed:
+                return attackSpeedPerLevel;
+            case WaspSkillStat.Identification:
+                return identificationPerLevel;
+            case WaspSkillStat.MaximumHealth:
+                return maximumHealthPerLevel;
+            case WaspSkillStat.AttackDamage:
+                return attackDamagePerLevel;
+            default:
+                return 0f;
+        }
+    }
+
+    /// <summary>
+    /// Stats shown on this skill's upgrade card. Falls back to role defaults when nothing is authored.
+    /// </summary>
+    public IReadOnlyList<WaspSkillStat> GetUpgradeStats()
+    {
+        if (upgradeStats != null && upgradeStats.Count > 0)
+            return upgradeStats;
+
+        return GetDefaultUpgradeStats(function);
+    }
+
+    /// <summary>
+    /// Current and next-level values for every stat this skill highlights.
+    /// Stats that do not actually change per level are skipped.
+    /// </summary>
+    public List<WaspSkillStatPreview> GetUpgradePreview(int currentLevel)
+    {
+        List<WaspSkillStatPreview> previews = new List<WaspSkillStatPreview>();
+        int level = Mathf.Clamp(currentLevel, 0, MaximumLevel);
+
+        foreach (WaspSkillStat stat in GetUpgradeStats())
+        {
+            float increment = GetIncrementPerLevel(stat);
+            if (Mathf.Approximately(increment, 0f))
+                continue;
+
+            previews.Add(new WaspSkillStatPreview
+            {
+                stat = stat,
+                currentValue = GetEffectiveValue(stat, level),
+                nextValue = GetEffectiveValue(stat, level + 1),
+                increment = increment
+            });
+        }
+
+        return previews;
+    }
+
+    public static IReadOnlyList<WaspSkillStat> GetDefaultUpgradeStats(WaspFunction role)
+    {
+        switch (role)
+        {
+            case WaspFunction.Scout:
+                return new[] { WaspSkillStat.ScoutingRange, WaspSkillStat.Identification, WaspSkillStat.MovementSpeed };
+            case WaspFunction.Forager:
+                return new[] { WaspSkillStat.GatheringMultiplier, WaspSkillStat.GatheringSpeed, WaspSkillStat.MovementSpeed };
+            case WaspFunction.Builder:
+                return new[] { WaspSkillStat.BuildSpeed, WaspSkillStat.GatheringMultiplier };
+            case WaspFunction.BroodCaretaker:
+                return new[] { WaspSkillStat.BroodCare };
+            case WaspFunction.Guard:
+                return new[] { WaspSkillStat.AttackDamage, WaspSkillStat.AttackSpeed, WaspSkillStat.MaximumHealth, WaspSkillStat.Defence };
+            case WaspFunction.Containment:
+                return new[] { WaspSkillStat.Identification, WaspSkillStat.AttackDamage, WaspSkillStat.Defence };
+            default:
+                return Array.Empty<WaspSkillStat>();
+        }
+    }
+
+    public static string GetStatDisplayName(WaspSkillStat stat)
+    {
+        switch (stat)
+        {
+            case WaspSkillStat.ScoutingRange:
+                return "Scouting Range";
+            case WaspSkillStat.MovementSpeed:
+                return "Movement Speed";
+            case WaspSkillStat.GatheringMultiplier:
+                return "Gathering Yield";
+            case WaspSkillStat.GatheringSpeed:
+                return "Gathering Speed";
+            case WaspSkillStat.BuildSpeed:
+                return "Build Speed";
+            case WaspSkillStat.BroodCare:
+                return "Brood Care";
+            case WaspSkillStat.Defence:
+                return "Defence";
+            case WaspSkillStat.AttackSpeed:
+                return "Attack Speed";
+            case WaspSkillStat.Identification:
+                return "Identification";
+            case WaspSkillStat.MaximumHealth:
+                return "Health";
+            case WaspSkillStat.AttackDamage:
+                return "Attack Damage";
+            default:
+                return stat.ToString();
         }
     }
 

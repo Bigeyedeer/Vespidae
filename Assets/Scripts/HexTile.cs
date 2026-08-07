@@ -54,13 +54,21 @@ public class HexTile : MonoBehaviour
 
     [Header("Hive Spawning")]
     [SerializeField] private Transform hiveSpawnPoint;
-    [SerializeField, Min(0f)] private float waspFormationHiveOffset = 0.45f;
+    [SerializeField, Range(1, 60), Tooltip("How many wasps the formation spreads to fill the hex with. Higher values pack them tighter.")]
+    private int waspFormationCapacity = 20;
+    [SerializeField, Min(0f), Tooltip("Keep-out distance from the hexagon edge so wasp models never overhang the tile.")]
+    private float waspFormationEdgeMargin = 0.18f;
+    [SerializeField, Min(0f), Tooltip("Random offset applied to each formation slot so wasps look scattered rather than perfectly gridded.")]
+    private float waspFormationJitter = 0.07f;
 
     [Header("Scouting")]
     [SerializeField, Min(0.1f)] private float scoutingDuration = 10f;
 
     private bool scoutingInProgress;
     private float scoutingTimeRemaining;
+
+    // 137.507764 degrees - the golden angle, which is what makes sunflower placement spread evenly.
+    private const float GoldenAngleRadians = 2.39996323f;
 
     public SB_Hex_Area_Info AreaInfo => areaInfo;
     public SB_Hex_Gathering_Rules GatheringRules => gatheringRules;
@@ -132,34 +140,60 @@ public class HexTile : MonoBehaviour
         float rowSpacing)
     {
         Vector3 center = GetWaspFormationCenter();
-        if (spawnIndex <= 0)
+        horizontalSpacing = Mathf.Max(0.05f, horizontalSpacing);
+
+        int index = Mathf.Max(0, spawnIndex);
+        int capacity = Mathf.Max(1, waspFormationCapacity);
+
+        // Spread wide enough to seat `capacity` wasps at the requested spacing, but never past
+        // the hexagon's inradius, so the group always stays on the tile.
+        float packedRadius = horizontalSpacing * Mathf.Sqrt(capacity);
+        float usableRadius = Mathf.Min(packedRadius, GetFormationUsableRadius());
+        if (usableRadius <= 0f)
             return center;
 
-        horizontalSpacing = Mathf.Max(0.05f, horizontalSpacing);
-        rowSpacing = Mathf.Max(0.05f, rowSpacing);
-        List<Vector3> positions = new List<Vector3>();
-        AddFormationPositions(positions, center, -1f, 0, -1f, 0, horizontalSpacing, rowSpacing);
-        AddFormationPositions(positions, center, 1f, 1, -1f, 0, horizontalSpacing, rowSpacing);
-        AddFormationPositions(positions, center, -1f, 0, 1f, 1, horizontalSpacing, rowSpacing);
-        AddFormationPositions(positions, center, 1f, 1, 1f, 1, horizontalSpacing, rowSpacing);
+        // Golden-angle (sunflower) placement fills a disc evenly with no rows to run off an edge,
+        // and keeps early spawns near the middle so small groups still look gathered.
+        float denominator = Mathf.Max(capacity, index + 1);
+        float radius = usableRadius * Mathf.Sqrt((index + 0.5f) / denominator);
+        float angle = index * GoldenAngleRadians;
 
-        return spawnIndex < positions.Count ? positions[spawnIndex] : center;
+        Vector3 slot = center +
+                       transform.right * (Mathf.Cos(angle) * radius) +
+                       transform.forward * (Mathf.Sin(angle) * radius);
+
+        return ApplyFormationJitter(slot, index);
     }
 
+    /// <summary>
+    /// Largest radius around the formation centre that is guaranteed to stay inside the hexagon.
+    /// The tile's collider is an axis-aligned box around the hex, so its smaller horizontal extent
+    /// is the hexagon's inradius - the shortest centre-to-edge distance, and therefore safe in
+    /// every direction.
+    /// </summary>
+    private float GetFormationUsableRadius()
+    {
+        Collider collider = ResolveFormationCollider();
+        if (collider == null)
+            return 1f;
+
+        float inradius = Mathf.Min(collider.bounds.extents.x, collider.bounds.extents.z);
+        return Mathf.Max(0f, inradius - waspFormationEdgeMargin);
+    }
+
+    /// <summary>
+    /// The formation always sits on the middle of the hexagon. It used to be nudged towards the
+    /// hive, which pushed large groups off to one side of the tile.
+    /// </summary>
     private Vector3 GetWaspFormationCenter()
     {
-        Vector3 center = transform.position;
-        Transform spawnPoint = HiveSpawnPoint;
-        if (spawnPoint == null || waspFormationHiveOffset <= 0f)
-            return center;
+        Collider collider = ResolveFormationCollider();
+        if (collider == null)
+            return transform.position;
 
-        Vector3 direction = spawnPoint.position - center;
-        direction.y = 0f;
-        if (direction.sqrMagnitude <= 0.0001f)
-            return center;
-
-        Vector3 shiftedCenter = center + direction.normalized * Mathf.Min(waspFormationHiveOffset, direction.magnitude);
-        return ContainsFormationPoint(shiftedCenter) ? shiftedCenter : center;
+        Vector3 center = collider.bounds.center;
+        center.y = transform.position.y;
+        return center;
     }
 
     private void Start()
@@ -724,58 +758,58 @@ public class HexTile : MonoBehaviour
             : WaspScopeRole.PrimaryInvasive;
     }
 
-    private bool ContainsFormationPoint(Vector3 worldPosition)
+    /// <summary>
+    /// Scatters a slot by a small deterministic offset, so the same spawn index always resolves
+    /// to the same spot even when the formation is recalculated. Falls back to the exact slot if
+    /// the scattered point would land outside the hexagon.
+    /// </summary>
+    private Vector3 ApplyFormationJitter(Vector3 position, int spawnIndex)
+    {
+        if (waspFormationJitter <= 0f)
+            return position;
+
+        float angle = GetFormationNoise(spawnIndex * 2 + 1) * Mathf.PI * 2f;
+        float radius = Mathf.Sqrt(GetFormationNoise(spawnIndex * 2 + 2)) * waspFormationJitter;
+        Vector3 jittered = position +
+                           transform.right * (Mathf.Cos(angle) * radius) +
+                           transform.forward * (Mathf.Sin(angle) * radius);
+
+        return IsInsideHexagon(jittered) ? jittered : position;
+    }
+
+    /// <summary>
+    /// True point-in-regular-hexagon test, replacing the collider check. The tile collider is an
+    /// axis-aligned box, so it wrongly reports the four box corners - which lie outside the
+    /// hexagon - as valid ground.
+    /// </summary>
+    private bool IsInsideHexagon(Vector3 worldPosition)
     {
         Collider collider = ResolveFormationCollider();
         if (collider == null)
             return true;
 
-        Vector3 probe = new Vector3(
-            worldPosition.x,
-            collider.bounds.center.y,
-            worldPosition.z
-        );
+        Vector3 local = worldPosition - collider.bounds.center;
+        float x = Vector3.Dot(local, transform.right);
+        float z = Vector3.Dot(local, transform.forward);
 
-        Vector3 closestPoint = collider.ClosestPoint(probe);
-        return (closestPoint - probe).sqrMagnitude <= 0.0001f;
+        float inradius = Mathf.Min(collider.bounds.extents.x, collider.bounds.extents.z) - waspFormationEdgeMargin;
+        if (inradius <= 0f)
+            return false;
+
+        // A regular hexagon is the intersection of three slabs, each one inradius from the centre.
+        const float Cos30 = 0.8660254f;
+        return Mathf.Abs(x) <= inradius &&
+               Mathf.Abs(0.5f * x + Cos30 * z) <= inradius &&
+               Mathf.Abs(0.5f * x - Cos30 * z) <= inradius;
     }
 
-    private void AddFormationPositions(
-        List<Vector3> positions,
-        Vector3 center,
-        float rowDirection,
-        int firstRow,
-        float columnDirection,
-        int firstColumn,
-        float horizontalSpacing,
-        float rowSpacing)
+    private static float GetFormationNoise(int value)
     {
-        for (int row = firstRow; row < 64; row++)
-        {
-            Vector3 rowStart = center +
-                               transform.forward *
-                               row *
-                               rowSpacing *
-                               rowDirection;
-
-            if (!ContainsFormationPoint(rowStart))
-                break;
-
-            for (int column = firstColumn; column < 64; column++)
-            {
-                Vector3 candidate = rowStart +
-                                    transform.right *
-                                    column *
-                                    horizontalSpacing *
-                                    columnDirection;
-
-                if (!ContainsFormationPoint(candidate))
-                    break;
-
-                if (!positions.Contains(candidate))
-                    positions.Add(candidate);
-            }
-        }
+        uint hash = (uint)value * 2654435761u;
+        hash ^= hash >> 15;
+        hash *= 2246822519u;
+        hash ^= hash >> 13;
+        return hash % 10000u / 10000f;
     }
 
     private Collider ResolveFormationCollider()

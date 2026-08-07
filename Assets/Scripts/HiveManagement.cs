@@ -653,6 +653,16 @@ public class HiveManagement : MonoBehaviour
 
     public WaspMoveOrderResult TryMoveAttackers(IReadOnlyList<WaspControl> selectedWasps, HexTile target)
     {
+        return TryMoveWasps(selectedWasps, target);
+    }
+
+    /// <summary>
+    /// Moves any mix of selected wasps onto a hex, applying each role's own rules
+    /// (attacker cap, forager cap, ownership). A scout arriving on an unscouted hex starts
+    /// scouting automatically once it registers on arrival.
+    /// </summary>
+    public WaspMoveOrderResult TryMoveWasps(IReadOnlyList<WaspControl> selectedWasps, HexTile target)
+    {
         int requested = selectedWasps != null ? selectedWasps.Count : 0;
         if (requested == 0 || target == null ||
             target.State == HexTile.HexState.Locked ||
@@ -662,9 +672,12 @@ public class HiveManagement : MonoBehaviour
         }
 
         CleanupFriendlyWasps();
-        int maximum = target.CombatController != null ? target.CombatController.MaximumAttackersPerSide : 20;
-        int assigned = GetAssignedWaspCount(target, WaspFunction.Guard);
-        int availableSlots = Mathf.Max(0, maximum - assigned);
+
+        int attackerMaximum = target.CombatController != null ? target.CombatController.MaximumAttackersPerSide : 20;
+        int attackerSlots = Mathf.Max(0, attackerMaximum - GetAssignedWaspCount(target, WaspFunction.Guard));
+        int foragerSlots = Mathf.Max(0, target.MaximumForagersPerHex - GetAssignedWaspCount(target, WaspFunction.Forager));
+        bool scoutSlotTaken = HasScoutAssignedTo(target);
+
         int moved = 0;
         int rejected = 0;
         int capped = 0;
@@ -672,9 +685,7 @@ public class HiveManagement : MonoBehaviour
 
         foreach (WaspControl wasp in selectedWasps)
         {
-            if (wasp == null || !processed.Add(wasp) ||
-                wasp.AssignedFunction != WaspFunction.Guard ||
-                !wasp.IsAlive || wasp.IsCombatLocked)
+            if (wasp == null || !processed.Add(wasp) || !wasp.IsAlive || wasp.IsCombatLocked)
             {
                 rejected++;
                 continue;
@@ -686,7 +697,28 @@ public class HiveManagement : MonoBehaviour
                 continue;
             }
 
-            if (availableSlots <= 0)
+            WaspFunction function = wasp.AssignedFunction;
+            if (!CanRoleEnterHex(function, target))
+            {
+                rejected++;
+                continue;
+            }
+
+            // Role capacity. Anything without its own cap simply moves.
+            if (function == WaspFunction.Guard && attackerSlots <= 0)
+            {
+                capped++;
+                continue;
+            }
+
+            if (function == WaspFunction.Forager && foragerSlots <= 0)
+            {
+                capped++;
+                continue;
+            }
+
+            // Only one scout is needed to reveal an unknown hex.
+            if (function == WaspFunction.Scout && target.State == HexTile.HexState.Unknown && scoutSlotTaken)
             {
                 capped++;
                 continue;
@@ -694,19 +726,43 @@ public class HiveManagement : MonoBehaviour
 
             int formationIndex = target.FriendlyWaspCount + GetIncomingWaspCount(target);
             Vector3 destination = target.GetWaspFormationPosition(formationIndex, 0.25f, 0.25f);
-            if (wasp.TryIssueGuardMoveOrder(target, destination))
-            {
-                moved++;
-                availableSlots--;
-            }
-            else
+            if (!wasp.TryIssueMoveOrder(target, destination))
             {
                 rejected++;
+                continue;
             }
+
+            moved++;
+            if (function == WaspFunction.Guard)
+                attackerSlots--;
+            else if (function == WaspFunction.Forager)
+                foragerSlots--;
+            else if (function == WaspFunction.Scout && target.State == HexTile.HexState.Unknown)
+                scoutSlotTaken = true;
         }
 
         NotifyWorkforceChanged();
         return new WaspMoveOrderResult(requested, moved, rejected, capped);
+    }
+
+    /// <summary>
+    /// Whether a role is allowed onto a hex at all. Scouts may enter unknown territory (that is
+    /// how it gets revealed); the economy roles need the hex owned first.
+    /// </summary>
+    private static bool CanRoleEnterHex(WaspFunction function, HexTile target)
+    {
+        switch (function)
+        {
+            case WaspFunction.Scout:
+                return target.State == HexTile.HexState.Unknown || target.State == HexTile.HexState.Owned;
+            case WaspFunction.Guard:
+            case WaspFunction.Containment:
+                return target.State != HexTile.HexState.Locked;
+            case WaspFunction.Forager:
+                return target.State == HexTile.HexState.Owned && !target.ResourcesDepleted;
+            default:
+                return target.State == HexTile.HexState.Owned;
+        }
     }
 
     public void HandleHiveDestroyed(C_Friendly_Hive_Orc hive)

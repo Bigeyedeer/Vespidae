@@ -31,8 +31,9 @@ public class WaspControlGroupManager : MonoBehaviour
     [SerializeField] private RectTransform selectionBox;
     [SerializeField] private TMP_Text feedbackText;
     [SerializeField] private WaspControlGroupHudBinding[] groupBindings = new WaspControlGroupHudBinding[5];
-    [SerializeField, Range(1, 5)] private int maximumSelection = 5;
+    [SerializeField, Range(1, 40)] private int maximumSelection = 20;
     [SerializeField, Min(2f)] private float dragThreshold = 10f;
+    [SerializeField, Min(1f)] private float selectionRayDistance = 1000f;
 
     private readonly List<WaspControl> currentSelection = new List<WaspControl>();
     private readonly List<WaspControl>[] groups =
@@ -94,17 +95,22 @@ public class WaspControlGroupManager : MonoBehaviour
         CleanupSelections();
         HiveManagement hive = HiveManagement.GetOrCreate();
         WaspMoveOrderResult result = hive != null
-            ? hive.TryMoveAttackers(currentSelection, target)
+            ? hive.TryMoveWasps(currentSelection, target)
             : new WaspMoveOrderResult(currentSelection.Count, 0, currentSelection.Count, 0);
 
         if (feedbackText != null)
         {
             if (result.AnyMoved)
-                feedbackText.text = $"Moved {result.Moved}/{result.Requested} attackers to {target.HexName}.";
+            {
+                bool scouting = target.State == HexTile.HexState.Unknown && SelectionContains(WaspFunction.Scout);
+                feedbackText.text = scouting
+                    ? $"Moved {result.Moved}/{result.Requested} wasps to {target.HexName}. Scouting will begin on arrival."
+                    : $"Moved {result.Moved}/{result.Requested} wasps to {target.HexName}.";
+            }
             else if (result.Capped > 0)
-                feedbackText.text = "The target already has the maximum assigned attackers.";
+                feedbackText.text = $"{target.HexName} is already at capacity for those roles.";
             else
-                feedbackText.text = "The selected attackers cannot move to that hex.";
+                feedbackText.text = $"The selected wasps cannot move to {target.HexName}.";
         }
 
         return result;
@@ -128,7 +134,7 @@ public class WaspControlGroupManager : MonoBehaviour
         if (feedbackText != null)
             feedbackText.text = groups[index].Count == 0
                 ? $"Group {index + 1} cleared."
-                : $"Group {index + 1} assigned with {groups[index].Count} attackers.";
+                : $"Group {index + 1} assigned with {groups[index].Count} wasps.";
         RefreshHud();
     }
 
@@ -200,7 +206,13 @@ public class WaspControlGroupManager : MonoBehaviour
 
         if (dragging)
         {
-            SelectWithinScreenRect(BuildScreenRect(dragStart, pointer));
+            SelectWithinScreenRect(BuildScreenRect(dragStart, pointer), IsAdditiveModifierHeld());
+            suppressClickFrame = Time.frameCount;
+        }
+        else if (TryClickSelect(pointer, IsAdditiveModifierHeld()))
+        {
+            // Only swallow the click for a shift-click that actually hit a wasp. Plain clicks
+            // are never swallowed, so they keep opening the wasp/hex panel as before.
             suppressClickFrame = Time.frameCount;
         }
 
@@ -210,7 +222,7 @@ public class WaspControlGroupManager : MonoBehaviour
             selectionBox.gameObject.SetActive(false);
     }
 
-    private void SelectWithinScreenRect(Rect screenRect)
+    private void SelectWithinScreenRect(Rect screenRect, bool additive)
     {
         Camera activeCamera = cameraFocus != null ? cameraFocus.ActiveCamera : Camera.main;
         HiveManagement hive = HiveManagement.GetOrCreate();
@@ -232,15 +244,107 @@ public class WaspControlGroupManager : MonoBehaviour
         }
 
         candidates.Sort((left, right) => left.distance.CompareTo(right.distance));
-        List<WaspControl> selected = new List<WaspControl>();
+
+        List<WaspControl> selected = additive ? new List<WaspControl>(currentSelection) : new List<WaspControl>();
         for (int index = 0; index < candidates.Count && selected.Count < maximumSelection; index++)
-            selected.Add(candidates[index].wasp);
+        {
+            WaspControl wasp = candidates[index].wasp;
+            if (!selected.Contains(wasp))
+                selected.Add(wasp);
+        }
 
         ApplySelection(selected);
         activeGroup = -1;
-        if (feedbackText != null)
-            feedbackText.text = selected.Count == 0 ? "No attackers selected." : $"{selected.Count} attackers selected.";
+        ReportSelection();
         RefreshHud();
+    }
+
+    /// <summary>
+    /// Shift-click toggles the wasp under the cursor in or out of the selection. A plain click is
+    /// deliberately ignored here so it keeps its original behaviour (opening the wasp/hex panel)
+    /// and falls through to the hex raycaster untouched.
+    /// </summary>
+    private bool TryClickSelect(Vector2 pointer, bool additive)
+    {
+        if (!additive || IsPointerOverUi())
+            return false;
+
+        Camera activeCamera = cameraFocus != null ? cameraFocus.ActiveCamera : Camera.main;
+        if (activeCamera == null)
+            return false;
+
+        Ray ray = activeCamera.ScreenPointToRay(pointer);
+        RaycastHit[] hits = Physics.RaycastAll(ray, selectionRayDistance, ~0, QueryTriggerInteraction.Collide);
+        Array.Sort(hits, (left, right) => left.distance.CompareTo(right.distance));
+
+        WaspControl clicked = null;
+        foreach (RaycastHit hit in hits)
+        {
+            WaspControl candidate = hit.collider.GetComponentInParent<WaspControl>();
+            if (IsSelectable(candidate))
+            {
+                clicked = candidate;
+                break;
+            }
+        }
+
+        if (clicked == null)
+            return false;
+
+        List<WaspControl> selected = new List<WaspControl>(currentSelection);
+        if (!selected.Remove(clicked))
+            selected.Add(clicked);
+
+        ApplySelection(selected);
+        activeGroup = -1;
+        ReportSelection();
+        RefreshHud();
+        return true;
+    }
+
+    private bool SelectionContains(WaspFunction function)
+    {
+        foreach (WaspControl wasp in currentSelection)
+        {
+            if (wasp != null && wasp.AssignedFunction == function)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void ReportSelection()
+    {
+        if (feedbackText == null)
+            return;
+
+        feedbackText.text = currentSelection.Count == 0
+            ? "No wasps selected."
+            : $"{currentSelection.Count} {DescribeSelection()} selected.";
+    }
+
+    /// <summary>
+    /// Names the selection by role when it is all one role, otherwise calls it a mixed group.
+    /// </summary>
+    private string DescribeSelection()
+    {
+        if (currentSelection.Count == 0)
+            return "wasps";
+
+        WaspFunction first = currentSelection[0].AssignedFunction;
+        foreach (WaspControl wasp in currentSelection)
+        {
+            if (wasp.AssignedFunction != first)
+                return "wasps";
+        }
+
+        return currentSelection.Count == 1 ? first.ToString() : $"{first}s";
+    }
+
+    private static bool IsAdditiveModifierHeld()
+    {
+        return Keyboard.current != null &&
+               (Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed);
     }
 
     private void ApplySelection(IReadOnlyList<WaspControl> wasps)
@@ -342,7 +446,7 @@ public class WaspControlGroupManager : MonoBehaviour
 
     private static bool IsSelectable(WaspControl wasp)
     {
-        return wasp != null && wasp.IsAlive && wasp.AssignedFunction == WaspFunction.Guard;
+        return wasp != null && wasp.IsAlive;
     }
 
     private static bool IsPointerOverUi()

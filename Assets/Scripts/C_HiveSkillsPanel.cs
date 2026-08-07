@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -103,10 +104,11 @@ public class C_HiveSkillsPanel : MonoBehaviour
                 card.CardRoot.SetActive(true);
             int level = hive.GetSkillLevel(card.Function);
             WaspSkillCost cost = definition.GetUpgradeCost(level + 1);
+            string effect = BuildEffectText(definition, level);
             card.SetTitle(card.HasSeparateLevelText ? definition.DisplayName : $"{definition.DisplayName}  Lv {level}");
-            card.SetDescription(card.HasSeparateEffectText ? definition.Description : $"{definition.Description}\n{definition.EffectSummary}");
+            card.SetDescription(card.HasSeparateEffectText ? definition.Description : $"{definition.Description}\n{effect}");
             card.SetLevel($"Level {level}/{definition.MaximumLevel}");
-            card.SetEffect(definition.EffectSummary);
+            card.SetEffect(effect);
             card.SetCost(level >= definition.MaximumLevel ? "MAX LEVEL" : FormatCost(cost));
 
             if (card.UpgradeButton == null)
@@ -147,6 +149,37 @@ public class C_HiveSkillsPanel : MonoBehaviour
             HiveManagement.Instance.SkillsChanged -= Refresh;
         if (ResourceManager.Instance != null)
             ResourceManager.Instance.ResourcesChanged -= Refresh;
+    }
+
+    /// <summary>
+    /// Effect summary plus a line per highlighted stat showing what this upgrade actually changes,
+    /// e.g. "Attack Speed  1.25 -> 1.5  (+0.25)". At max level the current values are shown instead.
+    /// </summary>
+    private static string BuildEffectText(SB_Wasp_Skill definition, int level)
+    {
+        List<string> lines = new List<string>();
+        if (!string.IsNullOrWhiteSpace(definition.EffectSummary))
+            lines.Add(definition.EffectSummary);
+
+        bool atMaximum = level >= definition.MaximumLevel;
+        foreach (WaspSkillStatPreview preview in definition.GetUpgradePreview(level))
+        {
+            string statName = SB_Wasp_Skill.GetStatDisplayName(preview.stat);
+            lines.Add(atMaximum
+                ? $"{statName}  {FormatValue(preview.currentValue)}"
+                : $"{statName}  {FormatValue(preview.currentValue)} -> {FormatValue(preview.nextValue)}  (+{FormatValue(preview.increment)})");
+        }
+
+        return string.Join("\n", lines);
+    }
+
+    private static string FormatValue(float value)
+    {
+        // Invariant culture so stat values always read as "1.25", never "1,25" on locales
+        // that use a comma decimal separator.
+        return Mathf.Approximately(value, Mathf.Round(value))
+            ? value.ToString("0", CultureInfo.InvariantCulture)
+            : value.ToString("0.##", CultureInfo.InvariantCulture);
     }
 
     private static string FormatCost(WaspSkillCost cost)

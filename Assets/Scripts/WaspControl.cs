@@ -201,7 +201,20 @@ public class WaspControl : MonoBehaviour
 
     public bool TryIssueGuardMoveOrder(HexTile hex, Vector3 targetPosition)
     {
-        if (hex == null || assignedFunction != WaspFunction.Guard || !IsAlive || IsCombatLocked)
+        if (assignedFunction != WaspFunction.Guard)
+            return false;
+
+        return TryIssueMoveOrder(hex, targetPosition);
+    }
+
+    /// <summary>
+    /// Moves this wasp to a hex regardless of its role. Unlike <see cref="DispatchToHex"/> this
+    /// also works when the wasp is already stationed somewhere, so selected units can be
+    /// re-tasked from hex to hex.
+    /// </summary>
+    public bool TryIssueMoveOrder(HexTile hex, Vector3 targetPosition)
+    {
+        if (hex == null || !IsAlive || IsCombatLocked)
             return false;
 
         if (!EnsureAgentOnNavMesh() || !TrySamplePosition(targetPosition, out NavMeshHit hit))

@@ -257,7 +257,9 @@ MonoBehaviour:
   focusPoint: {fileID: 2016398901899795257}
   waspCloseUpFocusPoint: {fileID: 777000000000000002}
   hiveSpawnPoint: {fileID: 8047022245518074020}
-  waspFormationHiveOffset: 0.45
+  waspFormationCapacity: 20
+  waspFormationEdgeMargin: 0.18
+  waspFormationJitter: 0.09
   scoutingDuration: 10
 --- !u!114 &4337367624160803525
 MonoBehaviour:
