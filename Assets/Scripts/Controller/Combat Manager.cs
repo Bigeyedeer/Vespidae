@@ -299,7 +299,9 @@ public class CombatManager : MonoBehaviour
         while (animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
         {
             yield return null;
-        }
+        } 
+
+        
     }
 
     public void LerpSliderValue()
