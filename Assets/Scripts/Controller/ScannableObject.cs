@@ -11,8 +11,7 @@ public class ScannableObject : MonoBehaviour
     [TextArea]
     public string description;
 
-    [Header("Scan")]
-    public bool hasBeenScanned;
+    
 
     [Header("Category")]
     public ScanType scanType;
@@ -26,8 +25,17 @@ public class ScannableObject : MonoBehaviour
     [Header("Notification Image")]
     public Image notificationImage;
 
+    [Header("Scan Context Text")]
+    [TextArea(2,4)]
+    public string[] scanMessages;
+
     [Header("Panel Screen")]
     public GameObject InfoPanel;
+
+    [Header("Scanning")]
+    public int requiredScans = 1;
+    [HideInInspector] public int completedScans = 0;
+    public bool hasBeenScanned;
 }
 
 public enum ScanType

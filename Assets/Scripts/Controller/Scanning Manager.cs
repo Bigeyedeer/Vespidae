@@ -9,6 +9,9 @@ public class ScanningManager : MonoBehaviour
     [Header("Universal UI")]
     public Image targetRadial;
     public Image targetNotification;
+    public GameObject scanMessagePanel;
+    public TextMeshProUGUI scanMessageText;
+    private int lastMessageIndex = -1;
 
     public GameObject InfoPanel;
     public TextMeshProUGUI InfoTitle;
@@ -76,7 +79,6 @@ public class ScanningManager : MonoBehaviour
     private IEnumerator ScanRoutine()
     {
         isScanning = true;
-        currentObject.hasBeenScanned = false;
 
         float timer = scanDuration;
 
@@ -93,25 +95,49 @@ public class ScanningManager : MonoBehaviour
         targetRadial.gameObject.SetActive(false);
 
         isScanning = false;
-        currentObject.hasBeenScanned = true;
+        currentObject.completedScans++;
+        StartCoroutine(ShowScanMessage(3));
 
-        DisplayAttributes();
-        targetNotification.gameObject.SetActive(true);
+        if (currentObject.completedScans >= currentObject.requiredScans)
+        {
+            currentObject.hasBeenScanned = true;
+            DisplayAttributes();
+            targetNotification.gameObject.SetActive(true);
+        }
 
+        
         scanCoroutine = null;
     }
 
+    public IEnumerator ShowScanMessage(int sec)
+    {
+        int messageIndex = currentObject.completedScans -1;
+
+        if (currentObject.requiredScans == 1)
+        {
+            yield break;
+        }
+
+        if (currentObject.scanMessages == null || messageIndex >= currentObject.scanMessages.Length)
+        {
+            yield break;
+        }
+
+        scanMessageText.text = currentObject.scanMessages[messageIndex];
+        scanMessagePanel.SetActive(true);
+        yield return new WaitForSeconds(sec);
+        scanMessagePanel.SetActive(false);
+    }
     private void DisplayAttributes()
     {
-        // Debug.Log("DisplayWaspAttributes called");
-        //UpdateInformation();
+        //UpdateInformation(); old manual TextmeshproGUI changes
         InfoPanel.SetActive(true);
         //targetNotification.gameObject.SetActive(true);
     }
 
     public void ToggleAttributes()
     {
-        if (currentObject.hasBeenScanned)
+        if (currentObject != null && currentObject.hasBeenScanned)
         {
             InfoPanel.SetActive(!InfoPanel.activeSelf);
             //targetNotification.enabled = !InfoPanel.activeSelf;

@@ -296,10 +296,18 @@ public class CombatManager : MonoBehaviour
         // Wait until the animator leaves the attack state
         yield return null;
 
-        while (animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
+        while (!animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
         {
             yield return null;
         }
+
+        /*while (animator.GetCurrentAnimatorStateInfo(0).IsTag("Attack"))
+        {
+            yield return null;
+        }*/
+        yield return new WaitForSeconds(.5f);
+
+
     }
 
     public void LerpSliderValue()
