@@ -27,18 +27,18 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     /// </summary>
     private const string KeybindSummary =
         "<b>CONTROLS</b>\n" +
-        "Left Click   -   Select a hex / open its panel\n" +
-        "Shift + Left Click   -   Add or remove a wasp from the selection\n" +
-        "Left Click + Drag   -   Box-select wasps\n" +
-        "Shift + Drag   -   Add boxed wasps to the selection\n" +
-        "Right Click   -   Send selected wasps to that hex\n" +
-        "Double Right Click   -   Clear the selection\n" +
-        "1 - 5   -   Select control group\n" +
-        "Ctrl + 1 - 5   -   Assign control group\n" +
-        "Middle Mouse + Drag   -   Pan the camera\n" +
-        "Scroll Wheel   -   Zoom in and out\n" +
-        "H   -   Toggle map-only view\n" +
-        "Esc   -   Pause / resume";
+        "Left Click  -  Select hex / open panel\n" +
+        "Shift + Left Click  -  Add/remove a wasp\n" +
+        "Left Drag  -  Box-select wasps\n" +
+        "Shift + Drag  -  Add to selection\n" +
+        "Right Click  -  Send wasps to that hex\n" +
+        "Double Right Click  -  Clear selection\n" +
+        "1 - 5  -  Select control group\n" +
+        "Ctrl + 1 - 5  -  Assign control group\n" +
+        "Middle Drag  -  Pan camera\n" +
+        "Scroll Wheel  -  Zoom\n" +
+        "H  -  Toggle map-only view\n" +
+        "Esc  -  Pause / resume";
     [SerializeField] private GameObject pauseMenuPrefab;
     [SerializeField] private Key skillsKey = Key.K;
 
@@ -647,6 +647,8 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         if (canvas == null)
             return;
 
+        DestroyStalePauseMenus(canvas);
+
         if (pauseMenuPrefab != null && CreateHerbertPauseMenu(canvas))
             return;
 
@@ -718,7 +720,7 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
             new Vector2(180f, 22f),
             15f);
         scrollSpeedSlider = CreateSlider(pauseOptions.transform, new Vector2(0f, 84f));
-        CreateKeybindsText(pauseOptions.transform, new Vector2(0f, -44f), new Vector2(430f, 216f), 13f);
+        CreateKeybindsText(pauseOptions.transform, new Vector2(0f, -40f), new Vector2(400f, 220f), 13f);
         CreateButton(pauseOptions.transform, "PauseOptionsBack", "BACK", -178f, ShowPauseMain);
 
         float speed = PlayerPrefs.GetFloat(
@@ -726,6 +728,23 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
             DefaultScrollWheelZoomSpeed);
         SetScrollWheelZoomSpeed(speed);
         pauseMenu.SetActive(false);
+    }
+
+    /// <summary>
+    /// The pause menu is always rebuilt at runtime because its reference is not serialised, so a
+    /// copy accidentally saved into a scene would sit underneath the fresh one and show through as
+    /// a ghost. Clear any leftovers before building.
+    /// </summary>
+    private void DestroyStalePauseMenus(Canvas canvas)
+    {
+        if (canvas == null)
+            return;
+
+        foreach (Transform child in canvas.transform)
+        {
+            if (child != null && child.name == "PauseMenu")
+                Destroy(child.gameObject);
+        }
     }
 
     private bool CreateHerbertPauseMenu(Canvas canvas)
@@ -815,17 +834,18 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         CreatePauseOptionsText(
             pauseOptions.transform,
             "SCROLL ZOOM SPEED",
-            new Vector2(0f, 150f),
-            new Vector2(310f, 32f),
-            20f);
+            new Vector2(0f, 158f),
+            new Vector2(290f, 28f),
+            19f);
         scrollSpeedValueText = CreatePauseOptionsText(
             pauseOptions.transform,
             string.Empty,
-            new Vector2(0f, 118f),
-            new Vector2(180f, 26f),
-            18f);
-        scrollSpeedSlider = CreateSlider(pauseOptions.transform, new Vector2(0f, 88f));
-        CreateKeybindsText(pauseOptions.transform, new Vector2(0f, -24f), new Vector2(420f, 200f), 13f);
+            new Vector2(0f, 132f),
+            new Vector2(180f, 24f),
+            17f);
+        scrollSpeedSlider = CreateSlider(pauseOptions.transform, new Vector2(0f, 108f));
+        // Container is 300x351; keep inside it and inside the band above the Back button.
+        CreateKeybindsText(pauseOptions.transform, new Vector2(0f, -16f), new Vector2(286f, 216f), 11f);
 
         Button backButton = Instantiate(resumeButton, pauseOptions.transform);
         backButton.gameObject.name = "PauseOptionsBack";
@@ -879,9 +899,12 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
     /// </summary>
     private TMP_Text CreateKeybindsText(Transform parent, Vector2 position, Vector2 size, float fontSize)
     {
-        if (keybindsText != null)
+        // Only reuse an element that was assigned in the inspector, and still refit it. Caching a
+        // self-created one here would make later rebuilds skip the layout below and keep a stale rect.
+        if (keybindsText != null && keybindsText.transform.IsChildOf(parent))
         {
             keybindsText.text = KeybindSummary;
+            FitTextToHeight(keybindsText, ((RectTransform)keybindsText.transform).rect.height);
             return keybindsText;
         }
 
@@ -889,14 +912,40 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         text.alignment = TextAlignmentOptions.TopLeft;
         text.textWrappingMode = TextWrappingModes.NoWrap;
         text.color = new Color(0.82f, 0.88f, 0.82f, 1f);
+        // Auto-size instead of trusting a hand-picked point size: the two pause menus have
+        // different container sizes, and the list is long enough to overflow either one.
+        text.enableAutoSizing = true;
+        text.fontSizeMax = fontSize;
+        text.fontSizeMin = 6f;
+        text.lineSpacing = -12f;
+        // Auto-size only constrains width while wrapping is off, so shrink for height ourselves.
+        FitTextToHeight(text, size.y);
         if (pauseTitleText != null)
         {
             text.font = pauseTitleText.font;
             text.fontSharedMaterial = pauseTitleText.fontSharedMaterial;
         }
 
-        keybindsText = text;
         return text;
+    }
+
+    /// <summary>
+    /// TMP's auto-sizing only fits width when word wrapping is disabled, so the control list can
+    /// still overrun its box vertically. Step the size down until it fits the available height.
+    /// </summary>
+    private static void FitTextToHeight(TMP_Text text, float availableHeight)
+    {
+        if (availableHeight <= 0f)
+            return;
+
+        for (int attempt = 0; attempt < 12; attempt++)
+        {
+            text.ForceMeshUpdate();
+            if (text.preferredHeight <= availableHeight || text.fontSizeMax <= text.fontSizeMin)
+                return;
+
+            text.fontSizeMax = Mathf.Max(text.fontSizeMin, text.fontSizeMax - 0.5f);
+        }
     }
 
     private TMP_Text CreatePauseOptionsText(

@@ -29,10 +29,11 @@ Core loop: Observe → Scout → Identify → Verify → Intervene → consequen
 
 | Path | Contents |
 |---|---|
-| `Assets/Scripts/` | 25 runtime gameplay scripts |
+| `Assets/Scripts/` | 34 runtime gameplay scripts (~10,300 lines) |
 | `Assets/Scripts/Scriptables/` | 5 ScriptableObject definitions (data schema) |
-| `Assets/Scripts/Editor/` | 4 editor setup/automation tools |
-| `Assets/Scenes/` | `Menu.unity`, `MainWorld.unity`, `wasp RTS Lvl.unity` |
+| `Assets/Scripts/Editor/` | 11 editor setup/automation tools (~3,400 lines) |
+| `Assets/Scripts/Controller/` | 8 legacy/other-team scripts — **not part of this stack, leave alone** |
+| `Assets/Scenes/` | `Menu.unity` (build 0), `wasp RTS Lvl.unity` (build 1), `MainWorld.unity` (**orphaned, not in build settings**), `Micro/Environment.unity`, `Micro/Systems.unity` |
 | `Assets/ScriptableObjectInstances/` | Authored data assets (see §5) |
 | `Assets/Prefabs/` | Wasp, hive, hex and UI prefabs |
 | `Assets/3D work/`, `Assets/Images . sprites/`, `Assets/Materials/` | Art assets |
@@ -82,51 +83,68 @@ Aliases exist for legacy naming: `Protein = Prey`, `Sugar = Nectar`.
 ### Hex / world grid
 | Script | Lines | Responsibility |
 |---|---:|---|
-| `HexTile.cs` | 422 | Owns per-hex state, resources and scouting. `Scout()`, `Claim()`, `Gather{Prey,Nectar,Fibre}(waspCount)`, friendly-wasp registry, `GetFriendlyWaspCount(function)` |
-| `HexMouseRaycaster.cs` | 266 | **Single unified raycaster** on the Game Manager object. Handles all click/hover picking |
+| `HexTile.cs` | 886 | Owns per-hex state, resources and scouting. `Scout()`, `Claim()`, `CaptureForEnemy(faction)`, `Gather{Prey,Nectar,Fibre}(waspCount)`, friendly/enemy wasp registries, `GetWaspFormationPosition(index, spacing, rowSpacing)` (golden-angle formation inside the hexagon) |
+| `HexProgressionManager.cs` | 124 | Hex adjacency graph and reachability. `InitializeMap()`, `GetConnectedHexes`, `AreConnected`, `CanPlayerTarget`, `CanEnemyTarget`, `NotifyFriendlyClaimed` |
+| `HexMouseRaycaster.cs` | 331 | **Single unified raycaster** on the Game Manager object. All click/hover picking; right-click issues group move orders |
+| `HexOptionsPanel.cs` | 623 | Per-hex action panel, `Open(hex)` / `Close()`, dispatch buttons |
 | `HexHoverEffect.cs` | 96 | Per-tile hover visual, `SetHovered(bool)` |
-| `HexOptionsPanel.cs` | 225 | Per-hex action panel, `Open(hex)` / `Close()` |
-| `MapViewToggle.cs` | 27 | Macro/micro map view switch |
+| `MapViewToggle.cs` | 27 | Macro/micro map view switch (**H** key) |
+
+### Combat
+| Script | Lines | Responsibility |
+|---|---:|---|
+| `HexCombatController.cs` | 576 | Per-hex battle resolution, **faction-scoped**. `NotifyOccupantsChanged()`, `IsCombatantEngaged`, `RecallFriendlyScout()`. Primary vs Secondary invasive fight each other; `MaximumAttackersPerSide` (20) caps each side |
+| `WaspCombatant.cs` | 142 | Unit health/damage/attack speed, `TickAttack`, `TakeDamage`, health bar |
+| `HiveCombatant.cs` | 83 | Hive health (300), `Initialize(hex, isEnemy)`, `TakeDamage`, `Eliminate`, hive health bar |
 
 ### Hive / colony
 | Script | Lines | Responsibility |
 |---|---:|---|
-| `HiveManagement.cs` | 448 | **Central colony controller.** Static `GetOrCreate()` singleton. Skill levels & upgrades (`TryUpgrade`, `GetEffectiveValue`), workforce counts, `TryTrainWasp`, `TryDispatchScout`, `SpawnFriendlyStartup`, colony/ecosystem meters |
-| `C_Friendly_Hive_Orc.cs` | 51 | Player hive marker, `Initialize(hex, waspPrefab)` |
-| `C_Enemy_Hive_Orc.cs` | 63 | Enemy hive marker, `Initialize(hex, waspPrefabs[])` |
-| `EnemyHiveControl.cs` | 205 | Enemy faction manager — registration, per-faction counts/alerts/destinations, `SpawnEnemyStartup()` |
+| `HiveManagement.cs` | 832 | **Central colony controller.** Static `GetOrCreate()` singleton. Skills (`TryUpgrade`, `GetEffectiveValue`), workforce counts, `TryTrainWasp`, `TryDispatchWasp`, **`TryMoveWasps`** (group move, per-role rules), `CanDispatchToHex`, colony/ecosystem meters |
+| `EnemyHiveControl.cs` | 689 | Enemy faction manager — **per-faction** registration, counts, alerts, guard dispatch, skill progression, `SpawnEnemyStartup()` |
+| `C_Enemy_Hive_Orc.cs` | 141 | Enemy hive marker + spawner, serialized `faction` (`WaspScopeRole`) |
+| `C_Friendly_Hive_Orc.cs` | 67 | Player hive marker, `Initialize(hex, waspPrefab)`, `SpawnWasp()` |
+| `C_HiveSkillsPanel.cs` | 198 | Skill tree UI. `Refresh()` builds per-stat upgrade preview (`Attack Speed 1 -> 1.25 (+0.25)`) |
 | `HiveHoverEffect.cs` | 23 | Hive hover visual |
-| `C_HiveSkillsPanel.cs` | 105 | Skill tree UI, `Refresh()` |
 
 ### Wasp units
 | Script | Lines | Responsibility |
 |---|---:|---|
-| `WaspControl.cs` | 264 | Player unit: NavMesh movement, `DispatchToHex`, `SetAssignedFunction`, `ReturnToIdle`, selection |
-| `EnemyWaspControl.cs` | 87 | Enemy unit: destination, alert state, threat level, faction |
-| `WaspInfo.cs` | 60 | Per-unit species/function data, `GetSkillValue(stat)` |
-| `WaspInfoPanel.cs` | 81 | Unit inspector UI |
+| `WaspControl.cs` | 436 | Player unit: NavMesh movement, `DispatchToHex`, **`TryIssueMoveOrder`** (works while stationed), `ReturnToHomeHive`, `ReturnToIdle`, selection. `IsAvailable` includes wasps returning home |
+| `EnemyWaspControl.cs` | 420 | Enemy unit: destination, alert state, threat level, `Faction` |
+| `WaspControlGroupManager.cs` | 518 | **Selection + orders.** Shift+click toggle, drag box, shift+drag add, control groups 1–5, double right-click clears, `TryMoveSelectedToHex` |
+| `WaspInfoPanel.cs` | 218 | Unit inspector UI |
+| `WaspRoleIconBillboard.cs` | 118 | Role pictogram above a unit, `Initialize(info)` / `Refresh()` |
+| `WorldHealthBarBillboard.cs` | 18 | Keeps world-space health bars facing the camera |
+| `WaspInfo.cs` | 81 | Per-unit species/function data, `GetSkillValue(stat)` |
 
 ### Camera
 | Script | Lines | Responsibility |
 |---|---:|---|
-| `C_MainWorldCameraFocus.cs` | 598 | **Largest runtime script.** Camera state machine: `FocusOnHex`, `FocusOnWasp`, `FocusOnHive`, `ReturnToMap`, `ReturnToPreviousView`, `ZoomCloseUp`. Also owns Escape handling |
-| `CameraCursorMovement.cs` | 203 | Edge/cursor panning, `ZoomTowardsHex`, `ResetCameraPosition` |
+| `C_MainWorldCameraFocus.cs` | 683 | Camera state machine: `FocusOnHex`, `FocusOnWasp`, `FocusOnHive`, `ReturnToMap`, `ZoomCloseUp`. Also owns Escape handling |
+| `CameraCursorMovement.cs` | 261 | Edge/cursor panning, middle-mouse drag, `ZoomTowardsHex`, `ResetCameraPosition` |
 
 ### Navigation / UI flow
 | Script | Lines | Responsibility |
 |---|---:|---|
-| `C_MainWorldNavigation.cs` | 125 | Routes selections — `SelectHex`, `SelectWasp`, `SelectHive` (overloaded friendly/enemy), panel open/close, `ReturnToMenu` |
-| `C_MainWorldOverlayNavigation.cs` | 329 | Overlay + hive-training screens, `BindSceneReferences()`, `OpenHiveTraining(hive)` |
-| `C_MainWorldHUD.cs` | 180 | HUD refresh, `ShowSelectedHex(hex)` |
+| `C_MainWorldOverlayNavigation.cs` | 1401 | **Largest runtime script.** Overlay panels, hive training, pause menu + OPTIONS screen (scroll-zoom slider and the controls list), `PauseGame`/`ResumeGame`, `BindSceneReferences()` |
+| `C_MainWorldNavigation.cs` | 138 | Routes selections — `SelectHex`, `SelectWasp`, `SelectHive` (friendly/enemy overloads), `OpenSkills`, `OpenWaspInfo` |
+| `C_MainWorldHUD.cs` | 215 | HUD refresh, `ShowSelectedHex(hex)` |
 | `C_MainWorldSelectionDisplay.cs` | 77 | Selection readout |
 | `C_MainMenu_Ctrl.cs` | 125 | Main menu, options, volume/fullscreen, quit |
 | `C_WaspSelection_Menu.cs` | 148 | Species selection screen |
 | `C_WaspSelectionCard.cs` | 119 | One species card |
 
+### Tutorial
+| Script | Lines | Responsibility |
+|---|---:|---|
+| `C_TutorialManager.cs` | 301 | `StartTutorial`, `ContinueTutorial`, `AdvanceToNextStep`, `SkipTutorial`, `CompleteTutorial`, `ResetTutorialProgress`. Blocks world input while active |
+| `TutorialStep.cs` | 15 | One authored tutorial step |
+
 ### Economy
 | Script | Lines | Responsibility |
 |---|---:|---|
-| `Resource Manager.cs` | 123 | `AddNectar/AddPrey/AddFibre`, `CanAfford(nectar, prey, fibre)`. Note the space in the filename |
+| `Resource Manager.cs` | 131 | `AddNectar/AddPrey/AddFibre`, `CanAfford(nectar, prey, fibre)`. Starting values **300 Nectar / 300 Prey / 500 Fibre**. Note the space in the filename |
 
 ---
 
@@ -192,12 +210,19 @@ scripts remain separate from this path.
 
 Menu items under **`Tools/Vespidae Wars/`**:
 
-| Menu item | Script | Lines |
-|---|---|---:|
-| Build Menu Flow | `Editor/VespidaeMenuSetup.cs` | 881 |
-| Setup Hive Workforce | `Editor/VespidaeHiveWorkforceSetup.cs` | 312 |
-| Setup Hex Data | `Editor/VespidaeHexDataSetup.cs` | 204 |
-| Setup Hive Triggers and Wasp Navigation | `Editor/VespidaePrefabSetup.cs` | 86 |
+| Script | Lines |
+|---|---:|
+| `Editor/VespidaeMenuSetup.cs` | 881 |
+| `Editor/VespidaeCombatProgressionSetup.cs` | 576 |
+| `Editor/VespidaeControlGroupsSetup.cs` | 343 |
+| `Editor/VespidaeHiveWorkforceSetup.cs` | 312 |
+| `Editor/VespidaeHexDataSetup.cs` | 307 |
+| `Editor/VespidaeHerbertHiveTrainingSetup.cs` | 285 |
+| `Editor/VespidaeHerbertHudStyleSetup.cs` | 225 |
+| `Editor/VespidaeHerbertHexOptionsSetup.cs` | 213 |
+| `Editor/VespidaeHerbertResourceBarSetup.cs` | 147 |
+| `Editor/VespidaePrefabSetup.cs` | 86 |
+| `Editor/VespidaeHerbertPauseMenuSetup.cs` | 38 |
 
 These are scene/data generators — they author GameObjects and assets rather than
 running at play time.
@@ -213,6 +238,17 @@ running at play time.
 - Only one `HexMouseRaycaster` should exist; duplicates cause double-picking.
 - Solo memory contains **superseded** bee/pollen/honey design entries from before the
   2026-07-14 scope change. Prefer entries dated 2026-07-14 or later.
+- **The scenes are saved in BINARY format.** Text-grepping a `.unity` file for object
+  names silently returns nothing. Query live Unity instead — a grep miss is not evidence.
+- **Changing a default in code does not change an already-serialized value.** Scene and
+  prefab instances keep whatever was saved; edit them in the Inspector or via
+  `SerializedObject`. This has bitten `maximumSelection` already.
+- The pause menu is rebuilt every run (`pauseMenu` is not serialized). A copy saved into
+  a scene would duplicate and show through as a ghost; `DestroyStalePauseMenus()` guards this.
+- `Assets/Forge Horizon/.../Player.controller` logs two harmless `Broken text PPtr`
+  errors — two orphaned animator transitions pointing at a deleted state. Third-party, ignored.
+- `WaspControl.IsAvailable` is true while a unit is **returning home**, so it can be
+  re-tasked mid-flight. `EnemyWaspControl.IsAvailable` is Idle-only — they differ deliberately.
 
 ---
 

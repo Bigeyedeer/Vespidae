@@ -45,7 +45,12 @@ public class WaspControl : MonoBehaviour
     public HexTile TargetHex => targetHex;
     public HexTile StationedHex => stationedHex;
     public WaspWorkforceState WorkforceState => workforceState;
-    public bool IsAvailable => workforceState == WaspWorkforceState.Idle;
+    /// <summary>
+    /// A wasp on its way home already counts as free work: it can be counted in the available
+    /// pool and redirected straight to another hex without waiting to land first.
+    /// </summary>
+    public bool IsAvailable => workforceState == WaspWorkforceState.Idle || returningToHive;
+    public bool IsReturningHome => returningToHive;
     public NavMeshAgent NavigationAgent => navMeshAgent;
     public WaspCombatant Combatant => combatant;
     public bool IsAlive => combatant == null || combatant.IsAlive;
