@@ -28,6 +28,9 @@ public class CameraCursorMovement : MonoBehaviour
     private Vector3 movementVelocity;
 
     private bool movementEnabled = true;
+    [SerializeField, Tooltip("Optional. Found automatically. Used to freeze the camera during box-selection.")]
+    private WaspControlGroupManager controlGroupManager;
+
     private bool isDragging;
     private Vector2 previousDragPosition;
     private float hexZoomVelocity;
@@ -48,6 +51,16 @@ public class CameraCursorMovement : MonoBehaviour
         isDragging = false;
         if (hexMouseRaycaster == null)
             hexMouseRaycaster = FindFirstObjectByType<HexMouseRaycaster>();
+        if (controlGroupManager == null)
+            controlGroupManager = FindFirstObjectByType<WaspControlGroupManager>();
+    }
+
+    private bool IsBoxSelecting()
+    {
+        if (controlGroupManager == null)
+            controlGroupManager = FindFirstObjectByType<WaspControlGroupManager>();
+
+        return controlGroupManager != null && controlGroupManager.IsDragging;
     }
 
     private void LateUpdate()
@@ -55,6 +68,16 @@ public class CameraCursorMovement : MonoBehaviour
         if (!movementEnabled || Mouse.current == null)
         {
             isDragging = false;
+            hexZoomVelocity = 0f;
+            return;
+        }
+
+        // Hold the camera still while the player is box-selecting, otherwise dragging near the
+        // screen edge pans the map out from under the selection.
+        if (IsBoxSelecting())
+        {
+            isDragging = false;
+            movementVelocity = Vector3.zero;
             hexZoomVelocity = 0f;
             return;
         }

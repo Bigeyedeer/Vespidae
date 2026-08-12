@@ -95,18 +95,19 @@ public class C_MainWorldHUD : MonoBehaviour
         if (hive == null)
             return;
 
-        SetText("ResourceLabel_3", "Workers");
+        // The Workers card was removed from the resource bar: the colony panel below already
+        // reports the same headcount in more detail.
         SetText("ResourceLabel_4", "Strength");
         SetText("ResourceLabel_5", "Brood");
-        SetText("Resource_3", $"{hive.Workers:0}");
         SetText("Resource_4", $"{hive.ColonyStrength:0}");
         SetText("Resource_5", $"{hive.BroodProgress:0}/{hive.BroodCapacity:0}");
+
+        // Brood and Containment chips were removed from the colony panel. "Attackers" is the
+        // player-facing name for WaspFunction.Guard.
         SetText("RoleChipLabel_0", $"Scout {hive.GetTotalWaspCount(WaspFunction.Scout)}");
         SetText("RoleChipLabel_1", $"Forager {hive.GetTotalWaspCount(WaspFunction.Forager)}");
         SetText("RoleChipLabel_2", $"Builder {hive.GetTotalWaspCount(WaspFunction.Builder)}");
-        SetText("RoleChipLabel_3", $"Brood {hive.GetTotalWaspCount(WaspFunction.BroodCaretaker)}");
-        SetText("RoleChipLabel_4", $"Guard {hive.GetTotalWaspCount(WaspFunction.Guard)}");
-        SetText("RoleChipLabel_5", $"Contain {hive.GetTotalWaspCount(WaspFunction.Containment)}");
+        SetText("RoleChipLabel_4", $"Attackers {hive.GetTotalWaspCount(WaspFunction.Guard)}");
     }
 
     private void RefreshEcosystem()
@@ -171,13 +172,18 @@ public class C_MainWorldHUD : MonoBehaviour
     {
         GameObject target = FindSceneObject(objectName);
         RectTransform rect = target != null ? target.GetComponent<RectTransform>() : null;
-        if (rect != null)
-        {
-            const float maximumWidth = 390f;
-            Vector2 size = rect.sizeDelta;
-            size.x = maximumWidth * Mathf.Clamp01(value);
-            rect.sizeDelta = size;
-        }
+        if (rect == null)
+            return;
+
+        // Measure the matching bar background rather than assuming a width, so resizing the
+        // panel in the scene cannot leave the fill over- or under-shooting its track.
+        GameObject background = FindSceneObject(objectName.Replace("Fill", "Background"));
+        RectTransform backgroundRect = background != null ? background.GetComponent<RectTransform>() : null;
+        float maximumWidth = backgroundRect != null ? backgroundRect.sizeDelta.x : 390f;
+
+        Vector2 size = rect.sizeDelta;
+        size.x = maximumWidth * Mathf.Clamp01(value);
+        rect.sizeDelta = size;
     }
 
     private void CacheSceneObjects()

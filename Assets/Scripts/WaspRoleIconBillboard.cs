@@ -9,6 +9,12 @@ public sealed class WaspRoleIconBillboard : MonoBehaviour
     [SerializeField] private Canvas billboardCanvas;
     [SerializeField] private Image iconImage;
 
+    [Header("Faction Tint")]
+    [SerializeField, Tooltip("Tint applied to the role icon for the player's own wasps.")]
+    private Color nativeTint = new Color(1f, 0.87f, 0.35f, 1f);
+    [SerializeField, Tooltip("Tint applied to invasive wasps so they read as hostile at a glance.")]
+    private Color invasiveTint = new Color(0.92f, 0.29f, 0.24f, 1f);
+
     private C_MainWorldCameraFocus cameraFocus;
     private bool subscribed;
 
@@ -72,6 +78,10 @@ public sealed class WaspRoleIconBillboard : MonoBehaviour
         Sprite icon = waspInfo != null ? waspInfo.RoleIcon : null;
         iconImage.sprite = icon;
         iconImage.enabled = icon != null;
+
+        // Same pictogram, different colour, so friend and foe are separable without reading it.
+        bool invasive = waspInfo != null && !waspInfo.IsNative;
+        iconImage.color = invasive ? invasiveTint : nativeTint;
     }
 
     private Camera GetActiveCamera()

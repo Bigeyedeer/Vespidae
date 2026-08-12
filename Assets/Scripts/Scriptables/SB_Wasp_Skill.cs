@@ -85,6 +85,16 @@ public class SB_Wasp_Skill : ScriptableObject
     [SerializeField] private float maximumHealthPerLevel = 15f;
     [SerializeField] private float attackDamagePerLevel = 2f;
 
+    [Header("Upkeep")]
+    [SerializeField, Min(0f), Tooltip("Nectar this role consumes per wasp on each upkeep tick.")]
+    private float upkeepNectarPerTick = 0.25f;
+    [SerializeField, Min(0f), Tooltip("Prey this role consumes per wasp on each upkeep tick.")]
+    private float upkeepPreyPerTick;
+
+    [Header("Upgrade Cost Curve")]
+    [SerializeField, Range(1f, 3f), Tooltip("1 = linear (cost x level). Higher values make the last levels much more expensive.")]
+    private float upgradeCostExponent = 1.6f;
+
     [Header("Upgrade Preview")]
     [SerializeField, Tooltip("Stats listed on this skill's upgrade card. Leave empty to use the sensible defaults for this role.")]
     private List<WaspSkillStat> upgradeStats = new List<WaspSkillStat>();
@@ -98,14 +108,22 @@ public class SB_Wasp_Skill : ScriptableObject
     public WaspSkillCost TrainingCost => trainingCost;
     public WaspSkillCost HiveConstructionCost => hiveConstructionCost;
 
+    public float UpkeepNectarPerTick => upkeepNectarPerTick;
+    public float UpkeepPreyPerTick => upkeepPreyPerTick;
+
+    /// <summary>
+    /// Cost of the next level. The curve is exponential rather than linear so the final levels are
+    /// a real investment; a flat "cost x level" made maxing out trivial once the economy matured.
+    /// </summary>
     public WaspSkillCost GetUpgradeCost(int nextLevel)
     {
         int level = Mathf.Max(1, nextLevel);
+        float scale = Mathf.Pow(level, Mathf.Max(1f, upgradeCostExponent));
         return new WaspSkillCost(
-            upgradeCost.nectar * level,
-            upgradeCost.prey * level,
-            upgradeCost.fibre * level,
-            upgradeCost.skillPoints * level);
+            upgradeCost.nectar * scale,
+            upgradeCost.prey * scale,
+            upgradeCost.fibre * scale,
+            Mathf.RoundToInt(upgradeCost.skillPoints * scale));
     }
 
     public float GetEffectiveValue(WaspSkillStat stat, int level)

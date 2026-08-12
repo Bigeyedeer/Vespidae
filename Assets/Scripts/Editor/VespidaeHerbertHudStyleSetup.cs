@@ -14,11 +14,11 @@ public static class VespidaeHerbertHudStyleSetup
     private const string PanelShellName = "HerbertSquarishPanel";
     private const string ButtonVisualName = "HerbertButtonVisual";
 
+    // ObjectivePanel and TerritoryPanel were removed from the HUD to reduce clutter; the hex menu
+    // already carries the territory information. Listing them here would recreate them.
     private static readonly string[] PanelNames =
     {
-        "ObjectivePanel",
         "HabitatPanel",
-        "TerritoryPanel",
         "ColonyPanel"
     };
 

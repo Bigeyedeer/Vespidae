@@ -38,6 +38,10 @@ public class EnemyHiveControl : MonoBehaviour
     [SerializeField, Min(60f)] private float enemySkillProgressionInterval = 600f;
     [SerializeField, Range(1, 20)] private int maximumIdleGuardReserve = 20;
 
+    [Header("Faction Aggression Rules")]
+    [SerializeField] private SB_Enemy_Faction_Rules primaryInvasiveRules;
+    [SerializeField] private SB_Enemy_Faction_Rules secondaryInvasiveRules;
+
     private readonly Dictionary<WaspScopeRole, List<EnemyWaspControl>> factions = new Dictionary<WaspScopeRole, List<EnemyWaspControl>>();
     private readonly List<C_Enemy_Hive_Orc> spawnedEnemyHives = new List<C_Enemy_Hive_Orc>();
     private readonly Dictionary<C_Enemy_Hive_Orc, float> guardTrainingTimers = new Dictionary<C_Enemy_Hive_Orc, float>();
@@ -47,6 +51,10 @@ public class EnemyHiveControl : MonoBehaviour
     private readonly Dictionary<WaspScopeRole, float> skillProgressionTimers = new Dictionary<WaspScopeRole, float>();
     private readonly Dictionary<WaspScopeRole, int> progressionFunctionIndexes = new Dictionary<WaspScopeRole, int>();
     private readonly WaspFunction[] progressionFunctions = { WaspFunction.Scout, WaspFunction.Guard };
+    private readonly Dictionary<WaspScopeRole, float> factionStrength = new Dictionary<WaspScopeRole, float>();
+    private readonly Dictionary<WaspScopeRole, float> strengthTimers = new Dictionary<WaspScopeRole, float>();
+    private readonly Dictionary<WaspScopeRole, float> attackTimers = new Dictionary<WaspScopeRole, float>();
+    private readonly Dictionary<WaspScopeRole, float> attackIntervals = new Dictionary<WaspScopeRole, float>();
     private bool enemyStartupSpawned;
     private float decisionTimer;
     private float scoutTimer;
@@ -110,6 +118,202 @@ public class EnemyHiveControl : MonoBehaviour
             scoutInterval = GetNextExpansionInterval();
             RunScoutExpansion();
         }
+
+        UpdateFactionStrength(WaspScopeRole.PrimaryInvasive);
+        UpdateFactionStrength(WaspScopeRole.SecondaryInvasive);
+        UpdateAggression(WaspScopeRole.PrimaryInvasive);
+        UpdateAggression(WaspScopeRole.SecondaryInvasive);
+        // Claims are started by HexCombatController, which is the authority on what is happening
+        // on a tile. Starting them here as well gave two sources of truth for the same decision.
+    }
+
+    public SB_Enemy_Faction_Rules GetFactionRules(WaspScopeRole faction)
+    {
+        return NormalizeEnemyFaction(faction) == WaspScopeRole.SecondaryInvasive
+            ? secondaryInvasiveRules
+            : primaryInvasiveRules;
+    }
+
+    public float GetFactionStrength(WaspScopeRole faction)
+    {
+        faction = NormalizeEnemyFaction(faction);
+        return factionStrength.TryGetValue(faction, out float value) ? value : 0f;
+    }
+
+    /// <summary>
+    /// Strength is a single abstract budget that grows with how much land the faction holds, so a
+    /// faction left alone becomes genuinely more dangerous over time.
+    /// </summary>
+    private void UpdateFactionStrength(WaspScopeRole faction)
+    {
+        faction = NormalizeEnemyFaction(faction);
+        SB_Enemy_Faction_Rules rules = GetFactionRules(faction);
+        if (rules == null)
+            return;
+
+        if (!factionStrength.ContainsKey(faction))
+            factionStrength[faction] = rules.StartingStrength;
+
+        strengthTimers.TryGetValue(faction, out float timer);
+        timer += Time.deltaTime;
+        if (timer < rules.StrengthTickSeconds)
+        {
+            strengthTimers[faction] = timer;
+            return;
+        }
+
+        strengthTimers[faction] = 0f;
+        float gain = CountOwnedHexes(faction) * rules.StrengthPerOwnedHexPerTick;
+        factionStrength[faction] = Mathf.Min(rules.MaximumStrength, factionStrength[faction] + gain);
+    }
+
+    /// <summary>
+    /// Decides whether this faction attacks player territory. Gated on time, held land, available
+    /// attackers and banked strength, then fired on a randomised interval so it does not tick like
+    /// a metronome.
+    /// </summary>
+    private void UpdateAggression(WaspScopeRole faction)
+    {
+        faction = NormalizeEnemyFaction(faction);
+        SB_Enemy_Faction_Rules rules = GetFactionRules(faction);
+        if (rules == null)
+            return;
+
+        if (!attackIntervals.ContainsKey(faction))
+            attackIntervals[faction] = rules.GetNextAttackInterval();
+
+        attackTimers.TryGetValue(faction, out float timer);
+        attackTimers[faction] = timer + Time.deltaTime;
+        if (attackTimers[faction] < attackIntervals[faction])
+            return;
+
+        attackTimers[faction] = 0f;
+        attackIntervals[faction] = rules.GetNextAttackInterval();
+
+        if (enemyElapsedTime < rules.EarliestAggressionSeconds)
+            return;
+        if (CountOwnedHexes(faction) < rules.MinimumHexesBeforeAggression)
+            return;
+        if (CountIdleAttackers(faction) < rules.MinimumAttackersToAttack)
+            return;
+        if (GetFactionStrength(faction) < rules.AttackCost)
+            return;
+
+        HexTile target = ChooseAttackTarget(faction);
+        if (target == null)
+            return;
+
+        factionStrength[faction] = Mathf.Max(0f, GetFactionStrength(faction) - rules.AttackCost);
+        DispatchGuards(target, faction);
+    }
+
+    /// <summary>
+    /// Picks a player-owned hex adjacent to land this faction already holds. Expansion stays
+    /// block-by-block, so the front only reaches the player once it borders them.
+    /// </summary>
+    private HexTile ChooseAttackTarget(WaspScopeRole faction)
+    {
+        if (HexProgressionManager.Instance == null)
+            return null;
+
+        faction = NormalizeEnemyFaction(faction);
+        List<HexTile> candidates = new List<HexTile>();
+
+        foreach (HexTile source in GetOwnedHexes(faction))
+        {
+            foreach (HexTile neighbour in HexProgressionManager.Instance.GetConnectedHexes(source))
+            {
+                if (neighbour == null || neighbour.State != HexTile.HexState.Owned)
+                    continue;
+                if (!candidates.Contains(neighbour))
+                    candidates.Add(neighbour);
+            }
+        }
+
+        if (candidates.Count == 0)
+            return null;
+
+        // Prefer the softest target so the faction reads as opportunistic rather than suicidal.
+        candidates.Sort((left, right) =>
+            left.GetFriendlyWaspCount(WaspFunction.Guard).CompareTo(right.GetFriendlyWaspCount(WaspFunction.Guard)));
+        return candidates[0];
+    }
+
+    /// <summary>
+    /// Starts a claim on any player hex where this faction has an attacker and the player does not.
+    /// </summary>
+    private void UpdateEnemyClaims()
+    {
+        foreach (HexTile tile in FindObjectsByType<HexTile>(FindObjectsSortMode.None))
+        {
+            if (tile == null || tile.State != HexTile.HexState.Owned)
+                continue;
+            if (tile.GetFriendlyWaspCount(WaspFunction.Guard) > 0)
+                continue;
+
+            WaspScopeRole faction = GetOccupyingAttackerFaction(tile);
+            if (faction == WaspScopeRole.NativePlayer)
+                continue;
+
+            SB_Enemy_Faction_Rules rules = GetFactionRules(faction);
+            if (rules != null)
+                tile.BeginEnemyClaim(faction, rules.HexClaimSeconds);
+        }
+    }
+
+    private WaspScopeRole GetOccupyingAttackerFaction(HexTile tile)
+    {
+        foreach (EnemyWaspControl wasp in tile.EnemyWasps)
+        {
+            if (wasp != null && wasp.AssignedFunction == WaspFunction.Guard)
+                return NormalizeEnemyFaction(wasp.Faction);
+        }
+
+        return WaspScopeRole.NativePlayer;
+    }
+
+    private List<HexTile> GetOwnedHexes(WaspScopeRole faction)
+    {
+        faction = NormalizeEnemyFaction(faction);
+        List<HexTile> owned = new List<HexTile>();
+        foreach (HexTile tile in FindObjectsByType<HexTile>(FindObjectsSortMode.None))
+        {
+            if (tile != null &&
+                tile.State == HexTile.HexState.Enemy &&
+                NormalizeEnemyFaction(tile.EnemyOwnerFaction) == faction)
+            {
+                owned.Add(tile);
+            }
+        }
+
+        foreach (C_Enemy_Hive_Orc hive in spawnedEnemyHives)
+        {
+            if (hive != null && hive.OwnerHex != null &&
+                NormalizeEnemyFaction(hive.Faction) == faction &&
+                !owned.Contains(hive.OwnerHex))
+            {
+                owned.Add(hive.OwnerHex);
+            }
+        }
+
+        return owned;
+    }
+
+    private int CountOwnedHexes(WaspScopeRole faction)
+    {
+        return GetOwnedHexes(faction).Count;
+    }
+
+    private int CountIdleAttackers(WaspScopeRole faction)
+    {
+        int count = 0;
+        foreach (EnemyWaspControl wasp in GetFaction(NormalizeEnemyFaction(faction)))
+        {
+            if (wasp != null && wasp.AssignedFunction == WaspFunction.Guard && wasp.IsAvailable)
+                count++;
+        }
+
+        return count;
     }
 
     private void OnDestroy()

@@ -43,10 +43,14 @@ public class HiveManagement : MonoBehaviour
     [SerializeField, Min(0.1f)] private float baseHiveConstructionTime = 5f;
 
     [Header("Colony Upkeep")]
+    [SerializeField] private SB_Colony_Upkeep_Rules upkeepRules;
     [SerializeField] private float upkeepInterval = 10f;
     [SerializeField] private float nectarUpkeepPerWorker = 0.25f;
 
     private float upkeepTimer;
+    private float starvedSeconds;
+    private float starvationDeathTimer;
+    private bool upkeepUnpaid;
     
     [Header("Friendly Startup Spawning")]
     [SerializeField] private GameObject friendlyHivePrefab;
@@ -126,23 +130,144 @@ public class HiveManagement : MonoBehaviour
     {
         upkeepTimer += Time.deltaTime;
 
-        if (upkeepTimer >= upkeepInterval)
+        if (upkeepTimer >= UpkeepInterval)
         {
             upkeepTimer = 0f;
             ApplyUpkeep();
         }
+
+        UpdateStarvation();
     }
-    
+
+    private float UpkeepInterval => upkeepRules != null ? upkeepRules.UpkeepTickSeconds : upkeepInterval;
+
+    /// <summary>True while the colony could not pay its last upkeep bill.</summary>
+    public bool IsStarving => upkeepUnpaid;
+
+    /// <summary>
+    /// 0 when fed, rising to 1 as starvation bites. Stats are blended toward their level-1 values
+    /// by this amount.
+    /// </summary>
+    public float StarvationSeverity =>
+        upkeepRules != null ? upkeepRules.GetSeverity(starvedSeconds) : 0f;
+
+    /// <summary>Seconds the colony has gone without paying upkeep.</summary>
+    public float StarvedSeconds => starvedSeconds;
+
+    /// <summary>Training is the first thing to stop when the colony cannot feed itself.</summary>
+    public bool CanAffordUpkeep => !upkeepUnpaid;
+
+    /// <summary>
+    /// Charges upkeep for every living wasp, using each role's own rate. If the colony cannot
+    /// cover the bill nothing is spent and the starvation clock starts.
+    /// </summary>
     private void ApplyUpkeep()
     {
         ResourceManager resources = GetResourceManager();
-
         if (resources == null)
             return;
 
-        float upkeepCost = workers * nectarUpkeepPerWorker;
+        GetUpkeepCost(out float nectarCost, out float preyCost);
+        if (nectarCost <= 0f && preyCost <= 0f)
+        {
+            upkeepUnpaid = false;
+            return;
+        }
 
-        resources.TrySpend(upkeepCost, 0f, 0f);
+        if (resources.TrySpend(nectarCost, preyCost, 0f))
+        {
+            upkeepUnpaid = false;
+            return;
+        }
+
+        // Cannot pay: leave the resources alone and let the ladder take over.
+        upkeepUnpaid = true;
+    }
+
+    /// <summary>
+    /// Total upkeep per tick, summed per role so different roles can cost different amounts.
+    /// Falls back to the flat per-worker rate when a role has no skill asset.
+    /// </summary>
+    public void GetUpkeepCost(out float nectar, out float prey)
+    {
+        nectar = 0f;
+        prey = 0f;
+        CleanupFriendlyWasps();
+
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp == null || !wasp.IsAlive)
+                continue;
+
+            SB_Wasp_Skill definition = GetSkillDefinition(wasp.AssignedFunction);
+            if (definition == null)
+            {
+                nectar += nectarUpkeepPerWorker;
+                continue;
+            }
+
+            nectar += definition.UpkeepNectarPerTick;
+            prey += definition.UpkeepPreyPerTick;
+        }
+    }
+
+    /// <summary>
+    /// Advances or unwinds the starvation clock and kills wasps once the shortage has gone on too
+    /// long. Deaths are spaced out so the colony withers rather than vanishing at once.
+    /// </summary>
+    private void UpdateStarvation()
+    {
+        if (upkeepRules == null)
+            return;
+
+        if (upkeepUnpaid)
+        {
+            starvedSeconds += Time.deltaTime;
+        }
+        else if (starvedSeconds > 0f)
+        {
+            starvedSeconds = Mathf.Max(0f, starvedSeconds - Time.deltaTime * upkeepRules.RecoveryRate);
+            starvationDeathTimer = 0f;
+        }
+
+        if (!upkeepUnpaid || starvedSeconds < upkeepRules.StarvationDeathSeconds)
+            return;
+
+        starvationDeathTimer += Time.deltaTime;
+        if (starvationDeathTimer < upkeepRules.StarvationDeathIntervalSeconds)
+            return;
+
+        starvationDeathTimer = 0f;
+        StarveOneWasp();
+    }
+
+    private void StarveOneWasp()
+    {
+        CleanupFriendlyWasps();
+
+        // Take a non-combat role first so a starving colony does not lose its defence instantly.
+        WaspControl victim = null;
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp == null || !wasp.IsAlive || wasp.IsCombatLocked)
+                continue;
+
+            if (wasp.AssignedFunction != WaspFunction.Guard)
+            {
+                victim = wasp;
+                break;
+            }
+
+            if (victim == null)
+                victim = wasp;
+        }
+
+        if (victim == null)
+            return;
+
+        Debug.Log($"A {victim.AssignedFunction} starved - the colony cannot feed its wasps.");
+        victim.DestroyFromCombat();
+        NotifyWorkforceChanged();
     }
     
     
@@ -209,7 +334,30 @@ public class HiveManagement : MonoBehaviour
     public float GetEffectiveValue(WaspFunction function, WaspSkillStat stat)
     {
         SB_Wasp_Skill definition = GetSkillDefinition(function);
-        return definition == null ? 1f : definition.GetEffectiveValue(stat, GetSkillLevel(function));
+        if (definition == null)
+            return 1f;
+
+        float value = definition.GetEffectiveValue(stat, GetSkillLevel(function));
+
+        // A starving colony loses the benefit of its upgrades on the stats that show in the field.
+        // The value decays toward what level 1 would give - never to zero, so wasps still function.
+        float severity = StarvationSeverity;
+        if (severity <= 0f || !IsStarvationAffected(stat))
+            return value;
+
+        float baseline = definition.GetEffectiveValue(stat, 1);
+
+        // Starvation may only take upgrades away. A colony sitting at or below the baseline has
+        // nothing left to lose, and must never be *improved* by going hungry.
+        if (baseline >= value)
+            return value;
+
+        return Mathf.Lerp(value, baseline, severity);
+    }
+
+    private static bool IsStarvationAffected(WaspSkillStat stat)
+    {
+        return stat == WaspSkillStat.MovementSpeed || stat == WaspSkillStat.AttackSpeed;
     }
 
     public bool CanUpgrade(WaspFunction function)
@@ -364,6 +512,11 @@ public class HiveManagement : MonoBehaviour
         SB_Wasp_Skill definition = GetSkillDefinition(function);
         ResourceManager resources = GetResourceManager();
         if (hive == null || definition == null || resources == null)
+            return false;
+
+        // First rung of the starvation ladder: no new mouths while the colony cannot feed the
+        // ones it already has.
+        if (upkeepUnpaid)
             return false;
 
         WaspSkillCost cost = definition.TrainingCost;

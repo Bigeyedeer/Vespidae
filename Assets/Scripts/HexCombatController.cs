@@ -29,6 +29,35 @@ public class HexCombatController : MonoBehaviour
     public int FriendlyAttackerCount => GetFriendlyAttackers().Count;
     public int EnemyAttackerCount => GetEnemyAttackers().Count;
     public float ResponseTimeRemaining => responseActive ? responseTimeRemaining : 0f;
+    public bool HasActiveBattle => conflictState != HexConflictState.None;
+
+    /// <summary>
+    /// Who is winning the fight on this hex, as 0..1 from the player's point of view.
+    /// 1 means the invaders are wiped out, 0 means the player's attackers are.
+    /// Weighted by remaining health rather than headcount so a wounded group reads as losing.
+    /// </summary>
+    public float BattleBalance
+    {
+        get
+        {
+            float friendly = SumHealth(GetFriendlyAttackers());
+            float enemy = SumHealth(GetEnemyAttackers());
+            float total = friendly + enemy;
+            return total <= 0f ? 0.5f : friendly / total;
+        }
+    }
+
+    private static float SumHealth(List<WaspCombatant> combatants)
+    {
+        float total = 0f;
+        foreach (WaspCombatant combatant in combatants)
+        {
+            if (combatant != null && combatant.IsAlive)
+                total += combatant.CurrentHealth;
+        }
+
+        return total;
+    }
     public event Action<HexCombatController> ConflictChanged;
 
     private void Awake()
@@ -182,6 +211,17 @@ public class HexCombatController : MonoBehaviour
             return;
         }
 
+        // Taking player territory ALWAYS runs the claim timer, whatever the situation on the tile.
+        // The player must get a window to respond rather than losing the hex the instant an
+        // invasive attacker sets foot on it. HexTile performs the capture when the clock expires.
+        if (hexTile.State == HexTile.HexState.Owned)
+        {
+            ResetResponseWindow();
+            SetConflictState(HexConflictState.None);
+            hexTile.BeginEnemyClaim(faction, ResolveClaimSeconds(faction));
+            return;
+        }
+
         bool friendlyGuardIncoming = GetFriendlyAssignedAttackerCount() > 0;
         if (hexTile.HasFriendlyScout || friendlyGuardIncoming)
         {
@@ -200,9 +240,7 @@ public class HexCombatController : MonoBehaviour
         }
 
         ResetResponseWindow();
-        if (hexTile.State == HexTile.HexState.Owned)
-            ResolveVictory(false, attackers, faction);
-        else if (hexTile.State == HexTile.HexState.Enemy && hexTile.EnemyOwnerFaction != faction)
+        if (hexTile.State == HexTile.HexState.Enemy && hexTile.EnemyOwnerFaction != faction)
             ResolveEnemyFactionVictory(faction, attackers);
         else
             SetConflictState(HexConflictState.None);
@@ -431,6 +469,18 @@ public class HexCombatController : MonoBehaviour
         return Mathf.Max(0, assigned - GetEnemyAttackers(faction).Count);
     }
 
+    /// <summary>
+    /// Claim length for the attacking faction, from its rules asset. Falls back to a sane default
+    /// so a missing asset cannot make hexes flip instantly.
+    /// </summary>
+    private float ResolveClaimSeconds(WaspScopeRole faction)
+    {
+        SB_Enemy_Faction_Rules rules = EnemyHiveControl.Instance != null
+            ? EnemyHiveControl.Instance.GetFactionRules(faction)
+            : null;
+        return rules != null ? rules.HexClaimSeconds : 40f;
+    }
+
     private List<WaspCombatant> GetFriendlyAttackers()
     {
         List<WaspCombatant> result = new List<WaspCombatant>();
@@ -443,7 +493,37 @@ public class HexCombatController : MonoBehaviour
             if (combatant != null && combatant.IsAttacker && combatant.IsAlive)
                 result.Add(combatant);
         }
+
+        AddFriendlyGarrison(result);
         return result;
+    }
+
+    /// <summary>
+    /// Attackers idling at their home hive only count as "stationed" once they have been dispatched
+    /// somewhere. Without this they sit on their own hex during an attack and never defend it, and
+    /// the player has to re-order them onto the tile they are already standing on.
+    /// </summary>
+    private void AddFriendlyGarrison(List<WaspCombatant> result)
+    {
+        HiveManagement hive = HiveManagement.Instance;
+        if (hive == null)
+            return;
+
+        foreach (WaspControl wasp in hive.FriendlyWasps)
+        {
+            if (wasp == null || !wasp.IsAlive)
+                continue;
+
+            // Only units sitting at home with no posting elsewhere.
+            if (wasp.StationedHex != null || wasp.TargetHex != null)
+                continue;
+            if (wasp.HomeHive == null || wasp.HomeHive.OwnerHex != hexTile)
+                continue;
+
+            WaspCombatant combatant = wasp.Combatant;
+            if (combatant != null && combatant.IsAttacker && combatant.IsAlive && !result.Contains(combatant))
+                result.Add(combatant);
+        }
     }
 
     private List<WaspCombatant> GetEnemyAttackers()
@@ -466,7 +546,34 @@ public class HexCombatController : MonoBehaviour
             if (combatant != null && wasp.Faction == faction && combatant.IsAttacker && combatant.IsAlive)
                 result.Add(combatant);
         }
+
+        AddEnemyGarrison(result, faction);
         return result;
+    }
+
+    /// <summary>
+    /// Mirror of <see cref="AddFriendlyGarrison"/>: invasive attackers sitting at their own hive
+    /// defend it, so an enemy home hex is not free to walk into either.
+    /// </summary>
+    private void AddEnemyGarrison(List<WaspCombatant> result, WaspScopeRole faction)
+    {
+        EnemyHiveControl control = EnemyHiveControl.Instance;
+        if (control == null || hexTile == null)
+            return;
+
+        foreach (EnemyWaspControl wasp in control.GetFaction(faction))
+        {
+            if (wasp == null)
+                continue;
+            if (wasp.StationedHex != null || wasp.TargetHex != null)
+                continue;
+            if (wasp.HomeHive == null || wasp.HomeHive.OwnerHex != hexTile)
+                continue;
+
+            WaspCombatant combatant = wasp.Combatant;
+            if (combatant != null && combatant.IsAttacker && combatant.IsAlive && !result.Contains(combatant))
+                result.Add(combatant);
+        }
     }
 
     private List<WaspScopeRole> GetEnemyFactionsWithAttackers()

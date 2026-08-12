@@ -67,6 +67,11 @@ public class HexTile : MonoBehaviour
     private bool scoutingInProgress;
     private float scoutingTimeRemaining;
 
+    private bool claimInProgress;
+    private float claimTimeRemaining;
+    private float claimDuration;
+    private WaspScopeRole claimingFaction = WaspScopeRole.PrimaryInvasive;
+
     // 137.507764 degrees - the golden angle, which is what makes sunflower placement spread evenly.
     private const float GoldenAngleRadians = 2.39996323f;
 
@@ -129,6 +134,13 @@ public class HexTile : MonoBehaviour
     public bool IsScouting => scoutingInProgress;
     public float ScoutingDuration => scoutingDuration;
     public float ScoutingTimeRemaining => scoutingTimeRemaining;
+    public bool IsBeingClaimed => claimInProgress;
+    public WaspScopeRole ClaimingFaction => claimingFaction;
+    public float ClaimTimeRemaining => claimTimeRemaining;
+    public float ClaimDuration => claimDuration;
+    /// <summary>0 at the start of a claim, 1 the moment the hex flips.</summary>
+    public float ClaimProgress => claimDuration <= 0f ? 0f : 1f - Mathf.Clamp01(claimTimeRemaining / claimDuration);
+    public event Action<HexTile> ClaimChanged;
     public event Action<HexTile> TerritoryInformationChanged;
     public event Action<HexTile> ResourcesChanged;
     public event Action<HexTile> OccupantsChanged;
@@ -211,6 +223,102 @@ public class HexTile : MonoBehaviour
     {
         UpdateScouting();
         UpdateGathering();
+        UpdateEnemyClaim();
+    }
+
+    /// <summary>
+    /// Counts down an invasive faction's claim on this hex. The claim only runs while that faction
+    /// has an attacker here and the player has none — sending attackers of your own cancels it and
+    /// hands the hex over to the normal combat path instead.
+    /// </summary>
+    private void UpdateEnemyClaim()
+    {
+        if (!claimInProgress)
+            return;
+
+        if (!CanClaimContinue())
+        {
+            CancelEnemyClaim();
+            return;
+        }
+
+        claimTimeRemaining = Mathf.Max(0f, claimTimeRemaining - Time.deltaTime);
+        ClaimChanged?.Invoke(this);
+
+        if (claimTimeRemaining > 0f)
+            return;
+
+        WaspScopeRole faction = claimingFaction;
+        CancelEnemyClaim();
+        CaptureForEnemy(faction);
+    }
+
+    private bool CanClaimContinue()
+    {
+        if (state != HexState.Owned)
+            return false;
+
+        // Defer to the combat controller wherever possible: it is the authority on who is actually
+        // fighting here, and it counts units garrisoned at their own hive. Using a different rule
+        // here let the claim and the battle disagree about who was standing on the tile.
+        if (combatController != null)
+        {
+            if (combatController.FriendlyAttackerCount > 0)
+                return false;
+
+            return combatController.EnemyAttackerCount > 0;
+        }
+
+        if (GetFriendlyWaspCount(WaspFunction.Guard) > 0)
+            return false;
+
+        return GetEnemyGuardCount(claimingFaction) > 0;
+    }
+
+    private int GetEnemyGuardCount(WaspScopeRole faction)
+    {
+        enemyWasps.RemoveWhere(wasp => wasp == null);
+        int count = 0;
+        foreach (EnemyWaspControl wasp in enemyWasps)
+        {
+            if (wasp != null &&
+                wasp.AssignedFunction == WaspFunction.Guard &&
+                NormalizeEnemyFaction(wasp.Faction) == NormalizeEnemyFaction(faction))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Starts (or keeps) an invasive claim on this player-owned hex. Safe to call repeatedly.
+    /// </summary>
+    public void BeginEnemyClaim(WaspScopeRole faction, float durationSeconds)
+    {
+        faction = NormalizeEnemyFaction(faction);
+        if (state != HexState.Owned)
+            return;
+
+        if (claimInProgress && claimingFaction == faction)
+            return;
+
+        claimingFaction = faction;
+        claimDuration = Mathf.Max(1f, durationSeconds);
+        claimTimeRemaining = claimDuration;
+        claimInProgress = true;
+        ClaimChanged?.Invoke(this);
+    }
+
+    public void CancelEnemyClaim()
+    {
+        if (!claimInProgress)
+            return;
+
+        claimInProgress = false;
+        claimTimeRemaining = 0f;
+        ClaimChanged?.Invoke(this);
     }
 
     private void UpdateScouting()
@@ -626,11 +734,25 @@ public class HexTile : MonoBehaviour
 
     public void CaptureForFriendly()
     {
+        CancelEnemyClaim();
         state = HexState.Owned;
         playerAccessible = true;
         RefreshStateVisuals();
         HexProgressionManager.Instance?.NotifyFriendlyClaimed(this);
         ReturnFriendlyScoutsToHive();
+    }
+
+    /// <summary>
+    /// Hands a hex back to no-one. Used when an invasive faction capitulates: its territory should
+    /// stop belonging to it without pretending the player never scouted it.
+    /// </summary>
+    public void ReleaseToNeutral()
+    {
+        CancelEnemyClaim();
+        state = HexState.Scouted;
+        RefreshStateVisuals();
+        StateChanged?.Invoke(this);
+        TerritoryInformationChanged?.Invoke(this);
     }
 
     public void CaptureForEnemy()

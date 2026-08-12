@@ -11,22 +11,22 @@ public static class VespidaeHerbertResourceBarSetup
     private const string ScenePath = "Assets/Scenes/wasp RTS Lvl.unity";
     private const string PrefabPath = "Assets/Herbert/UI/Stats Variant.prefab";
 
+    // "Workers" was removed from the resource bar: the colony panel reports the same headcount
+    // with a per-role breakdown, so the card was redundant.
     private static readonly string[] Labels =
     {
         "Nectar",
         "Prey",
         "Fibre",
-        "Workers",
         "Strength",
         "Brood"
     };
 
     private static readonly string[] Values =
     {
-        "150",
-        "150",
         "300",
-        "1",
+        "300",
+        "500",
         "600",
         "150/0"
     };
