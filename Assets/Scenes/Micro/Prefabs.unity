@@ -208,6 +208,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: BASE
       objectReference: {fileID: 0}
+    - target: {fileID: 6017026129683529647, guid: 85002e95b8cb44f458f9169235c9e479, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7999576491237952152, guid: 85002e95b8cb44f458f9169235c9e479, type: 3}
       propertyPath: m_LocalPosition.x
       value: 6.95
@@ -993,6 +997,10 @@ PrefabInstance:
     - target: {fileID: 7622462605384484637, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
       propertyPath: m_Name
       value: Enemy Wasp
+      objectReference: {fileID: 0}
+    - target: {fileID: 7622462605384484637, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8169767152077572850, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
       propertyPath: m_LocalPosition.x

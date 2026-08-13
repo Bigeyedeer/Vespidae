@@ -39,8 +39,9 @@ public class ScanningManager : MonoBehaviour
     {
         InfoPanel = target.InfoPanel;
         currentObject = target;
-        targetRadial = target.radialTarget;
-        targetNotification = target.notificationImage;
+        //targetRadial = target.radialTarget;
+
+        //targetNotification = target.notificationImage;
 
         if (currentObject.hasBeenScanned)
         {
