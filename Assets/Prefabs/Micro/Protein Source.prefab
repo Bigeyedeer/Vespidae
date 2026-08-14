@@ -898,7 +898,7 @@ GameObject:
   - component: {fileID: 1197415091525449018}
   m_Layer: 5
   m_Name: World Canvas
-  m_TagString: Untagged
+  m_TagString: World Canvas
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1116,12 +1116,15 @@ MonoBehaviour:
     featuring vibrant pink, tubular flowers. Once extinct in the wild, conservationists
     successfully reintroduced it from cultivated clones to protected Cape Flats Sand
     Fynbos fragments
-  hasBeenScanned: 0
   scanType: 1
   uiColor: {r: 0.7607844, g: 0.6117647, b: 0.2392157, a: 1}
   radialTarget: {fileID: 2909987086884516368}
   notificationImage: {fileID: 6416563697653310359}
+  scanMessages: []
   InfoPanel: {fileID: 5423126224234649704}
+  requiredScans: 1
+  completedScans: 0
+  hasBeenScanned: 0
 --- !u!1001 &2543147272412323052
 PrefabInstance:
   m_ObjectHideFlags: 0
