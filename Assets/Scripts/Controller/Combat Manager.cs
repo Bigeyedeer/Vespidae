@@ -19,7 +19,11 @@ public class CombatManager : MonoBehaviour
     public GameObject playerRedImage;
     public GameObject enemyRedImage;
     public TextMeshProUGUI battleEndText;
-    public Button attackButton;
+    public Button stingButton;
+    public Button tackleButton;
+
+    public GameObject winPanel;
+    public GameObject losePanel;
 
 
     [Header("Combat Stats")]
@@ -91,7 +95,7 @@ public class CombatManager : MonoBehaviour
             battleArea.enabled = false; //turn off collider
             battleCanvas.SetActive(true); // turn on Combat UI
             playerInput.enabled = false; //turn off movement
-            attackButton.interactable = true;
+            stingButton.interactable = true;
             playerTurn = true;
             StopAllCoroutines();
             //cameraLockOn.enabled = false; //turn off lock on
@@ -142,13 +146,17 @@ public class CombatManager : MonoBehaviour
         displayedEnemyHealth = enemyCurrentHealth;
 
         battleEndText.text = "BATTLE START";
+        winPanel.SetActive(false);
+        losePanel.SetActive(false);
     }
     public IEnumerator DisableButton()
     {
-        attackButton.interactable = false;
+        stingButton.interactable = false;
+        tackleButton.interactable = false;
         yield return new WaitWhile(() => playerTurn);
 
-        attackButton.interactable = true;
+        stingButton.interactable = true;
+        tackleButton.interactable = true;
     }
 
     public void PlayerAttack()
@@ -156,16 +164,32 @@ public class CombatManager : MonoBehaviour
         if (!playerTurn)
             return;
 
-        StartCoroutine(PlayerAttackSequence());
+        //StartCoroutine(PlayerAttackSequence());
     }
 
-    private IEnumerator PlayerAttackSequence()
+    public void PlayerSting()
+    {
+        if (!playerTurn)
+            return;
+
+        StartCoroutine(PlayerAttackSequence(_animIDSting));
+    }
+
+    public void PlayerTackle()
+    {
+        if (!playerTurn)
+            return;
+
+        StartCoroutine(PlayerAttackSequence(_animIDTackle));
+    }
+
+    private IEnumerator PlayerAttackSequence(int attackID)
     {
         playerTurn = false;
-        attackButton.interactable = false;
+        stingButton.interactable = false;
 
         // Play player's attack animation
-        yield return StartCoroutine(AnimatedAttack(true));
+        yield return StartCoroutine(AnimatedAttack(true, attackID));
 
         // Damage enemy AFTER animation
         enemyCurrentHealth += playerDamage;
@@ -185,8 +209,15 @@ public class CombatManager : MonoBehaviour
 
     private IEnumerator EnemyAttackSequence()
     {
+        int randomAttack = Random.Range(0, 2);
+        int attackID;
+
+        if (randomAttack == 0)
+            attackID = _animIDSting;
+        else
+            attackID = _animIDTackle;
         // Play enemy attack animation
-        yield return StartCoroutine(AnimatedAttack(false));
+        yield return StartCoroutine(AnimatedAttack(false, attackID));
 
         // Damage player
         playerCurrentHealth += enemyDamage;
@@ -201,7 +232,8 @@ public class CombatManager : MonoBehaviour
         yield return new WaitForSeconds(0.5f);
 
         playerTurn = true;
-        attackButton.interactable = true;
+        stingButton.interactable = true;
+        tackleButton.interactable = true;
     }
 
     /*public void DoDamage(bool PlayerRequest)
@@ -283,15 +315,11 @@ public class CombatManager : MonoBehaviour
         
     }*/
 
-    private IEnumerator AnimatedAttack(bool playerAttack)
+    private IEnumerator AnimatedAttack(bool playerAttack, int attackID)
     {
         Animator animator = playerAttack ? playerAnimator : enemyAnimator;
 
-        int anim = Random.Range(0, 2) == 0
-            ? _animIDSting
-            : _animIDTackle;
-
-        animator.SetTrigger(anim);
+        animator.SetTrigger(attackID);
 
         // Wait until the animator leaves the attack state
         yield return null;
@@ -343,17 +371,21 @@ public class CombatManager : MonoBehaviour
     {
         if (playerWon)
         {
-            battleEndText.text = "YOU WIN";
+            //battleEndText.text = "YOU WIN";
+            winPanel.SetActive(true);
+
             Debug.Log("Enemy Lost");
         }
         else
         {
-            battleEndText.text = "YOU LOSE";
+            //battleEndText.text = "YOU LOSE";
+            losePanel.SetActive(true);
+
             Debug.Log("Player Lost");
         }
 
         // Show the message for a second
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(4f);
 
         // Resume gameplay
         yield return StartCoroutine(ResumeGame());

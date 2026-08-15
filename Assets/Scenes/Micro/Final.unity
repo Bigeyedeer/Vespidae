@@ -1028,7 +1028,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &545665918
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2565,6 +2565,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: -0.55200005
       objectReference: {fileID: 0}
+    - target: {fileID: 2280168858523561598, guid: 29b1f57277ecc424fb98612888827194, type: 3}
+      propertyPath: bobbingAmplitude
+      value: 0.02
+      objectReference: {fileID: 0}
     - target: {fileID: 2607517915036196575, guid: 29b1f57277ecc424fb98612888827194, type: 3}
       propertyPath: InfoPanel
       value: 
@@ -3316,7 +3320,7 @@ MonoBehaviour:
   - {fileID: 1533505024}
   centerPos: {fileID: 1533505030}
   parentRotate: 0
-  childRotate: 1
+  childRotate: 0
 --- !u!4 &1129937441
 Transform:
   m_ObjectHideFlags: 0
@@ -4224,7 +4228,7 @@ GameObject:
   - component: {fileID: 1703833898}
   - component: {fileID: 1703833897}
   m_Layer: 0
-  m_Name: Image
+  m_Name: Mask
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

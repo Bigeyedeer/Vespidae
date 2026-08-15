@@ -140,6 +140,22 @@ PrefabInstance:
       propertyPath: m_Sprite
       value: 
       objectReference: {fileID: -1490025041, guid: 077b349b8e08deb45a5e035b5bf24f12, type: 3}
+    - target: {fileID: 3574343437993016509, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+      propertyPath: winPanel
+      value: 
+      objectReference: {fileID: 7911219692220773649}
+    - target: {fileID: 3574343437993016509, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+      propertyPath: losePanel
+      value: 
+      objectReference: {fileID: 3561604176617698285}
+    - target: {fileID: 3574343437993016509, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+      propertyPath: stingButton
+      value: 
+      objectReference: {fileID: 5184097048032734040}
+    - target: {fileID: 3574343437993016509, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+      propertyPath: tackleButton
+      value: 
+      objectReference: {fileID: 3204276940895724615}
     - target: {fileID: 6558066259014260108, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
       propertyPath: objectName
       value: Blue Solitary
@@ -200,9 +216,41 @@ PrefabInstance:
       addedObject: {fileID: 408688866108244619}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+--- !u!114 &3204276940895724615 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1452861936121176870, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+  m_PrefabInstance: {fileID: 4061819004113700705}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
+--- !u!1 &3561604176617698285 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 662916441510032524, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+  m_PrefabInstance: {fileID: 4061819004113700705}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5184097048032734040 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9200825525889969209, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+  m_PrefabInstance: {fileID: 4061819004113700705}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!4 &5277846224913681811 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8169767152077572850, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+  m_PrefabInstance: {fileID: 4061819004113700705}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &7911219692220773649 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6166613954295771760, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
   m_PrefabInstance: {fileID: 4061819004113700705}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &5029529187838106017
