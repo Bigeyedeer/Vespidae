@@ -9,13 +9,12 @@ public class RandomiserManager : MonoBehaviour
     public List<GameObject> waspEnemiesList;
     public List<GameObject> spawnPointList;
 
-    [Header("Other")]
+    [Header("Plants")]
     public List<GameObject> greeneryList;
     public Transform centerPos;
-    
 
-    public float minValue = 0f;
-    public float maxValue = 360f;
+    public bool parentRotate = true;
+    public bool childRotate = true;
 
     private void Start()
     {
@@ -64,24 +63,31 @@ public class RandomiserManager : MonoBehaviour
         foreach (GameObject obj in greeneryList)
         {
             int randomRotation = Random.Range(0, 4) * 90;
-
-            obj.transform.RotateAround(
-                centerPos.position,   // center of your square
-                Vector3.up,     // rotate around Y axis
-                randomRotation
-            );
+            if (parentRotate)
+            {
+                obj.transform.RotateAround(
+                                centerPos.position,   // center of your square
+                                Vector3.up,     // rotate around Y axis
+                                randomRotation
+                            );
+            }
+            
 
             // Optional: rotate individual rocks/grass
             foreach (Transform child in obj.transform)
             {
-                int childRotation = Random.Range(0, 4) * 90;
-                Vector3 originalRotation = child.localEulerAngles;
+                if (childRotate)
+                {
+                    int childRotation = Random.Range(0, 4) * 90;
+                    Vector3 originalRotation = child.localEulerAngles;
 
-                child.localRotation = Quaternion.Euler(
-                    originalRotation.x,
-                    childRotation,
-                    originalRotation.z
-                );
+                    child.localRotation = Quaternion.Euler(
+                        originalRotation.x,
+                        childRotation,
+                        originalRotation.z
+                    );
+                }
+                
             }
         }
     }

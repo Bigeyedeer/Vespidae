@@ -30,6 +30,8 @@ public class ScanningManager : MonoBehaviour
 
     private ScannableObject currentObject;
 
+    public ZoomBehavior zoomBehavior;
+
     private void Start()
     {
         
@@ -79,6 +81,9 @@ public class ScanningManager : MonoBehaviour
 
     private IEnumerator ScanRoutine()
     {
+        //FOV change
+        StartCoroutine(zoomBehavior.ScanSequence(scanDuration));
+
         isScanning = true;
 
         float timer = scanDuration;
