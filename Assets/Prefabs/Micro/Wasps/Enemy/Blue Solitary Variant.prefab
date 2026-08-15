@@ -139,10 +139,14 @@ PrefabInstance:
     - target: {fileID: 216540491027112318, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 21300000, guid: 1708dab8bddf1c7438d4ffa5f6f8ec42, type: 3}
+      objectReference: {fileID: -1490025041, guid: 077b349b8e08deb45a5e035b5bf24f12, type: 3}
     - target: {fileID: 6558066259014260108, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
       propertyPath: objectName
       value: Blue Solitary
+      objectReference: {fileID: 0}
+    - target: {fileID: 7515076168273072819, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7622462605384484637, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
       propertyPath: m_Name

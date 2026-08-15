@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -71,7 +72,7 @@ public class ZoomBehavior : MonoBehaviour
         mainCamera.Lens.FieldOfView = zoomFOV;
 
         // Hold zoomed FOV for the duration
-        yield return new WaitForSeconds(duration);
+        yield return new WaitForSeconds(1f);
 
         timer = 0f;
 
@@ -93,8 +94,8 @@ public class ZoomBehavior : MonoBehaviour
         mainCamera.Lens.FieldOfView = defaultFOV;
     }
 
-    void Update()
+    public void SetFoV(float fov)
     {
-        
+        mainCamera.Lens.FieldOfView = fov;
     }
 }

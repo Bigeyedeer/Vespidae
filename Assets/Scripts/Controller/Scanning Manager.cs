@@ -48,6 +48,7 @@ public class ScanningManager : MonoBehaviour
         if (currentObject.hasBeenScanned)
         {
             InfoPanel.SetActive(true);
+            zoomBehavior.SetFoV(zoomBehavior.zoomFOV);
             //UpdateInformation();
             return;
         }
@@ -76,6 +77,8 @@ public class ScanningManager : MonoBehaviour
         }
 
         InfoPanel.SetActive(false);
+        zoomBehavior.SetFoV(zoomBehavior.defaultFOV);
+
 
     }
 

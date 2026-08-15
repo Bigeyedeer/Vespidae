@@ -204,7 +204,7 @@ PrefabInstance:
     - target: {fileID: 216540491027112318, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
       propertyPath: m_Sprite
       value: 
-      objectReference: {fileID: 21300000, guid: cbfe4c38c8c045c4499cfffb16a754ff, type: 3}
+      objectReference: {fileID: 589832450, guid: aff89d03219bdbd4bb9227b06a89d913, type: 3}
     - target: {fileID: 6558066259014260108, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
       propertyPath: objectName
       value: Polistes Dominula

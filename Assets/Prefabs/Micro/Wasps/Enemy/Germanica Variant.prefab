@@ -201,6 +201,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 216540491027112318, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 1222205622, guid: 0964934bb3ba39943bd713618c2ef00b, type: 3}
     - target: {fileID: 6558066259014260108, guid: 21584e5b43e86ba4a82d269c0ef66821, type: 3}
       propertyPath: objectName
       value: 'Vespula Germanica '
