@@ -122,7 +122,14 @@ Aliases exist for legacy naming: `Protein = Prey`, `Sugar = Nectar`.
 | Script | Lines | Responsibility |
 |---|---:|---|
 | `C_MainWorldCameraFocus.cs` | 683 | Camera state machine: `FocusOnHex`, `FocusOnWasp`, `FocusOnHive`, `ReturnToMap`, `ZoomCloseUp`. Also owns Escape handling |
-| `CameraCursorMovement.cs` | 261 | Edge/cursor panning, middle-mouse drag, `ZoomTowardsHex`, `ResetCameraPosition` |
+| `CameraCursorMovement.cs` | 380 | Edge/cursor panning, middle-mouse drag, `ZoomTowardsHex`, `ResetCameraPosition`. Also the **map wall**: `ResolveBounds` measures the hex extents on Start and every pan/drag/zoom is clamped so the camera's *ground focus* stays inside them plus `boundsPadding` |
+
+### Presentation
+| Script | Lines | Responsibility |
+|---|---:|---|
+| `RegionFogController.cs` | 340 | Volumetric fog: band reveal (`RevealRegion`/`HideRegion`), hex-to-band assignment, and it pushes the measured play-area rect into `_PlayMin`/`_PlayMax` so the shader's outer wall tracks the hexes. Keeps the fog quad huge and centred on the camera |
+| `C_LoadingScreen.cs` | 330 | Between-scene loading screen. `C_LoadingScreen.LoadScene(name)` replaces `SceneManager.LoadScene`; builds its own canvas, holds the activation gate until the bar fills, shows a `WaspFacts` line |
+| `WaspFacts.cs` | 120 | The "did you know" pool. Reads `Assets/Resources/WaspFacts.txt`, falls back to a built-in list, hands facts out in a shuffled cycle |
 
 ### Navigation / UI flow
 | Script | Lines | Responsibility |
@@ -249,6 +256,15 @@ running at play time.
   errors — two orphaned animator transitions pointing at a deleted state. Third-party, ignored.
 - `WaspControl.IsAvailable` is true while a unit is **returning home**, so it can be
   re-tasked mid-flight. `EnemyWaspControl.IsAvailable` is Idle-only — they differ deliberately.
+- The terrain quad (`westen Cape`) only extends about **four world units past the outermost hex**
+  on the Z axis. That is why `boundsPadding` on the camera is small and why the fog's outer wall
+  uses a density well above 1 — it has to go opaque over a very short path or the map's own edge
+  shows. Raising either number walks the camera off the edge of the world.
+- Every camera in the level is on **Solid Colour**, not Skybox, deliberately: anything the fog
+  does not cover reads as haze rather than as the default background.
+- The `Navigation` root carries the only `NavMeshSurface`. If that object is switched off the whole
+  game floods the console with "Failed to create agent because there is no valid NavMesh" and no
+  wasp can move. It was found disabled on 2026-08-15.
 
 ---
 

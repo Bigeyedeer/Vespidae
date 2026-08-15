@@ -118,7 +118,7 @@ public class C_MainWorldNavigation : MonoBehaviour
 
     public void ReturnToMenu()
     {
-        SceneManager.LoadScene(menuSceneName);
+        C_LoadingScreen.LoadScene(menuSceneName);
     }
 
     public HexTile SelectedHex => selectedHex;

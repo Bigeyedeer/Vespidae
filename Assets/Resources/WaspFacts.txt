@@ -1,0 +1,30 @@
+# Loading-screen facts. One fact per line. Blank lines and lines starting with # are ignored.
+# Edit this file to change what the loading screen shows - no code change needed.
+# If this file is missing or empty, WaspFacts.cs falls back to its built-in list.
+
+Most wasps are solitary. Of the tens of thousands of described species, only a small fraction live in colonies at all.
+Only female wasps can sting. The sting is a modified egg-laying tube, so males never had one to begin with.
+Paper wasps really do make paper: they scrape plant fibre, chew it with saliva, and spread it into a nest by hand.
+A paper wasp colony starts with a single overwintered queen. Everything you command grew out of one insect.
+Adult wasps live on sugar, but their larvae need meat. The colony hunts caterpillars to feed the brood.
+Wasp larvae pay their carers back: they release a sweet droplet the adults drink in exchange for food.
+A single social wasp colony can take thousands of caterpillars and aphids off surrounding plants in one season.
+Wasps pollinate too. They visit flowers for nectar and carry pollen from bloom to bloom while they do it.
+Figs and fig wasps cannot live without each other. The wasp pollinates the fig; the fig raises the wasp's young.
+Paper wasps build open combs with no outer envelope. You can see every cell of the nest from below.
+German wasps build enclosed nests, often underground, and can keep a colony going far longer than a native paper wasp.
+The European paper wasp reached South Africa's Western Cape in the late 2000s and has been spreading ever since.
+The German wasp has been established in the Western Cape since the 1970s and raids honeybee hives for protein.
+Invasive wasps do not just compete with native insects, they eat them. Predation is how they clear ground.
+Species invasion is one of the largest drivers of biodiversity loss worldwide, alongside habitat destruction.
+The Cape Floral Region holds around nine thousand plant species, and roughly seven in ten grow nowhere else on Earth.
+Fynbos is built to burn. Many of its plants need fire to release or germinate their seeds.
+Wasps recognise their nestmates by smell. A colony carries a shared chemical signature.
+Some paper wasps recognise each other by face, telling individual nestmates apart by their markings.
+Wasps cool their nests by carrying in water and fanning it with their wings, like a living air conditioner.
+An alarmed wasp releases a pheromone that recruits the rest of the nest. Swatting one near a nest is a bad plan.
+Unfertilised wasp eggs hatch into males. A queen chooses her sons and daughters as she lays.
+Spider wasps hunt spiders many times their own size, paralyse them, and seal them in a burrow as living larval food.
+Killing a native wasp nest removes free pest control. Identify before you intervene.
+Not every wasp at your picnic is a pest. Most of the ones you meet were never a threat to anything but a caterpillar.
+Native and invasive paper wasps can look almost identical in flight. The markings only separate them up close.

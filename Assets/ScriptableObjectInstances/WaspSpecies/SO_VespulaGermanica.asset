@@ -30,4 +30,21 @@ MonoBehaviour:
     reaction window.
   learningLesson: Environmental conditions and nest architecture are important identification
     evidence.
+  codexEntries:
+  - label: Species
+    value: German wasp (Vespula germanica)
+  - label: Nest type
+    value: Commonly underground or enclosed rather than an exposed Polistes comb.
+  - label: Habitat
+    value: Cooler, moister, river, irrigated, or human-modified habitat.
+  - label: Threat response
+    value: High aggression with strong nest defence, chasing, and a shorter reaction
+      window.
+  - label: Ecological role
+    value: Creates high ecological pressure through aggressive defence and competition
+      in suitable habitat.
+  - label: What this teaches
+    value: Environmental conditions and nest architecture are important identification
+      evidence.
+  threatLevel: 0.92
   availableFunctions: []

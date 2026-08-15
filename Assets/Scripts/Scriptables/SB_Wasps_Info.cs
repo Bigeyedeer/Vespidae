@@ -55,6 +55,26 @@ public class WaspFunctionInfo
     }
 }
 
+/// <summary>
+/// One line of the identification card, released to the player after enough combat encounters with
+/// this species. Ordered: entry 0 is revealed first.
+/// </summary>
+[Serializable]
+public class WaspCodexEntry
+{
+    [SerializeField] private string label;
+    [SerializeField, TextArea(1, 4)] private string value;
+
+    public string Label => label;
+    public string Value => value;
+
+    public WaspCodexEntry(string label, string value)
+    {
+        this.label = label;
+        this.value = value;
+    }
+}
+
 [CreateAssetMenu(fileName = "SO_WaspSpecies", menuName = "Vespidae Wars/Wasp Species")]
 public class SB_Wasps_Info : ScriptableObject
 {
@@ -78,6 +98,13 @@ public class SB_Wasps_Info : ScriptableObject
     [SerializeField, TextArea(1, 3)] private string threatResponse;
     [SerializeField, TextArea(1, 3)] private string learningLesson;
 
+    [Header("Identification Codex")]
+    [SerializeField, Tooltip("Released one at a time as the player fights this species. Order matters - the " +
+                             "first entry is revealed first. Add more freely; the panel shows as many as fit.")]
+    private List<WaspCodexEntry> codexEntries = new List<WaspCodexEntry>();
+    [SerializeField, Range(0f, 1f), Tooltip("Drives the threat response bar on the identification card.")]
+    private float threatLevel = 0.5f;
+
     [Header("Playable Colony Functions")]
     [SerializeField] private List<WaspFunctionInfo> availableFunctions = new List<WaspFunctionInfo>();
 
@@ -96,6 +123,8 @@ public class SB_Wasps_Info : ScriptableObject
     public string ThreatResponse => threatResponse;
     public string LearningLesson => learningLesson;
     public IReadOnlyList<WaspFunctionInfo> AvailableFunctions => availableFunctions;
+    public IReadOnlyList<WaspCodexEntry> CodexEntries => codexEntries;
+    public float ThreatLevel => threatLevel;
 
     public WaspFunctionInfo GetFunction(WaspFunction function)
     {
@@ -141,6 +170,12 @@ public class SB_Wasps_Info : ScriptableObject
         threatResponse = threat;
         learningLesson = lesson;
         availableFunctions = functions ?? new List<WaspFunctionInfo>();
+    }
+
+    public void ConfigureCodexForEditor(List<WaspCodexEntry> entries, float threat)
+    {
+        codexEntries = entries ?? new List<WaspCodexEntry>();
+        threatLevel = Mathf.Clamp01(threat);
     }
 #endif
 }

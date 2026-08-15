@@ -29,4 +29,20 @@ MonoBehaviour:
   threatResponse: Localised aggressive defence when workers or nest sites are threatened.
   learningLesson: 'Appearance alone is not enough: compare antennae, markings, legs,
     nest, habitat, and behaviour before intervening.'
+  codexEntries:
+  - label: Species
+    value: European paper wasp (Polistes dominula)
+  - label: Nest type
+    value: Exposed, above-ground paper nest in warm, sunny, sheltered locations.
+  - label: Habitat
+    value: Warm exposed urban and agricultural edges advancing toward fynbos.
+  - label: Threat response
+    value: Localised aggressive defence when workers or nest sites are threatened.
+  - label: Ecological role
+    value: Competes with native colonies for prey, nest sites, and territory at warm
+      habitat edges.
+  - label: What this teaches
+    value: 'Appearance alone is not enough: compare antennae, markings, legs, nest,
+      habitat, and behaviour before intervening.'
+  threatLevel: 0.58
   availableFunctions: []

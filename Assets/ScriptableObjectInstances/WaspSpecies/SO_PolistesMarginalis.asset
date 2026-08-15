@@ -30,6 +30,23 @@ MonoBehaviour:
     when threatened.
   learningLesson: 'Identify before intervening: native paper wasps are ecologically
     valuable and should not be removed indiscriminately.'
+  codexEntries:
+  - label: Species
+    value: South African paper wasp (Polistes marginalis)
+  - label: Nest type
+    value: Exposed, single-layer paper comb.
+  - label: Habitat
+    value: Native fynbos habitat and local strongholds.
+  - label: Threat response
+    value: Usually docile when undisturbed and organised around nest defence when
+      threatened.
+  - label: Ecological role
+    value: Predates on caterpillars and other small insects, helping maintain ecological
+      balance.
+  - label: What this teaches
+    value: 'Identify before intervening: native paper wasps are ecologically valuable
+      and should not be removed indiscriminately.'
+  threatLevel: 0.22
   availableFunctions:
   - function: 0
     displayName: Scout

@@ -127,18 +127,20 @@ public class HexMouseRaycaster : MonoBehaviour
         if (showDebugRay)
             Debug.DrawRay(ray.origin, ray.direction * rayDistance, Color.red);
 
+        // Hives and wasps sit on the hex and carry their own layer, so the mask has to include them
+        // and then map back to the tile they belong to. Casting the hex layer alone means the cursor
+        // crossing onto a hive drops the tile it is standing on.
         if (Physics.Raycast(
                 ray,
                 out RaycastHit hit,
                 rayDistance,
-                hexLayer,
+                hexLayer | waspLayer,
                 QueryTriggerInteraction.Ignore))
         {
-            HexHoverEffect hoveredHex =
-                hit.collider.GetComponentInParent<HexHoverEffect>();
-
-            HexTile hoveredTile =
-                hit.collider.GetComponentInParent<HexTile>();
+            HexTile hoveredTile = ResolveHexFromCollider(hit.collider);
+            HexHoverEffect hoveredHex = hoveredTile != null
+                ? hoveredTile.GetComponent<HexHoverEffect>()
+                : null;
 
             if (hoveredHex != currentHoveredHex)
             {
@@ -206,6 +208,19 @@ public class HexMouseRaycaster : MonoBehaviour
 
         foreach (RaycastHit hit in hits)
         {
+            // Work out which hex this belongs to before deciding what was hit. Whether the cursor is
+            // over the tile, the hive standing on it, or a wasp stationed there, it is all one hex as
+            // far as the player is concerned, so the tile stays raised throughout.
+            if (hoveredTile == null)
+            {
+                HexTile owner = ResolveHexFromCollider(hit.collider);
+                if (owner != null)
+                {
+                    hoveredTile = owner;
+                    hoveredHex = owner.GetComponent<HexHoverEffect>();
+                }
+            }
+
             C_Friendly_Hive_Orc hive = hit.collider.GetComponentInParent<C_Friendly_Hive_Orc>();
             if (hive != null)
             {
@@ -227,13 +242,6 @@ public class HexMouseRaycaster : MonoBehaviour
             {
                 hoveredWasp = wasp;
                 break;
-            }
-
-            HexTile tile = hit.collider.GetComponentInParent<HexTile>();
-            if (tile != null && hoveredTile == null)
-            {
-                hoveredTile = tile;
-                hoveredHex = tile.GetComponent<HexHoverEffect>();
             }
         }
 
@@ -295,6 +303,70 @@ public class HexMouseRaycaster : MonoBehaviour
             else
                 cameraFocus?.FocusOnHex(currentHexTile);
         }
+    }
+
+    /// <summary>
+    /// Works out which hex a collider belongs to, so that anything standing on a tile counts as the
+    /// tile for hover purposes.
+    ///
+    /// Hives are parented under their hex, so the parent walk finds them. Wasps are not - they are
+    /// spawned loose and move around - so they fall back to the hex they are stationed on, and then
+    /// the one they are travelling to.
+    /// </summary>
+    private HexTile ResolveHexFromCollider(Collider collider)
+    {
+        if (collider == null)
+            return null;
+
+        HexTile tile = collider.GetComponentInParent<HexTile>();
+        if (tile != null)
+            return tile;
+
+        C_Friendly_Hive_Orc friendlyHive = collider.GetComponentInParent<C_Friendly_Hive_Orc>();
+        if (friendlyHive != null && friendlyHive.OwnerHex != null)
+            return friendlyHive.OwnerHex;
+
+        C_Enemy_Hive_Orc enemyHive = collider.GetComponentInParent<C_Enemy_Hive_Orc>();
+        if (enemyHive != null && enemyHive.OwnerHex != null)
+            return enemyHive.OwnerHex;
+
+        WaspControl friendlyWasp = collider.GetComponentInParent<WaspControl>();
+        if (friendlyWasp != null)
+        {
+            HexTile assigned = friendlyWasp.StationedHex != null ? friendlyWasp.StationedHex : friendlyWasp.TargetHex;
+            if (assigned != null)
+                return assigned;
+        }
+
+        EnemyWaspControl enemyWasp = collider.GetComponentInParent<EnemyWaspControl>();
+        if (enemyWasp != null)
+        {
+            HexTile assigned = enemyWasp.StationedHex != null ? enemyWasp.StationedHex : enemyWasp.TargetHex;
+            if (assigned != null)
+                return assigned;
+        }
+
+        return FindHexBeneath(collider.transform.position);
+    }
+
+    /// <summary>
+    /// Last resort: look straight down for a tile. A wasp idling at its home hive has no stationed or
+    /// target hex, but it is still standing on one, and the player expects that tile to light up.
+    /// </summary>
+    private HexTile FindHexBeneath(Vector3 worldPosition)
+    {
+        if (Physics.Raycast(
+                worldPosition + Vector3.up * 5f,
+                Vector3.down,
+                out RaycastHit hit,
+                rayDistance,
+                hexLayer,
+                QueryTriggerInteraction.Ignore))
+        {
+            return hit.collider.GetComponentInParent<HexTile>();
+        }
+
+        return null;
     }
 
     private bool IsPointerOverUi()

@@ -14,6 +14,20 @@ public class CameraCursorMovement : MonoBehaviour
     [SerializeField] private bool enableMiddleMouseDrag = true;
     [SerializeField] private float dragSensitivity = 0.01f;
 
+    [Header("Map Bounds")]
+    [SerializeField, Tooltip("Stops the camera being panned off the map and out into the skybox.")]
+    private bool clampToMapBounds = true;
+    [SerializeField, Tooltip("Leave empty to measure the bounds from the hex tiles in the scene on Start.")]
+    private bool useManualBounds;
+    [SerializeField, Tooltip("World-space rectangle the camera's ground focus may sit inside (X, Z).")]
+    private Rect manualBounds = new Rect(-20f, -25f, 50f, 50f);
+    [SerializeField, Tooltip("How far past the outermost hex the player may still push, in world units. " +
+                             "The terrain plane only runs about four units past the last hex, so pushing " +
+                             "this much higher walks the camera off the edge of the world.")]
+    private float boundsPadding = 3f;
+    [SerializeField, Tooltip("Ground height the camera's focus point is measured against.")]
+    private float groundHeight;
+
     [Header("Hex Hover Zoom")]
     [SerializeField] private HexMouseRaycaster hexMouseRaycaster;
     [SerializeField] private bool enableHexHoverZoom = true;
@@ -34,6 +48,8 @@ public class CameraCursorMovement : MonoBehaviour
     private bool isDragging;
     private Vector2 previousDragPosition;
     private float hexZoomVelocity;
+    private Rect bounds;
+    private bool boundsResolved;
 
     private const float ReferenceZoomSensitivity = 0.02f;
     private const float ScrollUnitsPerNotch = 120f;
@@ -53,6 +69,99 @@ public class CameraCursorMovement : MonoBehaviour
             hexMouseRaycaster = FindFirstObjectByType<HexMouseRaycaster>();
         if (controlGroupManager == null)
             controlGroupManager = FindFirstObjectByType<WaspControlGroupManager>();
+
+        ResolveBounds();
+    }
+
+    /// <summary>
+    /// Works out the rectangle the camera's ground focus is allowed to sit in. Measuring it from the
+    /// hexes rather than hard-coding it means the wall stays correct if the map is ever re-laid out.
+    /// </summary>
+    private void ResolveBounds()
+    {
+        if (useManualBounds)
+        {
+            bounds = manualBounds;
+            boundsResolved = true;
+            return;
+        }
+
+        HexTile[] tiles = FindObjectsByType<HexTile>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        if (tiles.Length == 0)
+        {
+            boundsResolved = false;
+            return;
+        }
+
+        float minimumX = float.MaxValue;
+        float maximumX = float.MinValue;
+        float minimumZ = float.MaxValue;
+        float maximumZ = float.MinValue;
+
+        foreach (HexTile tile in tiles)
+        {
+            if (tile == null)
+                continue;
+
+            Vector3 position = tile.transform.position;
+            minimumX = Mathf.Min(minimumX, position.x);
+            maximumX = Mathf.Max(maximumX, position.x);
+            minimumZ = Mathf.Min(minimumZ, position.z);
+            maximumZ = Mathf.Max(maximumZ, position.z);
+        }
+
+        bounds = Rect.MinMaxRect(
+            minimumX - boundsPadding,
+            minimumZ - boundsPadding,
+            maximumX + boundsPadding,
+            maximumZ + boundsPadding);
+        boundsResolved = true;
+    }
+
+    /// <summary>
+    /// Pushes a camera position back inside the map wall. What gets clamped is the point the camera is
+    /// looking at on the ground, not the camera itself, so the limit feels the same at every zoom level
+    /// and pitch instead of tightening as the camera comes down.
+    /// </summary>
+    private Vector3 ClampToBounds(Vector3 position)
+    {
+        if (!clampToMapBounds || !boundsResolved)
+            return position;
+
+        Vector3 focus = position;
+        Vector3 forward = transform.forward;
+
+        // Only project when the camera actually points at the ground; a level camera would send the
+        // intersection off to infinity.
+        if (forward.y < -0.05f)
+        {
+            float distance = (position.y - groundHeight) / -forward.y;
+            focus = position + forward * distance;
+        }
+
+        float clampedX = Mathf.Clamp(focus.x, bounds.xMin, bounds.xMax);
+        float clampedZ = Mathf.Clamp(focus.z, bounds.yMin, bounds.yMax);
+
+        position.x += clampedX - focus.x;
+        position.z += clampedZ - focus.z;
+        return position;
+    }
+
+    /// <summary>Clamps the camera and the pan anchor together, so neither can drift outside the wall.</summary>
+    private void ApplyBounds()
+    {
+        if (!clampToMapBounds || !boundsResolved)
+            return;
+
+        Vector3 clamped = ClampToBounds(transform.position);
+        Vector3 correction = clamped - transform.position;
+        if (correction.sqrMagnitude > 0f)
+        {
+            transform.position = clamped;
+            movementVelocity = Vector3.zero;
+        }
+
+        startingPosition = ClampToBounds(startingPosition);
     }
 
     private bool IsBoxSelecting()
@@ -115,6 +224,7 @@ public class CameraCursorMovement : MonoBehaviour
 
                 startingPosition += dragOffset;
                 transform.position += dragOffset;
+                ApplyBounds();
 
                 return;
             }
@@ -162,6 +272,10 @@ public class CameraCursorMovement : MonoBehaviour
             rightDirection * horizontalInput * horizontalRange +
             forwardDirection * verticalInput * verticalRange;
 
+        // Clamping the target rather than the result lets the camera glide to a stop against the wall
+        // instead of being snapped back to it every frame.
+        targetPosition = ClampToBounds(targetPosition);
+
         transform.position = Vector3.SmoothDamp(
             transform.position,
             targetPosition,
@@ -201,6 +315,30 @@ public class CameraCursorMovement : MonoBehaviour
         movementVelocity = Vector3.zero;
         isDragging = false;
         hexZoomVelocity = 0f;
+
+        // Focus and close-up moves are free to leave the map; the wall is re-applied the moment the
+        // player has the map camera back.
+        if (!boundsResolved)
+            ResolveBounds();
+
+        ApplyBounds();
+    }
+
+    /// <summary>Re-measures the map wall. Call this if hexes are added or moved at run time.</summary>
+    public void RefreshMapBounds()
+    {
+        ResolveBounds();
+        ApplyBounds();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (!clampToMapBounds || !boundsResolved)
+            return;
+
+        Gizmos.color = new Color(1f, 0.75f, 0.2f, 0.85f);
+        Vector3 centre = new Vector3(bounds.center.x, groundHeight, bounds.center.y);
+        Gizmos.DrawWireCube(centre, new Vector3(bounds.width, 0.1f, bounds.height));
     }
 
     public bool ZoomTowardsHex(HexTile hex, float scrollAmount)
@@ -260,7 +398,7 @@ public class CameraCursorMovement : MonoBehaviour
             return false;
         }
 
-        Vector3 desiredPosition = target + fromTarget.normalized * desiredDistance;
+        Vector3 desiredPosition = ClampToBounds(target + fromTarget.normalized * desiredDistance);
         Vector3 movement = desiredPosition - transform.position;
         transform.position = desiredPosition;
         startingPosition += movement;

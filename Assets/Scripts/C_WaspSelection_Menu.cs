@@ -61,7 +61,7 @@ public class C_WaspSelection_Menu : MonoBehaviour
         }
 
         selectionState.SetSelection(pendingWasp, WaspFunction.Scout);
-        SceneManager.LoadScene(mainWorldSceneName);
+        C_LoadingScreen.LoadScene(mainWorldSceneName);
     }
 
     public void ReturnToMainMenu()

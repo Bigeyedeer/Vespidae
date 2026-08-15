@@ -71,6 +71,23 @@ public class HiveManagement : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float biodiversity;
     [SerializeField, Range(0f, 1f)] private float invasionPressure;
 
+    [Header("Ecosystem Meter Tuning")]
+    [SerializeField, Min(0.1f), Tooltip("Seconds between ecosystem meter recalculations.")]
+    private float ecosystemInterval = 2f;
+    [SerializeField, Range(0f, 1f), Tooltip("How much invasive-held territory drives invasion pressure.")]
+    private float invasionTerritoryWeight = 0.7f;
+    [SerializeField, Range(0f, 1f), Tooltip("How much banked invasive strength drives invasion pressure.")]
+    private float invasionStrengthWeight = 0.3f;
+    [SerializeField, Range(0f, 1f), Tooltip("How far invasion pressure drags habitat health down.")]
+    private float invasionHabitatPenalty = 0.5f;
+    [SerializeField, Range(0f, 1f), Tooltip("How much land still in native hands drives biodiversity.")]
+    private float biodiversityTerritoryWeight = 0.75f;
+    [SerializeField, Range(0f, 1f), Tooltip("How much forage left on worked land drives biodiversity.")]
+    private float biodiversityForageWeight = 0.25f;
+
+    private float ecosystemTimer;
+    private float biodiversityDamage;
+
     private int[] skillLevels;
     private ResourceManager resourceManager;
     private readonly List<C_Friendly_Hive_Orc> spawnedFriendlyHives = new List<C_Friendly_Hive_Orc>();
@@ -137,6 +154,13 @@ public class HiveManagement : MonoBehaviour
         }
 
         UpdateStarvation();
+
+        ecosystemTimer += Time.deltaTime;
+        if (ecosystemTimer >= ecosystemInterval)
+        {
+            ecosystemTimer = 0f;
+            RecalculateEcosystem();
+        }
     }
 
     private float UpkeepInterval => upkeepRules != null ? upkeepRules.UpkeepTickSeconds : upkeepInterval;
@@ -418,6 +442,105 @@ public class HiveManagement : MonoBehaviour
         habitatHealth = Mathf.Clamp01(health);
         biodiversity = Mathf.Clamp01(diversity);
         invasionPressure = Mathf.Clamp01(pressure);
+        RefreshHud();
+    }
+
+    /// <summary>
+    /// Permanent damage to biodiversity, for when the player removes a native colony. This is the
+    /// hook the identification work will call on a misidentified intervention.
+    /// </summary>
+    public void ApplyBiodiversityDamage(float amount)
+    {
+        biodiversityDamage = Mathf.Clamp01(biodiversityDamage + Mathf.Max(0f, amount));
+        RecalculateEcosystem();
+    }
+
+    /// <summary>
+    /// Derives the three ecosystem meters from the actual state of the map, so they respond to how
+    /// the match is going instead of sitting on authored values.
+    ///
+    /// Invasion pressure  - how much of the map the invasives hold, and how strong they are.
+    /// Habitat health     - how much forage is left on the land the player holds, hurt by invasion.
+    /// Biodiversity       - native ground still standing, minus permanent damage the player caused.
+    /// </summary>
+    public void RecalculateEcosystem()
+    {
+        HexTile[] tiles = FindObjectsByType<HexTile>(FindObjectsSortMode.None);
+
+        // Every hex counts, including Locked ones. Locked is a player progression gate, not empty
+        // space - invasives can still scout and spread onto it. If locked land were excluded the
+        // meters would jump every time the player unlocked a region, which reads as nonsense.
+        int totalLand = 0, playerHeld = 0, invasiveHeld = 0;
+        float forageRatioTotal = 0f;
+        int foragedTiles = 0;
+
+        foreach (HexTile tile in tiles)
+        {
+            if (tile == null)
+                continue;
+
+            totalLand++;
+            if (tile.State == HexTile.HexState.Owned)
+            {
+                playerHeld++;
+
+                // How much of this hex's forage is left, averaged over the resources it carries.
+                // The starting amounts live on the area ScriptableObject, not the tile.
+                SB_Hex_Area_Info area = tile.AreaInfo;
+                if (area == null)
+                    continue;
+
+                float ratio = 0f;
+                int kinds = 0;
+                if (tile.HasNectar) { ratio += Mathf.Clamp01(tile.NectarRemaining / Mathf.Max(1f, area.StartingNectar)); kinds++; }
+                if (tile.HasPrey)   { ratio += Mathf.Clamp01(tile.PreyRemaining  / Mathf.Max(1f, area.StartingPrey));   kinds++; }
+                if (tile.HasFibre)  { ratio += Mathf.Clamp01(tile.FibreRemaining / Mathf.Max(1f, area.StartingFibre));  kinds++; }
+                if (kinds > 0) { forageRatioTotal += ratio / kinds; foragedTiles++; }
+            }
+            else if (tile.State == HexTile.HexState.Enemy)
+            {
+                invasiveHeld++;
+            }
+        }
+
+        if (totalLand == 0)
+            return;
+
+        float invasiveShare = invasiveHeld / (float)totalLand;
+
+        // Invasive strength counts too, so a faction massing for an attack registers as pressure
+        // even before it has taken ground.
+        float strengthShare = 0f;
+        EnemyHiveControl enemies = EnemyHiveControl.Instance;
+        if (enemies != null)
+        {
+            float strength = 0f, capacity = 0f;
+            foreach (WaspScopeRole f in new[] { WaspScopeRole.PrimaryInvasive, WaspScopeRole.SecondaryInvasive })
+            {
+                SB_Enemy_Faction_Rules rules = enemies.GetFactionRules(f);
+                if (rules == null) continue;
+                strength += enemies.GetFactionStrength(f);
+                capacity += rules.MaximumStrength;
+            }
+            if (capacity > 0f) strengthShare = Mathf.Clamp01(strength / capacity);
+        }
+
+        invasionPressure = Mathf.Clamp01(invasiveShare * invasionTerritoryWeight
+                                       + strengthShare * invasionStrengthWeight);
+
+        // Land the player holds, scored by how much forage is left on it, then pushed down by
+        // whatever the invasives are exerting.
+        float forageHealth = foragedTiles > 0 ? forageRatioTotal / foragedTiles : 1f;
+        habitatHealth = Mathf.Clamp01(forageHealth * (1f - invasionPressure * invasionHabitatPenalty));
+
+        // Native ground still standing, plus the condition of the land being worked, less any
+        // permanent damage the player has done. The Cape starts largely intact, so this starts high
+        // and falls as the invasives spread - it is the meter the player is really defending.
+        float nativeShare = 1f - invasiveShare;
+        biodiversity = Mathf.Clamp01(nativeShare * biodiversityTerritoryWeight
+                                   + forageHealth * biodiversityForageWeight
+                                   - biodiversityDamage);
+
         RefreshHud();
     }
 

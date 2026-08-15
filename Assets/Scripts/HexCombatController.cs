@@ -60,6 +60,8 @@ public class HexCombatController : MonoBehaviour
     }
     public event Action<HexCombatController> ConflictChanged;
 
+    private bool engagementRegistered;
+
     private void Awake()
     {
         if (hexTile == null)
@@ -79,6 +81,7 @@ public class HexCombatController : MonoBehaviour
         {
             ResetResponseWindow();
             SetConflictState(HexConflictState.AttackerBattle);
+            NotifyPlayerEngagement(defendingFaction);
             RunWaspCombat(friendlyAttackers, enemyAttackers, defendingFaction);
             return;
         }
@@ -162,6 +165,7 @@ public class HexCombatController : MonoBehaviour
         {
             ResetResponseWindow();
             SetConflictState(HexConflictState.HiveAssault);
+            NotifyPlayerEngagement(enemyFaction);
             RunHiveAssault(attackers, enemyHive, true, enemyFaction);
             return;
         }
@@ -207,6 +211,9 @@ public class HexCombatController : MonoBehaviour
         {
             ResetResponseWindow();
             SetConflictState(HexConflictState.HiveAssault);
+            // The player is being attacked rather than attacking, but it is still an encounter with
+            // this species and teaches the player just as much.
+            NotifyPlayerEngagement(faction);
             RunHiveAssault(attackers, friendlyHive, false, faction);
             return;
         }
@@ -671,10 +678,31 @@ public class HexCombatController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Counts one combat engagement against a faction towards its identification codex. Latched, so a
+    /// battle running over many frames only ever counts once; the latch clears when the tile falls
+    /// quiet, which makes the next fight here a fresh encounter.
+    ///
+    /// Only called from player-versus-invasive paths. Invasive-versus-invasive fighting teaches the
+    /// player nothing they were present for, so it must not count.
+    /// </summary>
+    private void NotifyPlayerEngagement(WaspScopeRole faction)
+    {
+        if (engagementRegistered)
+            return;
+
+        engagementRegistered = true;
+        if (SpeciesCodex.Instance != null)
+            SpeciesCodex.Instance.RegisterEngagement(faction);
+    }
+
     private void SetConflictState(HexConflictState value)
     {
         if (conflictState == value)
             return;
+
+        if (value == HexConflictState.None)
+            engagementRegistered = false;
 
         conflictState = value;
         hexTile?.NotifyCombatInformationChanged();
