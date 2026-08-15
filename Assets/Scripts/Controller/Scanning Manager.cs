@@ -48,7 +48,7 @@ public class ScanningManager : MonoBehaviour
         if (currentObject.hasBeenScanned)
         {
             InfoPanel.SetActive(true);
-            zoomBehavior.SetFoV(zoomBehavior.zoomFOV);
+            zoomBehavior.SetFoV(zoomBehavior.zoomFOV, .5f);
             //UpdateInformation();
             return;
         }
@@ -57,6 +57,9 @@ public class ScanningManager : MonoBehaviour
             return;
 
         targetRadial.gameObject.SetActive(true);
+
+        zoomBehavior.SetFoV(zoomBehavior.zoomFOV, scanDuration);
+
         scanCoroutine = StartCoroutine(ScanRoutine());
     }
 
@@ -77,15 +80,15 @@ public class ScanningManager : MonoBehaviour
         }
 
         InfoPanel.SetActive(false);
-        zoomBehavior.SetFoV(zoomBehavior.defaultFOV);
 
+        zoomBehavior.CancelZoom(zoomBehavior.defaultFOV, 0.5f);
 
     }
 
     private IEnumerator ScanRoutine()
     {
         //FOV change
-        StartCoroutine(zoomBehavior.ScanSequence(scanDuration));
+        
 
         isScanning = true;
 

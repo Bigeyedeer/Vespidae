@@ -10,10 +10,20 @@ public class ZoomBehavior : MonoBehaviour
     public float introFOV;
     public float introDuration = 1f;
     public float zoomFOV;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+
+    private Coroutine zoomCoroutine;
     void Start()
     {
         StartCoroutine(IntroSequence());
+    }
+
+    public void StartScanZoom(float duration)
+    {
+        // Stop any existing zoom
+        if (zoomCoroutine != null)
+            StopCoroutine(zoomCoroutine);
+
+        zoomCoroutine = StartCoroutine(ScanSequence(duration));
     }
 
     public IEnumerator IntroSequence()
@@ -40,7 +50,6 @@ public class ZoomBehavior : MonoBehaviour
             yield return null;
         }
 
-        // Make sure we finish exactly at default
         mainCamera.Lens.FieldOfView = defaultFOV;
     }
 
@@ -94,8 +103,54 @@ public class ZoomBehavior : MonoBehaviour
         mainCamera.Lens.FieldOfView = defaultFOV;
     }
 
-    public void SetFoV(float fov)
+    public void CancelZoom(float targetFOV, float duration)
     {
-        mainCamera.Lens.FieldOfView = fov;
+        if (zoomCoroutine != null)
+        {
+            StopCoroutine(zoomCoroutine);
+            zoomCoroutine = null;
+        }
+
+        // Immediately restore normal FOV
+        SetFoV(targetFOV, duration);
+    }
+
+
+    public void SetFoV(float endFOV, float duration)
+    {
+        if (zoomCoroutine != null)
+        {
+            StopCoroutine(zoomCoroutine);
+        }
+
+        zoomCoroutine = StartCoroutine(ZoomFOV(
+            mainCamera.Lens.FieldOfView,
+            endFOV,
+            duration
+        ));
+    }
+
+    private IEnumerator ZoomFOV(float startingFOV, float endFOV, float duration)
+    {
+        float timer = 0f;
+
+        while (timer < duration)
+        {
+            timer += Time.deltaTime;
+
+            float progress = timer / duration;
+
+            mainCamera.Lens.FieldOfView = Mathf.Lerp(
+                startingFOV,
+                endFOV,
+                progress
+            );
+
+            yield return null;
+        }
+
+        mainCamera.Lens.FieldOfView = endFOV;
+
+        zoomCoroutine = null;
     }
 }
