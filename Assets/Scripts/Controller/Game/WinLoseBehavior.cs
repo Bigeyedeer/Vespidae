@@ -2,6 +2,7 @@ using NUnit.Framework;
 using StarterAssets;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -20,11 +21,24 @@ public class WinLoseBehavior : MonoBehaviour
     private bool isPaused = false;
     public StarterAssetsInputs input;
 
+    [Header("Scan Number Tracker")]
+    public TextMeshProUGUI scanNumberDisplay;
+
     [Header("Audio")]
     public AudioSource playerSource;
     public AudioClip pageTurn;
     public AudioClip winAudio;
     public AudioClip loseAudio;
+
+    private void Start()
+    {
+        scanNumberDisplay.text = "0/" + requiredScans;
+    }
+
+    public void UpdateDisplay()
+    {
+        scanNumberDisplay.text = currentScans + "/" + requiredScans;
+    }
     public void OnPause()
     {
         Debug.Log("Pause button pressed");
@@ -45,10 +59,12 @@ public class WinLoseBehavior : MonoBehaviour
     }
     private void Update()
     {
+        UpdateDisplay();
+
         if (input.pause)
         {
             TogglePause();
-
+            Cursor.visible = true;
             // Reset it so holding Escape doesn't repeatedly toggle
             input.pause = false;
         }

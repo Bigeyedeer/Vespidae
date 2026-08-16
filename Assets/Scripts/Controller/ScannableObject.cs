@@ -33,6 +33,8 @@ public class ScannableObject : MonoBehaviour
     [TextArea(2,4)]
     public string[] scanMessages;
 
+    public List<Sprite> bodyParts;
+
     [Header("Panel Screen")]
     public GameObject InfoPanel;
 

@@ -37,7 +37,7 @@ public class ScanningManager : MonoBehaviour
 
     [Header("Body Part Scans")]
     public Image bodyPartDisplay;
-    public List<Image> bodyParts;
+    
 
     [Header("Audio")]
     public AudioSource playerSource;
@@ -154,16 +154,26 @@ public class ScanningManager : MonoBehaviour
             yield break;
         }
 
-        if (currentObject.scanMessages == null || messageIndex >= currentObject.scanMessages.Length - 1)
+        if (currentObject.scanMessages == null || messageIndex >= currentObject.scanMessages.Length)
         {
             yield break;
         }
 
         scanMessageText.text = currentObject.scanMessages[messageIndex];
-        bodyPartDisplay = bodyParts[messageIndex];
+
+        if (currentObject.bodyParts == null!)
+        {
+            yield break;
+        }
+
+        bodyPartDisplay.sprite = currentObject.bodyParts[messageIndex];
         scanMessagePanel.SetActive(true);
 
-        BeginScan(currentObject);
+        if (currentObject.scanMessages == null || messageIndex < currentObject.scanMessages.Length -1)
+        {
+            BeginScan(currentObject);
+        }
+        
     }
     private void DisplayAttributes()
     {
