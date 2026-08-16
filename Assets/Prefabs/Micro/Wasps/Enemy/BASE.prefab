@@ -1102,6 +1102,8 @@ MonoBehaviour:
   scanType: 0
   uiColor: {r: 1, g: 0, b: 0, a: 1}
   radialTarget: {fileID: 6564914380077506793}
+  defaultRadialImage: {fileID: 21300000, guid: f1b430ce094c1744183e0b832c654a18, type: 3}
+  progressImages: []
   notificationImage: {fileID: 4105938094152829382}
   scanMessages:
   - Leg Scanned

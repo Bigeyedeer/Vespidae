@@ -32,6 +32,8 @@ public class ScanningManager : MonoBehaviour
 
     public ZoomBehavior zoomBehavior;
 
+    public WinLoseBehavior winLoseBehavior;
+
     private void Start()
     {
         
@@ -56,11 +58,13 @@ public class ScanningManager : MonoBehaviour
         if (isScanning)
             return;
 
+
         targetRadial.gameObject.SetActive(true);
 
         zoomBehavior.SetFoV(zoomBehavior.zoomFOV, scanDuration);
 
         scanCoroutine = StartCoroutine(ScanRoutine());
+
     }
 
     public void CancelScan()
@@ -80,6 +84,7 @@ public class ScanningManager : MonoBehaviour
         }
 
         InfoPanel.SetActive(false);
+        scanMessagePanel.SetActive(false);
 
         zoomBehavior.CancelZoom(zoomBehavior.defaultFOV, 0.5f);
 
@@ -113,11 +118,14 @@ public class ScanningManager : MonoBehaviour
         if (currentObject.completedScans >= currentObject.requiredScans)
         {
             currentObject.hasBeenScanned = true;
+            winLoseBehavior.IncreaseScanCount();
             DisplayAttributes();
             targetNotification.gameObject.SetActive(true);
         }
 
+
         
+
         scanCoroutine = null;
     }
 
@@ -137,8 +145,8 @@ public class ScanningManager : MonoBehaviour
 
         scanMessageText.text = currentObject.scanMessages[messageIndex];
         scanMessagePanel.SetActive(true);
-        yield return new WaitForSeconds(sec);
-        scanMessagePanel.SetActive(false);
+
+        BeginScan(currentObject);
     }
     private void DisplayAttributes()
     {
