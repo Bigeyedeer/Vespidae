@@ -55,6 +55,14 @@ public class CombatManager : MonoBehaviour
     private int _animIDTackle;
     public float animationDuration = 1f;
 
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip stingAudio;
+    public AudioClip tackleAudio;
+    public AudioClip damageAudio;
+    public AudioClip winAudio;
+    public AudioClip loseAudio;
+
 
 
     void Start()
@@ -172,6 +180,9 @@ public class CombatManager : MonoBehaviour
         if (!playerTurn)
             return;
 
+        audioSource.clip = stingAudio;
+        audioSource.Play();
+
         StartCoroutine(PlayerAttackSequence(_animIDSting));
     }
 
@@ -180,6 +191,9 @@ public class CombatManager : MonoBehaviour
         if (!playerTurn)
             return;
 
+        audioSource.clip = tackleAudio;
+        audioSource.Play();
+
         StartCoroutine(PlayerAttackSequence(_animIDTackle));
     }
 
@@ -187,6 +201,8 @@ public class CombatManager : MonoBehaviour
     {
         playerTurn = false;
         stingButton.interactable = false;
+
+        
 
         // Play player's attack animation
         yield return StartCoroutine(AnimatedAttack(true, attackID));
@@ -213,9 +229,19 @@ public class CombatManager : MonoBehaviour
         int attackID;
 
         if (randomAttack == 0)
+        {
             attackID = _animIDSting;
+
+            audioSource.clip = stingAudio;
+            audioSource.Play();
+        }
         else
+        {
             attackID = _animIDTackle;
+
+            audioSource.clip = tackleAudio;
+            audioSource.Play();
+        }
         // Play enemy attack animation
         yield return StartCoroutine(AnimatedAttack(false, attackID));
 
@@ -272,11 +298,13 @@ public class CombatManager : MonoBehaviour
     {
         if (!PlayerRequest)//Enemy Doing Damage
         {
+            
             //red damage display
             StartCoroutine(FlashDamage(playerRedImage));
         }
         else//Player Doing Damage
         {
+            
             //red damage display
             StartCoroutine(FlashDamage(enemyRedImage));
         }
@@ -374,12 +402,18 @@ public class CombatManager : MonoBehaviour
             //battleEndText.text = "YOU WIN";
             winPanel.SetActive(true);
 
+            audioSource.clip = winAudio;
+            audioSource.Play();
+
             Debug.Log("Enemy Lost");
         }
         else
         {
             //battleEndText.text = "YOU LOSE";
             losePanel.SetActive(true);
+
+            audioSource.clip = loseAudio;
+            audioSource.Play();
 
             Debug.Log("Player Lost");
         }

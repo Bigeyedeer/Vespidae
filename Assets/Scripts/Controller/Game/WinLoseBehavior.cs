@@ -20,7 +20,11 @@ public class WinLoseBehavior : MonoBehaviour
     private bool isPaused = false;
     public StarterAssetsInputs input;
 
-    //toggle pause menu when esc is pressed
+    [Header("Audio")]
+    public AudioSource playerSource;
+    public AudioClip pageTurn;
+    public AudioClip winAudio;
+    public AudioClip loseAudio;
     public void OnPause()
     {
         Debug.Log("Pause button pressed");
@@ -83,6 +87,8 @@ public class WinLoseBehavior : MonoBehaviour
     {
         yield return new WaitForSeconds(3);
 
+        playerSource.clip = winAudio;
+        playerSource.Play();
 
         Time.timeScale = 0f;
         winPanel.SetActive(true);
@@ -92,6 +98,9 @@ public class WinLoseBehavior : MonoBehaviour
     public IEnumerator Lose()
     {
         yield return new WaitForSeconds(1);
+
+        playerSource.clip = loseAudio;
+        playerSource.Play();
 
         Time.timeScale = 0f;
         losePanel.SetActive(true);
@@ -109,5 +118,11 @@ public class WinLoseBehavior : MonoBehaviour
     {
         Application.Quit();
         Debug.Log("Quit Game");
+    }
+
+    public void AudioPageTurn()
+    {
+        playerSource.clip = pageTurn;
+        playerSource.Play();
     }
 }

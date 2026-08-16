@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -34,6 +35,15 @@ public class ScanningManager : MonoBehaviour
 
     public WinLoseBehavior winLoseBehavior;
 
+    [Header("Body Part Scans")]
+    public Image bodyPartDisplay;
+    public List<Image> bodyParts;
+
+    [Header("Audio")]
+    public AudioSource playerSource;
+    public AudioClip scanComplete;
+    public AudioClip scanAudio;
+
     private void Start()
     {
         
@@ -51,6 +61,8 @@ public class ScanningManager : MonoBehaviour
         {
             InfoPanel.SetActive(true);
             zoomBehavior.SetFoV(zoomBehavior.zoomFOV, .5f);
+            playerSource.clip = scanComplete;
+            playerSource.Play();
             //UpdateInformation();
             return;
         }
@@ -113,6 +125,10 @@ public class ScanningManager : MonoBehaviour
 
         isScanning = false;
         currentObject.completedScans++;
+
+        playerSource.clip = scanAudio;
+        playerSource.Play();
+
         StartCoroutine(ShowScanMessage(3));
 
         if (currentObject.completedScans >= currentObject.requiredScans)
@@ -138,12 +154,13 @@ public class ScanningManager : MonoBehaviour
             yield break;
         }
 
-        if (currentObject.scanMessages == null || messageIndex >= currentObject.scanMessages.Length)
+        if (currentObject.scanMessages == null || messageIndex >= currentObject.scanMessages.Length - 1)
         {
             yield break;
         }
 
         scanMessageText.text = currentObject.scanMessages[messageIndex];
+        bodyPartDisplay = bodyParts[messageIndex];
         scanMessagePanel.SetActive(true);
 
         BeginScan(currentObject);
