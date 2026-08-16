@@ -1,7 +1,10 @@
 using NUnit.Framework;
+using StarterAssets;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 public class WinLoseBehavior : MonoBehaviour
@@ -13,15 +16,57 @@ public class WinLoseBehavior : MonoBehaviour
     [Header("UI Reference")]
     public GameObject winPanel;
     public GameObject losePanel;
+    public GameObject pauseCanvas;
+    private bool isPaused = false;
+    public StarterAssetsInputs input;
 
-    void Start()
+    //toggle pause menu when esc is pressed
+    public void OnPause()
     {
+        Debug.Log("Pause button pressed");
+        TogglePause();
     }
 
+    public void TogglePause()
+    {
+        isPaused = !isPaused;
+
+        pauseCanvas.SetActive(isPaused);
+        Time.timeScale = isPaused ? 0f : 1f;
+
+        if (isPaused)
+            EnableCursor();
+        else
+            DisableCursor();
+    }
+    private void Update()
+    {
+        if (input.pause)
+        {
+            TogglePause();
+
+            // Reset it so holding Escape doesn't repeatedly toggle
+            input.pause = false;
+        }
+    }
+
+    public void Resume()
+    {
+        pauseCanvas.SetActive(false);
+        Time.timeScale = 1f;
+        DisableCursor();
+
+    }
     void EnableCursor()
     {
         Cursor.visible = true;
-        Cursor.lockState = CursorLockMode.Confined;
+        Cursor.lockState = CursorLockMode.None;
+    }
+
+    void DisableCursor()
+    {
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     public void IncreaseScanCount()

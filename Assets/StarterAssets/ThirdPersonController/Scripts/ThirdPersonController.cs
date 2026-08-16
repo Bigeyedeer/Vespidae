@@ -114,6 +114,7 @@ namespace StarterAssets
         private CharacterController _controller;
         private StarterAssetsInputs _input;
         private GameObject _mainCamera;
+        public WinLoseBehavior winLoseBehavior;
 
         private const float _threshold = 0.01f;
 
@@ -181,6 +182,11 @@ namespace StarterAssets
         private void LateUpdate()
         {
             CameraRotation();
+        }
+
+        public void OnPause()
+        {
+            winLoseBehavior.TogglePause();
         }
 
         private void AssignAnimationIDs()

@@ -14,6 +14,7 @@ namespace StarterAssets
         public bool jump;
         public bool sprint;
         public bool crouch;
+        public bool pause;
 
         [Header("Flying Input Values")]
         public bool fly;
@@ -80,6 +81,11 @@ namespace StarterAssets
         {
             LockOnInput(value.isPressed);
         }
+        public void OnPause(InputValue value)
+        {
+           PauseInput(value.isPressed);
+        }
+       
 
 #endif
 
@@ -128,6 +134,11 @@ namespace StarterAssets
         private void LockOnInput(bool newLockOnState)
         {
             lockOn = newLockOnState;
+        }
+
+        private void PauseInput(bool newLockOnState)
+        {
+            pause = newLockOnState;
         }
 
         private void OnApplicationFocus(bool hasFocus)
