@@ -18,7 +18,7 @@ MonoBehaviour:
   classification: 1
   scopeRole: 1
   isPlayable: 0
-  portrait: {fileID: 0}
+  portrait: {fileID: 21300000, guid: ce6641e82306c55498b5882f375315fe, type: 3}
   accentColor: {r: 0.91, g: 0.48, b: 0.18, a: 1}
   gameplaySummary: The primary invasive colony expands into contested habitat and
     competes for prey and nesting opportunities.

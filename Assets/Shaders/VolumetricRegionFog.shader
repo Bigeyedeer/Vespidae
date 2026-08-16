@@ -39,8 +39,10 @@ Shader "Vespidae/Volumetric Region Fog"
 
         [Header(Map Edge)]
         [Space(4)]
-        _PlayMin ("Play area world min (X, Z)", Vector) = (-9, -14.4, 0, 0)
-        _PlayMax ("Play area world max (X, Z)", Vector) = (14.4, 10.8, 0, 0)
+        _PlayMin ("Play area world min (X, Z)  [unused, kept for compatibility]", Vector) = (-9, -14.4, 0, 0)
+        _PlayMax ("Play area world max (X, Z)  [unused, kept for compatibility]", Vector) = (14.4, 10.8, 0, 0)
+        _MaskMaxDistance ("World distance the mask alpha encodes", Float) = 40
+        _PlayPadding ("Clear ground kept past the hexes", Float) = 0
         _EdgeStart ("Thickening starts this far out (world units)", Float) = 1
         _EdgeEnd ("Fully closed in by this far out (world units)", Float) = 6
         _EdgeNoiseScale ("Edge break-up scale", Float) = 0.09
@@ -122,6 +124,8 @@ Shader "Vespidae/Volumetric Region Fog"
 
                 float4 _PlayMin;
                 float4 _PlayMax;
+                float  _MaskMaxDistance;
+                float  _PlayPadding;
                 float  _EdgeStart;
                 float  _EdgeEnd;
                 float  _EdgeNoiseScale;
@@ -226,20 +230,20 @@ Shader "Vespidae/Volumetric Region Fog"
                 return saturate(raw * 1.85 - 0.42 + breathe) * heightFade;
             }
 
-            // How far outside the play area this point lies, in world units. Zero anywhere over the
-            // hexes. Measuring in world units rather than mask UV matters: the mask is not square and
-            // not centred on the hexes, so a UV-space ramp thickens unevenly and eats into one side of
-            // the map before it has started on the other.
+            // How far this point lies from the hex cluster, in world units, read from the distance
+            // field baked into the mask's alpha and rescaled.
             //
-            // length(max(d, 0)) is the distance to the rectangle, which rounds the corners for free -
-            // no corner ever reads as the meeting point of two drawn lines.
-            float EdgeDistance(float3 positionWS)
+            // This replaced a distance-to-bounding-rectangle. A rectangle overshoots wherever the
+            // hexes do not reach its edge, which is why the north used to clear far out over open
+            // water once the top band opened: the box's north side sat well beyond the northernmost
+            // hex. A real distance field hugs the map's actual shape, so the fog closes in at the
+            // same remove on every side.
+            float ClusterDistance(float alpha, float3 positionWS)
             {
-                float2 d = max(_PlayMin.xy - positionWS.xz, positionWS.xz - _PlayMax.xy);
-                float outside = length(max(d, 0.0));
+                float outside = alpha * _MaskMaxDistance - _PlayPadding;
 
-                // Wobbling the distance itself is what stops the transition ever reading as a straight
-                // line: the fog eats in as bays and headlands instead of as a rectangle.
+                // Wobbling the distance itself is what stops the transition ever reading as a drawn
+                // line: the fog eats in as bays and headlands instead of as an outline.
                 outside += (Fbm3(positionWS * _EdgeNoiseScale) - 0.5) * _EdgeNoiseAmount;
                 return outside;
             }
@@ -251,7 +255,11 @@ Shader "Vespidae/Volumetric Region Fog"
                 float2 uv = MaskUV(positionWS);
                 float4 mask = SAMPLE_TEXTURE2D_LOD(_RegionMask, sampler_RegionMask, saturate(uv), 0);
 
-                float density = shape * mask.a;
+                float clusterDist = ClusterDistance(mask.a, positionWS);
+
+                // Base thickness now grows with distance from the colony rather than being painted
+                // per texel, which frees the alpha channel to carry the distance field.
+                float density = shape * lerp(0.70, 1.0, saturate(clusterDist / max(_MaskMaxDistance, 0.01)));
 
                 // Black in the mask means outside the playable area, so revealed stays 0 and that
                 // ground never clears no matter what the reveal vector says.
@@ -268,7 +276,7 @@ Shader "Vespidae/Volumetric Region Fog"
                 // Thicken over a long distance so the playable area sits inside an open bowl that
                 // closes over well past the last hex. Smoothstep twice: the second pass flattens
                 // both ends of the ramp, which is what removes the visible line where it starts.
-                float edge = smoothstep(_EdgeStart, max(_EdgeEnd, _EdgeStart + 0.01), EdgeDistance(positionWS));
+                float edge = smoothstep(_EdgeStart, max(_EdgeEnd, _EdgeStart + 0.01), clusterDist);
                 edge = edge * edge * (3.0 - 2.0 * edge);
 
                 float wall = heightFade * _EdgeWallDensity * lerp(0.7, 1.0, saturate(raw));

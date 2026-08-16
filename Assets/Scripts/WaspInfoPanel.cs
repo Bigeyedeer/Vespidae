@@ -35,6 +35,13 @@ public class WaspInfoPanel : MonoBehaviour
     [SerializeField] private Image confidenceBar;
     [SerializeField] private Button returnButton;
     [SerializeField] private Button closeButton;
+    [SerializeField] private Button verifyButton;
+    [SerializeField] private Button flagButton;
+
+    [Header("Identification")]
+    [SerializeField, Range(0f, 0.5f), Tooltip("Biodiversity lost when the player flags a native species " +
+                                              "as invasive. This is the cost of acting before identifying.")]
+    private float misidentificationPenalty = 0.08f;
 
     [Header("Locked Presentation")]
     [SerializeField, Tooltip("Alpha applied to a detail row and its divider while it is still locked.")]
@@ -292,6 +299,70 @@ public class WaspInfoPanel : MonoBehaviour
 
         BindCloseButton(returnButton);
         BindCloseButton(closeButton);
+        BindVerdictButtons();
+    }
+
+    /// <summary>
+    /// The two verdict buttons are the player's actual identification call, and the only place a
+    /// wrong answer costs anything.
+    ///
+    /// Flagging a specimen means "this is invasive, act on it". Get that right and it is worth codex
+    /// progress; get it wrong on a native and the colony pays for it in biodiversity. Verifying means
+    /// "this one is native, leave it" - safe, but it teaches nothing if the specimen was invasive.
+    /// </summary>
+    private void BindVerdictButtons()
+    {
+        if (verifyButton == null)
+            verifyButton = FindButton("WaspInfo_Verify");
+        if (flagButton == null)
+            flagButton = FindButton("WaspInfo_Flag");
+
+        if (verifyButton != null)
+        {
+            verifyButton.onClick.RemoveListener(VerifyAsNative);
+            verifyButton.onClick.AddListener(VerifyAsNative);
+            EnsureButtonHitArea(verifyButton);
+        }
+
+        if (flagButton != null)
+        {
+            flagButton.onClick.RemoveListener(FlagAsInvasive);
+            flagButton.onClick.AddListener(FlagAsInvasive);
+            EnsureButtonHitArea(flagButton);
+        }
+    }
+
+    private void VerifyAsNative()
+    {
+        SB_Wasps_Info species = selectedWasp != null ? selectedWasp.SpeciesInfo : null;
+        if (species == null)
+            return;
+
+        bool correct = species.Classification == WaspClassification.Native;
+        AudioDirector.Play(correct ? GameSound.CodexUnlocked : GameSound.UiClick);
+        SetText(statusText, correct ? "Logged as native" : "Logged - but this one is invasive");
+    }
+
+    private void FlagAsInvasive()
+    {
+        SB_Wasps_Info species = selectedWasp != null ? selectedWasp.SpeciesInfo : null;
+        if (species == null)
+            return;
+
+        if (species.Classification == WaspClassification.Invasive)
+        {
+            // A correct call is worth the same as meeting it in the field.
+            SpeciesCodex.Instance?.RegisterEngagement(species.ScopeRole);
+            AudioDirector.Play(GameSound.CodexUnlocked);
+            SetText(statusText, "Flagged - correctly identified as invasive");
+            Render(selectedWasp);
+            return;
+        }
+
+        // Flagging a native is the mistake the whole game is about, so it costs real biodiversity.
+        HiveManagement.Instance?.ApplyBiodiversityDamage(misidentificationPenalty);
+        AudioDirector.Play(GameSound.CombatLost);
+        SetText(statusText, "Flagged a native species - biodiversity harmed");
     }
 
     private void BindCloseButton(Button button)

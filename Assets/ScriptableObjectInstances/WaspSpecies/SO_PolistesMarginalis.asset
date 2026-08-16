@@ -18,7 +18,7 @@ MonoBehaviour:
   classification: 0
   scopeRole: 0
   isPlayable: 1
-  portrait: {fileID: 0}
+  portrait: {fileID: 21300000, guid: 9a5bb5bbdf5539b4b832cb3af2ce272c, type: 3}
   accentColor: {r: 0.84, g: 0.66, b: 0.29, a: 1}
   gameplaySummary: The native player colony protects an exposed paper nest, raises
     brood, gathers nectar and prey, and prevents invasive establishment.

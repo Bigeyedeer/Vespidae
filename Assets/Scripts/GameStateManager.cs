@@ -239,6 +239,7 @@ public class GameStateManager : MonoBehaviour
 
         Outcome = outcome;
         Debug.Log($"Match ended: {outcome}");
+        AudioDirector.Play(outcome == GameOutcome.Victory ? GameSound.MatchWon : GameSound.MatchLost);
         MatchEnded?.Invoke(outcome);
     }
 

@@ -17,6 +17,9 @@ public class HexOptionsPanel : MonoBehaviour
     [SerializeField] private TMP_Text closeActionButtonText;
     [SerializeField] private RectTransform actionButtonContainer;
 
+    private const float ActionButtonWidth = 298f;
+    private const float ActionButtonHeight = 37f;
+
     private HexTile selectedHex;
     private Button foragerActionButton;
     private Button builderActionButton;
@@ -126,6 +129,10 @@ public class HexOptionsPanel : MonoBehaviour
                     discoveryText.text = "This territory is currently locked.";
                 break;
         }
+
+        // Every state shows a different number of buttons, so the container is measured once here
+        // rather than in each branch.
+        ResizeActionContainer();
     }
 
     private void RefreshDetails()
@@ -299,6 +306,9 @@ public class HexOptionsPanel : MonoBehaviour
             WaspFunction.Guard,
             "Attacker",
             hive);
+
+        // Only now is it known how many buttons ended up visible for this hex.
+        ResizeActionContainer();
     }
 
     private void ConfigureConflictActions()
@@ -357,8 +367,10 @@ public class HexOptionsPanel : MonoBehaviour
         button.gameObject.SetActive(true);
         button.onClick.RemoveAllListeners();
         button.interactable = canDispatch;
+        // One line rather than stacked. Two lines forced the autosizer down to about 10pt to fit the
+        // button height; side by side it can use the full width and stay readable.
         if (text != null)
-            text.text = $"{label}\n{available} available";
+            text.text = $"{label}   {available} available";
         if (canDispatch)
             button.onClick.AddListener(() => Dispatch(role));
     }
@@ -513,6 +525,62 @@ public class HexOptionsPanel : MonoBehaviour
         primaryActionRect.sizeDelta = primaryDefaultSize;
     }
 
+    /// <summary>
+    /// Grows the button container to fit whatever is actually showing.
+    ///
+    /// The three dispatch buttons are cloned in at runtime and shown per hex state, so any height
+    /// authored in the editor is wrong the moment the panel opens - which is what crushed the buttons
+    /// to a third of their size. Measuring the container's own layout group here is the only place
+    /// that knows the real count.
+    /// </summary>
+    private void ResizeActionContainer()
+    {
+        if (actionButtonContainer == null)
+            return;
+
+        // Settle the children first. Measuring before they have been laid out reads the previous
+        // hex's button count, which shows up as the container always being one refresh behind.
+        LayoutRebuilder.ForceRebuildLayoutImmediate(actionButtonContainer);
+
+        float preferred = LayoutUtility.GetPreferredHeight(actionButtonContainer);
+        if (preferred <= 0f)
+            return;
+
+        actionButtonContainer.sizeDelta = new Vector2(actionButtonContainer.sizeDelta.x, preferred);
+        GiveSlackToDetails(preferred);
+        LayoutRebuilder.ForceRebuildLayoutImmediate(actionButtonContainer);
+    }
+
+    /// <summary>
+    /// Hands whatever vertical space the buttons did not use to the detail text.
+    ///
+    /// The buttons stack from the top with everything else, so without this a hex with one button
+    /// leaves a large hole beneath it and the text stays cramped. Growing the detail block instead
+    /// pushes the buttons to the bottom of the card and gives the readout the room, whatever the
+    /// button count for this hex turns out to be.
+    /// </summary>
+    private void GiveSlackToDetails(float buttonsHeight)
+    {
+        if (discoveryText == null || actionButtonContainer == null)
+            return;
+
+        RectTransform content = actionButtonContainer.parent as RectTransform;
+        if (content == null)
+            return;
+
+        VerticalLayoutGroup group = content.GetComponent<VerticalLayoutGroup>();
+        float spacing = group != null ? group.spacing : 0f;
+        float padding = group != null ? group.padding.top + group.padding.bottom : 0f;
+
+        float header = stateText != null ? stateText.rectTransform.rect.height : 0f;
+        float slack = content.rect.height - padding - header - buttonsHeight - spacing * 2f;
+        if (slack < 40f)
+            return;
+
+        RectTransform details = discoveryText.rectTransform;
+        details.sizeDelta = new Vector2(details.sizeDelta.x, slack);
+    }
+
     private void HideDispatchButtons()
     {
         if (foragerActionButton != null)
@@ -546,6 +614,14 @@ public class HexOptionsPanel : MonoBehaviour
         ConfigureActionButton(closeActionButton);
     }
 
+    /// <summary>
+    /// Sizes an action button for the stacked layout.
+    ///
+    /// This used to force 176x90 at half scale, which is where the squashed buttons came from: it runs
+    /// on every open and overwrote whatever the scene had, so the panel could never be laid out in the
+    /// editor. Full scale now, with a LayoutElement so the containing vertical group measures the
+    /// button properly and grows to fit however many are showing.
+    /// </summary>
     private static void ConfigureActionButton(Button button)
     {
         if (button == null)
@@ -555,8 +631,16 @@ public class HexOptionsPanel : MonoBehaviour
         if (rect == null)
             return;
 
-        rect.sizeDelta = new Vector2(176f, 90f);
-        rect.localScale = Vector3.one * 0.5f;
+        rect.sizeDelta = new Vector2(ActionButtonWidth, ActionButtonHeight);
+        rect.localScale = Vector3.one;
+
+        LayoutElement element = button.GetComponent<LayoutElement>();
+        if (element == null)
+            element = button.gameObject.AddComponent<LayoutElement>();
+
+        element.preferredWidth = ActionButtonWidth;
+        element.preferredHeight = ActionButtonHeight;
+        element.flexibleHeight = 0f;
     }
 
     public void Close()

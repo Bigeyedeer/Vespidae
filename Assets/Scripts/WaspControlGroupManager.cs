@@ -31,6 +31,9 @@ public class WaspControlGroupManager : MonoBehaviour
     [SerializeField] private RectTransform selectionBox;
     [SerializeField] private TMP_Text feedbackText;
     [SerializeField] private WaspControlGroupHudBinding[] groupBindings = new WaspControlGroupHudBinding[5];
+    [SerializeField, Tooltip("Only show a control group icon once that group has been created. Turn off " +
+                             "to keep all five slots on screen at all times.")]
+    private bool hideEmptyGroupSlots = true;
     [SerializeField, Range(1, 40)] private int maximumSelection = 20;
     [SerializeField, Min(2f)] private float dragThreshold = 10f;
     [SerializeField, Min(1f)] private float selectionRayDistance = 1000f;
@@ -459,7 +462,15 @@ public class WaspControlGroupManager : MonoBehaviour
                     : Color.white;
             }
             if (binding.Button != null)
-                binding.Button.interactable = groups[index].Count > 0;
+            {
+                bool exists = groups[index].Count > 0;
+                binding.Button.interactable = exists;
+
+                // Show a slot only once its group exists. Five permanent empty icons read as broken
+                // UI; one appearing per group the player actually makes reads as feedback.
+                if (hideEmptyGroupSlots && binding.Button.gameObject.activeSelf != exists)
+                    binding.Button.gameObject.SetActive(exists);
+            }
         }
     }
 

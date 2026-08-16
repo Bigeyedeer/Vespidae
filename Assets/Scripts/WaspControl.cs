@@ -267,6 +267,44 @@ public class WaspControl : MonoBehaviour
         HiveManagement.Instance?.NotifyWorkforceChanged();
     }
 
+    /// <summary>
+    /// Pulls this wasp home to defend, from wherever it is. Unlike <see cref="ReturnToHomeHive"/> this
+    /// does not require the wasp to be stationed - a Protect order has to reach the ones already in
+    /// transit to a target too, or half the force keeps flying at the enemy.
+    ///
+    /// Clearing the stationed and target hex is what makes the hive's own tile count them: the combat
+    /// controller treats an attacker sitting at home with no posting as part of that hex's garrison.
+    /// </summary>
+    public bool RecallForDefence()
+    {
+        if (homeHive == null || returningToHive)
+            return false;
+
+        if (workforceState == WaspWorkforceState.Idle && stationedHex == null && targetHex == null)
+            return false;   // already home and defending
+
+        if (!EnsureAgentOnNavMesh() || !TrySamplePosition(homePosition, out NavMeshHit recallHit))
+            return false;
+
+        HexTile previous = stationedHex;
+        stationedHex = null;
+        targetHex = null;
+        destination = recallHit.position;
+        hasDestination = TrySetPath(destination);
+        if (!hasDestination)
+        {
+            stationedHex = previous;
+            return false;
+        }
+
+        previous?.UnregisterFriendlyWasp(this);
+        returningToHive = true;
+        hasStationaryPosition = false;
+        workforceState = WaspWorkforceState.Travelling;
+        HiveManagement.Instance?.NotifyWorkforceChanged();
+        return true;
+    }
+
     public bool ReturnToHomeHive()
     {
         if (homeHive == null || workforceState != WaspWorkforceState.Stationed)

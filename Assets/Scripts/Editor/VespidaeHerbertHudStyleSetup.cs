@@ -19,16 +19,27 @@ public static class VespidaeHerbertHudStyleSetup
     private static readonly string[] PanelNames =
     {
         "HabitatPanel",
-        "ColonyPanel"
+        "ColonyPanel",
+        // The skills screen and the wasp action card were built before the Herbert set existed and
+        // still carried their own flat visuals, which read as a different game next to the rest.
+        "SkillsPanel",
+        "FriendlyWaspActionsCard"
     };
 
     private static readonly string[] ButtonNames =
     {
-        "Action_Scout",
+        // Action_Scout and Action_Contain were removed from the bar - scouting is ordered from the
+        // hex panel and containment was never wired. Listing them here would recreate them.
         "Action_Codex",
         "Action_Protect",
-        "Action_Contain",
-        "Action_Return"
+        "Action_Return",
+        "Skills_Return",
+        "Skills_Card_0",
+        "Skills_Card_1",
+        "Skills_Card_2",
+        "Skills_Card_3",
+        "Skills_Card_4",
+        "Skills_Card_5"
     };
 
     [MenuItem("Tools/Vespidae Wars/Use Herbert HUD Panels and Buttons")]

@@ -58,7 +58,10 @@ public class SpeciesCodex : MonoBehaviour
 
         // Only shout when a tier is actually crossed, not on every skirmish.
         if (previous / engagementsPerUnlock != updated / engagementsPerUnlock)
+        {
+            AudioDirector.Play(GameSound.CodexUnlocked);
             CodexAdvanced?.Invoke(faction);
+        }
     }
 
     public int EngagementCount(WaspScopeRole faction)

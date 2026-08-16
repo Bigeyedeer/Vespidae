@@ -386,6 +386,7 @@ public class HexCombatController : MonoBehaviour
 
         resolving = true;
         ResetResponseWindow();
+        AudioDirector.Play(friendlyWon ? GameSound.CombatWon : GameSound.CombatLost);
         RetreatLosingNoncombatants(friendlyWon);
         if (friendlyWon)
             hexTile.CaptureForFriendly();
@@ -692,6 +693,7 @@ public class HexCombatController : MonoBehaviour
             return;
 
         engagementRegistered = true;
+        AudioDirector.Play(GameSound.CombatStarted);
         if (SpeciesCodex.Instance != null)
             SpeciesCodex.Instance.RegisterEngagement(faction);
     }

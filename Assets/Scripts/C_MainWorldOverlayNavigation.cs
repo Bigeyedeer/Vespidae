@@ -40,6 +40,12 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         "H  -  Toggle map-only view\n" +
         "Esc  -  Pause / resume";
     [SerializeField] private GameObject pauseMenuPrefab;
+    [SerializeField, Tooltip("Herbert Squarish Panel prefab, used as the background for panels this " +
+                             "script builds in code. Must be assigned - it cannot be found by path in a build.")]
+    private GameObject herbertPanelPrefab;
+    [SerializeField, Tooltip("Herbert Button Variant prefab, used to skin buttons this script builds " +
+                             "in code so they match the authored ones.")]
+    private GameObject herbertButtonPrefab;
     [SerializeField] private Key skillsKey = Key.K;
 
     private C_HiveSkillsPanel skillsController;
@@ -198,6 +204,121 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         RefreshFriendlyWaspActions();
     }
 
+    /// <summary>
+    /// Puts the shared Herbert panel art behind a card that was built in code, so it matches the rest
+    /// of the HUD. Silently leaves the plain fill in place if the prefab is missing, rather than
+    /// dropping the card's background entirely.
+    /// </summary>
+    private void ApplyHerbertPanelShell(GameObject card, Image flatFill)
+    {
+        // Serialized rather than loaded by path. AssetDatabase does not exist in a build and the
+        // prefab lives in the art group's folder rather than Resources, so a path lookup would
+        // silently leave this card flat once built - working in the editor and nowhere else.
+        GameObject prefab = herbertPanelPrefab;
+        if (prefab == null)
+            return;
+
+        GameObject shell = Instantiate(prefab, card.transform);
+        shell.name = "HerbertSquarishPanel";
+        shell.transform.SetAsFirstSibling();
+
+        RectTransform shellRect = shell.GetComponent<RectTransform>();
+        if (shellRect != null)
+        {
+            shellRect.anchorMin = Vector2.zero;
+            shellRect.anchorMax = Vector2.one;
+            shellRect.offsetMin = Vector2.zero;
+            shellRect.offsetMax = Vector2.zero;
+            shellRect.localScale = Vector3.one;
+        }
+
+        // The art must never eat clicks meant for the card's own buttons.
+        foreach (Graphic graphic in shell.GetComponentsInChildren<Graphic>(true))
+            graphic.raycastTarget = false;
+
+        SetLayerRecursively(shell, card.layer);
+
+        if (flatFill != null)
+        {
+            Color color = flatFill.color;
+            color.a = 0f;
+            flatFill.color = color;
+            flatFill.raycastTarget = true;
+        }
+    }
+
+    /// <summary>
+    /// Puts the shared Herbert button art on a button built in code, mirroring what
+    /// VespidaeHerbertHudStyleSetup does to the authored ones. The original label is carried across
+    /// and the flat fill made transparent, so the button keeps its behaviour and only changes skin.
+    /// </summary>
+    private void ApplyHerbertButtonSkin(GameObject buttonObject)
+    {
+        if (herbertButtonPrefab == null || buttonObject == null)
+            return;
+
+        Transform existing = buttonObject.transform.Find("HerbertButtonVisual");
+        if (existing != null)
+            Destroy(existing.gameObject);
+
+        string label = string.Empty;
+        TMP_Text originalLabel = buttonObject.GetComponentInChildren<TMP_Text>(true);
+        if (originalLabel != null)
+            label = originalLabel.text;
+
+        GameObject visual = Instantiate(herbertButtonPrefab, buttonObject.transform);
+        visual.name = "HerbertButtonVisual";
+        visual.transform.SetAsFirstSibling();
+
+        RectTransform rect = visual.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.localScale = Vector3.one;
+        }
+
+        // The skin is decoration; the real Button underneath keeps the click.
+        foreach (Button nested in visual.GetComponentsInChildren<Button>(true))
+            nested.enabled = false;
+        foreach (Graphic graphic in visual.GetComponentsInChildren<Graphic>(true))
+            graphic.raycastTarget = false;
+
+        TMP_Text skinLabel = visual.GetComponentInChildren<TMP_Text>(true);
+        if (skinLabel != null)
+        {
+            skinLabel.text = label;
+            skinLabel.alignment = TextAlignmentOptions.Center;
+            skinLabel.enableAutoSizing = true;
+            skinLabel.fontSizeMin = 14f;
+            skinLabel.fontSizeMax = 24f;
+        }
+
+        // Hide the original label and fill so only the skin shows.
+        if (originalLabel != null && !originalLabel.transform.IsChildOf(visual.transform))
+            originalLabel.enabled = false;
+
+        Image fill = buttonObject.GetComponent<Image>();
+        if (fill != null)
+        {
+            Color color = fill.color;
+            color.a = 0f;
+            fill.color = color;
+            fill.raycastTarget = true;
+        }
+
+        SetLayerRecursively(visual, buttonObject.layer);
+    }
+
+    private static void SetLayerRecursively(GameObject target, int layer)
+    {
+        target.layer = layer;
+        foreach (Transform child in target.transform)
+            SetLayerRecursively(child.gameObject, layer);
+    }
+
     public void HideFriendlyWaspActions()
     {
         if (friendlyWaspPanel != null)
@@ -290,6 +411,11 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
             new Vector2(470f, 520f));
         Image cardImage = card.AddComponent<Image>();
         cardImage.color = new Color(0.035f, 0.085f, 0.075f, 0.96f);
+
+        // This card is built in code, so the editor styling tool cannot reach it. Drop the same
+        // Herbert panel shell in behind the content and make the flat fill transparent, matching
+        // what VespidaeHerbertHudStyleSetup does to the authored panels.
+        ApplyHerbertPanelShell(card, cardImage);
 
         friendlyWaspTitle = CreateText(
             "FriendlyWaspTitle",
@@ -1032,6 +1158,9 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         button.targetGraphic = image;
         CreateText("Label", result.transform, label, Vector2.zero, new Vector2(290f, 40f), 18f);
         button.onClick.AddListener(action);
+        // Every button this script builds gets the shared skin, so code-made panels stop looking
+        // like a different game to the authored ones.
+        ApplyHerbertButtonSkin(result);
         return button;
     }
 

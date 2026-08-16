@@ -27,6 +27,7 @@ public class RegionFogController : MonoBehaviour
     private static readonly int EdgeStartId = Shader.PropertyToID("_EdgeStart");
     private static readonly int EdgeEndId = Shader.PropertyToID("_EdgeEnd");
     private static readonly int OpeningExpandId = Shader.PropertyToID("_OpeningExpand");
+    private static readonly int PlayPaddingId = Shader.PropertyToID("_PlayPadding");
 
     public static RegionFogController Instance { get; private set; }
 
@@ -54,17 +55,27 @@ public class RegionFogController : MonoBehaviour
                                                "before the fog is cut, so raising it exposes more of the map " +
                                                "without repainting anything. This is the dial for opening the " +
                                                "centre; padding below only moves the outer wall.")]
-    private float openingExpand = 1f;
+    private float openingExpand = 1.05f;
+
+    [Header("Opening Animation")]
+    [SerializeField, Tooltip("Start the match fully closed and open the fog to the value above, so the " +
+                             "player watches their ground appear instead of arriving to a finished map.")]
+    private bool animateOpenOnStart = true;
+    [SerializeField, Min(0f), Tooltip("Seconds spent opening. Long on purpose - it is the establishing shot.")]
+    private float openDuration = 9f;
+    [SerializeField, Min(0f), Tooltip("Seconds to hold fully closed first, covering the handoff from the " +
+                                      "loading screen.")]
+    private float openDelay = 0.5f;
     [SerializeField, Tooltip("THE MAIN DIAL. How far past the outermost hex centre the map stays clear. " +
                              "Raise it to push the fog back off the edge tiles, lower it to close the " +
                              "opening in. Updates live as you drag it.")]
-    private float playAreaPadding = -3.92f;
+    private float playAreaPadding = -3.61f;
     [SerializeField, Min(0f), Tooltip("Extra distance beyond the clear area before the fog begins to " +
                                       "thicken at all. Controls how abruptly the wall starts.")]
-    private float wallStart = 4.94f;
+    private float wallStart = 3.72f;
     [SerializeField, Min(0.1f), Tooltip("Distance beyond the clear area at which the fog is fully opaque. " +
                                         "The gap between this and Wall Start is how soft the wall looks.")]
-    private float wallEnd = 24.5f;
+    private float wallEnd = 26.5f;
 
     [Header("Reveal")]
     [SerializeField, Min(0f), Tooltip("Seconds a band takes to dissolve away once revealed.")]
@@ -85,6 +96,9 @@ public class RegionFogController : MonoBehaviour
     private Vector3 revealed;
     private Vector3 revealTarget;
     private float restHeight;
+    private float openingTarget;
+    private float openingTimer;
+    private bool opening;
     private bool playAreaResolved;
     private Vector4 playMin;
     private Vector4 playMax;
@@ -124,6 +138,48 @@ public class RegionFogController : MonoBehaviour
         AssignHexRegions();
         MeasurePlayArea();
         SubscribeToHexes();
+
+        // Hold the authored width and start shut, so the opening is something the player watches
+        // happen rather than a state they arrive into.
+        openingTarget = openingExpand;
+        if (animateOpenOnStart && openDuration > 0f)
+        {
+            openingExpand = 0f;
+            openingTimer = -openDelay;
+            opening = true;
+        }
+
+        PushToShader();
+    }
+
+    /// <summary>Opens the fog from shut to its authored width. Safe to call again mid-open.</summary>
+    public void PlayOpeningAnimation()
+    {
+        openingExpand = 0f;
+        openingTimer = -openDelay;
+        opening = true;
+        PushToShader();
+    }
+
+    private void TickOpening()
+    {
+        if (!opening)
+            return;
+
+        openingTimer += Time.deltaTime;
+        if (openingTimer < 0f)
+            return;
+
+        float t = openDuration > 0f ? Mathf.Clamp01(openingTimer / openDuration) : 1f;
+        // Eased so it drifts open rather than sliding at a constant rate.
+        openingExpand = Mathf.Lerp(0f, openingTarget, t * t * (3f - 2f * t));
+
+        if (t >= 1f)
+        {
+            openingExpand = openingTarget;
+            opening = false;
+        }
+
         PushToShader();
     }
 
@@ -354,6 +410,9 @@ public class RegionFogController : MonoBehaviour
         if (region < 0 || region >= RegionCount)
             return;
 
+        if (revealTarget[region] < 1f)
+            AudioDirector.Play(GameSound.FogRevealed);
+
         revealTarget[region] = 1f;
     }
 
@@ -370,6 +429,8 @@ public class RegionFogController : MonoBehaviour
     {
         if (propertyBlock == null)
             return;
+
+        TickOpening();
 
         bool changed = false;
         float step = revealDuration > 0f ? Time.deltaTime / revealDuration : 1f;
@@ -406,6 +467,9 @@ public class RegionFogController : MonoBehaviour
         propertyBlock.SetFloat(EdgeStartId, wallStart);
         propertyBlock.SetFloat(EdgeEndId, wallEnd);
         propertyBlock.SetFloat(OpeningExpandId, openingExpand);
+        // Padding now shifts the distance field rather than resizing a rectangle, so it still moves
+        // the wall in and out but the wall keeps the shape of the hex cluster.
+        propertyBlock.SetFloat(PlayPaddingId, playAreaPadding);
 
         fogRenderer.SetPropertyBlock(propertyBlock);
     }
@@ -445,6 +509,7 @@ public class RegionFogController : MonoBehaviour
         material.SetFloat(EdgeStartId, wallStart);
         material.SetFloat(EdgeEndId, wallEnd);
         material.SetFloat(OpeningExpandId, openingExpand);
+        material.SetFloat(PlayPaddingId, playAreaPadding);
     }
 
 #if UNITY_EDITOR

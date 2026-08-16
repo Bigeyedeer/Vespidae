@@ -308,6 +308,8 @@ public class HexTile : MonoBehaviour
         claimDuration = Mathf.Max(1f, durationSeconds);
         claimTimeRemaining = claimDuration;
         claimInProgress = true;
+        // The countdown is the player's window to respond, so it needs to be audible.
+        AudioDirector.Play(GameSound.HexClaimCountdown);
         ClaimChanged?.Invoke(this);
     }
 
@@ -735,8 +737,11 @@ public class HexTile : MonoBehaviour
     public void CaptureForFriendly()
     {
         CancelEnemyClaim();
+        bool gained = state != HexState.Owned;
         state = HexState.Owned;
         playerAccessible = true;
+        if (gained)
+            AudioDirector.Play(GameSound.HexCaptured);
         RefreshStateVisuals();
         HexProgressionManager.Instance?.NotifyFriendlyClaimed(this);
         ReturnFriendlyScoutsToHive();
@@ -762,6 +767,10 @@ public class HexTile : MonoBehaviour
 
     public void CaptureForEnemy(WaspScopeRole faction)
     {
+        // Only sting when ground the player actually held is taken.
+        if (state == HexState.Owned)
+            AudioDirector.Play(GameSound.HexLost);
+
         enemyOwnerFaction = NormalizeEnemyFaction(faction);
         state = HexState.Enemy;
         RefreshStateVisuals();

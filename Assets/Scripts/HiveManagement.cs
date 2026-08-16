@@ -109,6 +109,32 @@ public class HiveManagement : MonoBehaviour
     public IReadOnlyList<C_Friendly_Hive_Orc> SpawnedFriendlyHives => spawnedFriendlyHives;
     public IReadOnlyList<WaspControl> FriendlyWasps => friendlyWasps;
 
+    /// <summary>
+    /// Pulls every attacker back to its home hive to defend it. Wasps already sitting at home are left
+    /// alone - the combat controller counts them as that hex's garrison already.
+    /// </summary>
+    /// <returns>How many wasps were actually recalled.</returns>
+    public int RecallAttackersToDefend()
+    {
+        int recalled = 0;
+        foreach (WaspControl wasp in friendlyWasps)
+        {
+            if (wasp == null || !wasp.IsAlive)
+                continue;
+
+            if (wasp.AssignedFunction != WaspFunction.Guard)
+                continue;
+
+            if (wasp.RecallForDefence())
+                recalled++;
+        }
+
+        if (recalled > 0)
+            NotifyWorkforceChanged();
+
+        return recalled;
+    }
+
     public static HiveManagement GetOrCreate()
     {
         if (Instance != null)
@@ -661,6 +687,7 @@ public class HiveManagement : MonoBehaviour
         }
 
         RegisterFriendlyWasp(wasp);
+        AudioDirector.Play(GameSound.TrainingComplete);
         return true;
     }
 
@@ -697,6 +724,7 @@ public class HiveManagement : MonoBehaviour
                 return false;
 
             resources.TrySpend(cost, 0f, 0f);
+            AudioDirector.Play(GameSound.WaspDispatched);
 
             return true;
         }
