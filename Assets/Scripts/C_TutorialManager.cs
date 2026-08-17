@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class C_TutorialManager : MonoBehaviour
@@ -23,6 +24,16 @@ public class C_TutorialManager : MonoBehaviour
     [SerializeField] private Button continueButton;
     [SerializeField] private Button skipButton;
 
+    [Header("Tutorial Arrow")]
+    [SerializeField] private GameObject tutorialArrow;
+    [SerializeField] private RectTransform tutorialArrowRect;
+    [SerializeField] private Canvas tutorialCanvas;
+    [SerializeField] private Camera worldCamera;
+
+    [Header("Arrow Animation")]
+    [SerializeField] private float arrowFloatDistance = 10f;
+    [SerializeField] private float arrowFloatSpeed = 3f;
+
     [Header("Debug")]
     [SerializeField] private bool alwaysShowTutorialInEditor = true;
 
@@ -36,56 +47,26 @@ public class C_TutorialManager : MonoBehaviour
     {
         ConfigureTutorialPortraitRendering();
         BindButtons();
-    }
 
-    private void ConfigureTutorialPortraitRendering()
-    {
-        int tutorialLayer = LayerMask.NameToLayer("TutorialPortrait");
+        if (tutorialArrow != null)
+            tutorialArrow.SetActive(false);
 
-        if (tutorialLayer < 0)
+        if (worldCamera == null)
+            worldCamera = Camera.main;
+
+        if (tutorialCanvas == null &&
+            tutorialPanel != null)
         {
-            Debug.LogWarning("TutorialPortrait layer is missing.");
-            return;
+            tutorialCanvas =
+                tutorialPanel.GetComponentInParent<Canvas>();
         }
 
-        int tutorialMask = 1 << tutorialLayer;
-        Transform[] sceneTransforms = FindObjectsByType<Transform>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
-
-        foreach (Transform sceneTransform in sceneTransforms)
+        if (tutorialArrowRect == null &&
+            tutorialArrow != null)
         {
-            if (sceneTransform.name == "Tutorial Pip Display")
-            {
-                SetLayerRecursively(sceneTransform, tutorialLayer);
-                break;
-            }
+            tutorialArrowRect =
+                tutorialArrow.GetComponent<RectTransform>();
         }
-
-        Camera[] sceneCameras = FindObjectsByType<Camera>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
-
-        foreach (Camera sceneCamera in sceneCameras)
-        {
-            if (sceneCamera.name == "Tutorial Pip Camera")
-                sceneCamera.cullingMask = tutorialMask;
-            else
-                sceneCamera.cullingMask &= ~tutorialMask;
-        }
-    }
-
-    private static void SetLayerRecursively(
-        Transform root,
-        int layer
-    )
-    {
-        root.gameObject.layer = layer;
-
-        foreach (Transform child in root)
-            SetLayerRecursively(child, layer);
     }
 
     private void Start()
@@ -97,6 +78,113 @@ public class C_TutorialManager : MonoBehaviour
         else
         {
             DisableTutorial();
+        }
+    }
+
+    private void Update()
+    {
+        UpdateArrowTracking();
+
+        if (!tutorialActive)
+            return;
+
+        if (Mouse.current == null)
+            return;
+
+        if (!Mouse.current.leftButton.wasPressedThisFrame)
+            return;
+
+        TutorialStep currentStep =
+            GetCurrentStep();
+
+        if (currentStep == null)
+            return;
+
+        if (!currentStep.requiresManualContinue)
+            return;
+
+        // Clicking UI should not skip the tutorial bubble.
+        if (EventSystem.current != null &&
+            EventSystem.current.IsPointerOverGameObject())
+        {
+            return;
+        }
+
+        AdvanceToNextStep();
+    }
+
+    private void ConfigureTutorialPortraitRendering()
+    {
+        int tutorialLayer =
+            LayerMask.NameToLayer("TutorialPortrait");
+
+        if (tutorialLayer < 0)
+        {
+            Debug.LogWarning(
+                "TutorialPortrait layer is missing."
+            );
+
+            return;
+        }
+
+        int tutorialMask =
+            1 << tutorialLayer;
+
+        Transform[] sceneTransforms =
+            FindObjectsByType<Transform>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        foreach (Transform sceneTransform in sceneTransforms)
+        {
+            if (sceneTransform.name ==
+                "Tutorial Pip Display")
+            {
+                SetLayerRecursively(
+                    sceneTransform,
+                    tutorialLayer
+                );
+
+                break;
+            }
+        }
+
+        Camera[] sceneCameras =
+            FindObjectsByType<Camera>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        foreach (Camera sceneCamera in sceneCameras)
+        {
+            if (sceneCamera.name ==
+                "Tutorial Pip Camera")
+            {
+                sceneCamera.cullingMask =
+                    tutorialMask;
+            }
+            else
+            {
+                sceneCamera.cullingMask &=
+                    ~tutorialMask;
+            }
+        }
+    }
+
+    private static void SetLayerRecursively(
+        Transform root,
+        int layer
+    )
+    {
+        root.gameObject.layer = layer;
+
+        foreach (Transform child in root)
+        {
+            SetLayerRecursively(
+                child,
+                layer
+            );
         }
     }
 
@@ -113,12 +201,16 @@ public class C_TutorialManager : MonoBehaviour
         if (!rememberCompletion)
             return true;
 
-        return PlayerPrefs.GetInt(TutorialCompletedKey, 0) == 0;
+        return PlayerPrefs.GetInt(
+            TutorialCompletedKey,
+            0
+        ) == 0;
     }
 
     public void StartTutorial()
     {
-        if (steps == null || steps.Length == 0)
+        if (steps == null ||
+            steps.Length == 0)
         {
             Debug.LogWarning(
                 "Tutorial cannot start because no steps are assigned."
@@ -142,7 +234,8 @@ public class C_TutorialManager : MonoBehaviour
         if (!tutorialActive)
             return;
 
-        TutorialStep currentStep = GetCurrentStep();
+        TutorialStep currentStep =
+            GetCurrentStep();
 
         if (currentStep != null &&
             !currentStep.requiresManualContinue)
@@ -171,8 +264,11 @@ public class C_TutorialManager : MonoBehaviour
 
     public void SkipTutorial()
     {
-        if (!tutorialActive || !allowTutorialSkip)
+        if (!tutorialActive ||
+            !allowTutorialSkip)
+        {
             return;
+        }
 
         CompleteTutorial();
     }
@@ -183,14 +279,23 @@ public class C_TutorialManager : MonoBehaviour
 
         if (rememberCompletion)
         {
-            PlayerPrefs.SetInt(TutorialCompletedKey, 1);
+            PlayerPrefs.SetInt(
+                TutorialCompletedKey,
+                1
+            );
+
             PlayerPrefs.Save();
         }
 
         if (tutorialPanel != null)
             tutorialPanel.SetActive(false);
 
-        Debug.Log("Tutorial completed.");
+        if (tutorialArrow != null)
+            tutorialArrow.SetActive(false);
+
+        Debug.Log(
+            "Tutorial completed."
+        );
     }
 
     public void DisableTutorial()
@@ -200,28 +305,41 @@ public class C_TutorialManager : MonoBehaviour
 
         if (tutorialPanel != null)
             tutorialPanel.SetActive(false);
+
+        if (tutorialArrow != null)
+            tutorialArrow.SetActive(false);
     }
 
     public void ResetTutorialProgress()
     {
-        PlayerPrefs.DeleteKey(TutorialCompletedKey);
+        PlayerPrefs.DeleteKey(
+            TutorialCompletedKey
+        );
+
         PlayerPrefs.Save();
 
-        Debug.Log("Tutorial completion progress was reset.");
+        Debug.Log(
+            "Tutorial completion progress was reset."
+        );
     }
 
     private void ShowCurrentStep()
     {
-        TutorialStep step = GetCurrentStep();
+        TutorialStep step =
+            GetCurrentStep();
 
         if (step == null)
             return;
 
         if (titleText != null)
-            titleText.text = step.title;
+            titleText.text =
+                step.title;
 
         if (descriptionText != null)
-            descriptionText.text = step.description;
+            descriptionText.text =
+                step.description;
+
+        UpdateTutorialArrow(step);
 
         if (continueButton != null)
         {
@@ -229,8 +347,12 @@ public class C_TutorialManager : MonoBehaviour
                 step.showContinueButton &&
                 step.requiresManualContinue;
 
-            continueButton.gameObject.SetActive(showContinue);
-            continueButton.interactable = showContinue;
+            continueButton.gameObject.SetActive(
+                showContinue
+            );
+
+            continueButton.interactable =
+                showContinue;
         }
 
         if (skipButton != null)
@@ -243,6 +365,122 @@ public class C_TutorialManager : MonoBehaviour
         Debug.Log(
             $"Tutorial step {currentStepIndex + 1}: {step.title}"
         );
+    }
+
+    private void UpdateTutorialArrow(
+        TutorialStep step
+    )
+    {
+        if (tutorialArrow == null ||
+            step == null)
+        {
+            return;
+        }
+
+        if (!step.showArrow)
+        {
+            tutorialArrow.SetActive(false);
+            return;
+        }
+
+        if (tutorialArrowRect == null)
+        {
+            tutorialArrowRect =
+                tutorialArrow.GetComponent<RectTransform>();
+        }
+
+        if (tutorialArrowRect == null)
+            return;
+
+        tutorialArrowRect.localRotation =
+            Quaternion.Euler(
+                0f,
+                0f,
+                step.arrowRotation
+            );
+
+        tutorialArrow.SetActive(true);
+    }
+
+    private void UpdateArrowTracking()
+    {
+        if (!tutorialActive ||
+            tutorialArrow == null ||
+            tutorialArrowRect == null)
+        {
+            return;
+        }
+
+        TutorialStep step = GetCurrentStep();
+
+        if (step == null ||
+            !step.showArrow)
+        {
+            if (tutorialArrow.activeSelf)
+                tutorialArrow.SetActive(false);
+
+            return;
+        }
+
+        if (step.arrowWorldTarget == null)
+            return;
+
+        if (worldCamera == null)
+            worldCamera = Camera.main;
+
+        if (worldCamera == null)
+            return;
+        
+        Vector3 screenPosition =
+            worldCamera.WorldToScreenPoint(
+                step.arrowWorldTarget.position
+            );
+        
+        if (screenPosition.z <= 0f)
+        {
+            tutorialArrow.SetActive(false);
+            return;
+        }
+
+        if (!tutorialArrow.activeSelf)
+            tutorialArrow.SetActive(true);
+        
+        RectTransform arrowParent =
+            tutorialArrowRect.parent as RectTransform;
+
+        if (arrowParent == null)
+        {
+            Debug.LogWarning(
+                "Tutorial Arrow needs a RectTransform parent."
+            );
+
+            return;
+        }
+
+        Camera uiCamera = null;
+
+        if (tutorialCanvas != null &&
+            tutorialCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+        {
+            uiCamera = tutorialCanvas.worldCamera;
+        }
+
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                arrowParent,
+                screenPosition,
+                uiCamera,
+                out Vector2 localPosition))
+        {
+            float floatOffset =
+                Mathf.Sin(
+                    Time.unscaledTime * arrowFloatSpeed
+                ) * arrowFloatDistance;
+
+            tutorialArrowRect.anchoredPosition =
+                localPosition +
+                step.arrowOffset +
+                Vector2.up * floatOffset;
+        }
     }
 
     private TutorialStep GetCurrentStep()
