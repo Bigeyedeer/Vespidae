@@ -109,6 +109,10 @@ PrefabInstance:
       value: 34.25
       objectReference: {fileID: 0}
     - target: {fileID: 5190715387167786958, guid: 6fcb2d7e5f402ad4599f21d1c2f71ab2, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: ceef2d68361da4a4abaa6d21d0d76b92, type: 2}
+    - target: {fileID: 5190715387167786958, guid: 6fcb2d7e5f402ad4599f21d1c2f71ab2, type: 3}
       propertyPath: m_sharedMaterial
       value: 
       objectReference: {fileID: 8508644120849117568, guid: ceef2d68361da4a4abaa6d21d0d76b92, type: 2}
