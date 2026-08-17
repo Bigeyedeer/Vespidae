@@ -1,9 +1,13 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Audio;
 
 public class MusicManager : MonoBehaviour
 {
     public static MusicManager Instance { get; private set; }
+
+    [Header("Mixer Output")]
+    [SerializeField] private AudioMixerGroup musicMixerGroup;
 
     [Header("Tracks")]
     [SerializeField] private AudioClip[] playlist;
@@ -29,6 +33,13 @@ public class MusicManager : MonoBehaviour
         // Create two AudioSource components for crossfading
         activeSource = gameObject.AddComponent<AudioSource>();
         inactiveSource = gameObject.AddComponent<AudioSource>();
+
+        // Route both runtime AudioSources to the Music Mixer Group
+        if (musicMixerGroup != null)
+        {
+            activeSource.outputAudioMixerGroup = musicMixerGroup;
+            inactiveSource.outputAudioMixerGroup = musicMixerGroup;
+        }
 
         activeSource.loop = false;
         inactiveSource.loop = false;

@@ -6,6 +6,9 @@ public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
 
+    public GameObject settingsPanel;
+    //public GameObject 
+
     [System.Serializable]
     public struct PanelData
     {
@@ -22,7 +25,7 @@ public class UIManager : MonoBehaviour
     private Stack<CanvasGroup> historyStack = new Stack<CanvasGroup>();
     private Dictionary<CanvasGroup, Coroutine> runningCoroutines = new Dictionary<CanvasGroup, Coroutine>();
 
-    private void Awake()
+    /*private void Awake()
     {
         if (Instance != null && Instance != this)
         {
@@ -126,5 +129,15 @@ public class UIManager : MonoBehaviour
         }
 
         runningCoroutines[canvasGroup] = null;
+    }*/
+
+    public void OpenSettings()
+    {
+        settingsPanel.gameObject.SetActive(true);
+    }
+
+    public void CloseSettings()
+    {
+        settingsPanel.gameObject.SetActive(false);
     }
 }
