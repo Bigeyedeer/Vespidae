@@ -157,8 +157,25 @@ public class EnemyWaspControl : MonoBehaviour
     
     private bool EnsureAgentOnNavMesh()
     {
+        // The navmesh surface can finish loading after the hives have already spawned their first
+        // wasps. Unity refuses to create an agent while no navmesh exists, and the old code gave up
+        // permanently at that point - leaving invasive wasps with no agent for the whole match, so
+        // they never moved. Recover the reference instead of failing for good.
         if (navMeshAgent == null)
-            return false;
+        {
+            navMeshAgent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (navMeshAgent == null)
+                navMeshAgent = GetComponentInChildren<UnityEngine.AI.NavMeshAgent>(true);
+            if (navMeshAgent == null)
+            {
+                // Nothing to recover, so build one now that a navmesh is likely to exist.
+                if (UnityEngine.AI.NavMesh.CalculateTriangulation().vertices.Length == 0)
+                    return false;
+
+                navMeshAgent = gameObject.AddComponent<UnityEngine.AI.NavMeshAgent>();
+                navMeshAgent.enabled = false;
+            }
+        }
 
         if (navMeshAgent.enabled && navMeshAgent.isOnNavMesh)
             return true;

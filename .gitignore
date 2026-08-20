@@ -107,3 +107,16 @@ InitTestScene*.unity*
 
 # Debug screenshots captured during development
 /[Aa]ssets/[Ss]creenshots/
+
+# --- Vespidae Wars build artefacts ---------------------------------------------------------------
+# The player build itself is already covered by /[Bb]uilds/ above.
+
+# Installer output. The .msi is ~135 MB and is regenerated in about two minutes by
+# Installer/build-installer.ps1, so it does not belong in the repository. The .wxs, the licence
+# page, the build script and the icons are all kept, which is everything needed to rebuild it.
+Installer/*.msi
+Installer/*.wixpdb
+
+# Generated trailer text cards. These are produced by a script from the game's palette and are
+# regenerable, so the PNGs are not tracked.
+Trailer/

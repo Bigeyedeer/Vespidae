@@ -91,6 +91,14 @@ public class SB_Wasp_Skill : ScriptableObject
     [SerializeField, Min(0f), Tooltip("Prey this role consumes per wasp on each upkeep tick.")]
     private float upkeepPreyPerTick;
 
+    [Header("Training Time")]
+    [SerializeField, Min(0f), Tooltip("Seconds to train one wasp of this role at skill level 0.")]
+    private float baseTrainingSeconds = 5f;
+    [SerializeField, Min(0f), Tooltip("Extra seconds added per skill level. A better wasp takes longer to " +
+                                      "raise, so investing in a role is a trade against how fast you can " +
+                                      "field it.")]
+    private float trainingSecondsPerLevel = 1.5f;
+
     [Header("Upgrade Cost Curve")]
     [SerializeField, Range(1f, 3f), Tooltip("1 = linear (cost x level). Higher values make the last levels much more expensive.")]
     private float upgradeCostExponent = 1.6f;
@@ -110,6 +118,14 @@ public class SB_Wasp_Skill : ScriptableObject
 
     public float UpkeepNectarPerTick => upkeepNectarPerTick;
     public float UpkeepPreyPerTick => upkeepPreyPerTick;
+    public float BaseTrainingSeconds => baseTrainingSeconds;
+    public float TrainingSecondsPerLevel => trainingSecondsPerLevel;
+
+    /// <summary>How long one wasp of this role takes to train at the given skill level.</summary>
+    public float GetTrainingSeconds(int level)
+    {
+        return Mathf.Max(0f, baseTrainingSeconds + trainingSecondsPerLevel * Mathf.Max(0, level));
+    }
 
     /// <summary>
     /// Cost of the next level. The curve is exponential rather than linear so the final levels are

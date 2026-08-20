@@ -192,7 +192,7 @@ public class WaspInfoPanel : MonoBehaviour
 
             int entryIndex = i + 1;
             bool hasEntry = entries != null && entryIndex < entries.Count;
-            bool isUnlocked = hasEntry && unlocked > entryIndex;
+            bool isUnlocked = hasEntry && unlocked >= entryIndex;
 
             if (!hasEntry)
             {
@@ -213,10 +213,11 @@ public class WaspInfoPanel : MonoBehaviour
             {
                 // Keep the label. Naming what is missing is what teaches the player which features
                 // to compare; hiding the row entirely would teach nothing.
-                // Entry e needs unlocked to reach e + 1, so the wait is the engagements left in the
-                // current tier plus a full tier for every one after it.
+                // Entry e needs unlocked to reach e, so the wait is the engagements left in the
+                // current tier plus a full tier for every crossing after this one. The first row
+                // therefore costs one tier - 3 encounters - not two.
                 int perUnlock = SpeciesCodex.Instance != null ? SpeciesCodex.Instance.EngagementsPerUnlock : 3;
-                int cost = (entryIndex - unlocked) * perUnlock + remaining;
+                int cost = remaining + (entryIndex - unlocked - 1) * perUnlock;
                 SetText(row, FormatRow(entry.Label, cost > 0 ? $"— {cost} more encounters —" : "— locked —"));
                 SetAlpha(row, lockedRowAlpha);
                 SetAlpha(detailLines[i], lockedRowAlpha);

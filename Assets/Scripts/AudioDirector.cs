@@ -31,7 +31,12 @@ public class AudioDirector : MonoBehaviour
     [Header("Playback")]
     [SerializeField, Range(1, 16), Tooltip("How many sounds can overlap before the oldest is reused.")]
     private int voiceCount = 8;
-    [SerializeField, Range(0f, 1f)] private float masterVolume = 1f;
+    [SerializeField, Range(0f, 1f), Tooltip("Scales everything.")]
+    private float masterVolume = 1f;
+    [SerializeField, Range(0f, 1f), Tooltip("Menu music and the world ambience bed.")]
+    private float musicVolume = 1f;
+    [SerializeField, Range(0f, 1f), Tooltip("Everything else - map events, combat, training, UI.")]
+    private float sfxVolume = 1f;
     [SerializeField, Tooltip("Play the match music on start, if the set has any.")]
     private bool playMusicOnStart = true;
 
@@ -70,7 +75,7 @@ public class AudioDirector : MonoBehaviour
             return;
 
         ambientSource.clip = audioSet.AmbientLoop;
-        ambientSource.volume = audioSet.AmbientVolume * masterVolume;
+        ambientSource.volume = audioSet.AmbientVolume * musicVolume * masterVolume;
         ambientSource.Play();
     }
 
@@ -109,7 +114,9 @@ public class AudioDirector : MonoBehaviour
         ambientSource.playOnAwake = false;
         ambientSource.loop = true;
         ambientSource.spatialBlend = 0f;
-        ambientSource.outputAudioMixerGroup = effectsGroup;
+        // Ambience counts as music, not sfx - the world bed and the menu track move together on the
+        // music slider, leaving sfx for everything the player causes.
+        ambientSource.outputAudioMixerGroup = musicGroup;
     }
 
     /// <summary>Plays the cue for an event. Does nothing if no clip is assigned to it.</summary>
@@ -142,7 +149,7 @@ public class AudioDirector : MonoBehaviour
 
         source.outputAudioMixerGroup = IsUiSound(sound) ? (uiGroup != null ? uiGroup : effectsGroup) : effectsGroup;
         source.clip = clip;
-        source.volume = entry.Volume * masterVolume;
+        source.volume = entry.Volume * sfxVolume * masterVolume;
         source.pitch = 1f + Random.Range(-entry.PitchJitter, entry.PitchJitter);
         source.Play();
     }
@@ -158,7 +165,7 @@ public class AudioDirector : MonoBehaviour
             return;
 
         musicSource.clip = audioSet.MatchMusic;
-        musicSource.volume = audioSet.MusicVolume * masterVolume;
+        musicSource.volume = audioSet.MusicVolume * musicVolume * masterVolume;
         musicSource.Play();
     }
 
@@ -168,11 +175,43 @@ public class AudioDirector : MonoBehaviour
             musicSource.Stop();
     }
 
+    public float MasterVolume => masterVolume;
+    public float MusicVolume => musicVolume;
+    public float SfxVolume => sfxVolume;
+
+    /// <summary>
+    /// Volume channels. Master scales everything; music covers the menu track and the ambience bed;
+    /// sfx covers every one-shot. Applied as multipliers on the sources rather than through mixer
+    /// parameters, so no exposed parameter has to be authored on the mixer for these to work.
+    /// </summary>
     public void SetMasterVolume(float value)
     {
         masterVolume = Mathf.Clamp01(value);
-        if (musicSource != null && audioSet != null)
-            musicSource.volume = audioSet.MusicVolume * masterVolume;
+        ApplyVolumes();
+    }
+
+    public void SetMusicVolume(float value)
+    {
+        musicVolume = Mathf.Clamp01(value);
+        ApplyVolumes();
+    }
+
+    public void SetSfxVolume(float value)
+    {
+        sfxVolume = Mathf.Clamp01(value);
+        ApplyVolumes();
+    }
+
+    private void ApplyVolumes()
+    {
+        if (audioSet == null)
+            return;
+
+        if (musicSource != null)
+            musicSource.volume = audioSet.MusicVolume * musicVolume * masterVolume;
+
+        if (ambientSource != null)
+            ambientSource.volume = audioSet.AmbientVolume * musicVolume * masterVolume;
     }
 
     [ContextMenu("Report which sounds have clips")]

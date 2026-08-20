@@ -180,6 +180,7 @@ public class HiveManagement : MonoBehaviour
         }
 
         UpdateStarvation();
+        UpdateTraining();
 
         ecosystemTimer += Time.deltaTime;
         if (ecosystemTimer >= ecosystemInterval)
@@ -672,23 +673,125 @@ public class HiveManagement : MonoBehaviour
         if (!resources.TrySpend(cost.nectar, cost.prey, cost.fibre))
             return false;
 
-        WaspControl wasp = hive.SpawnWasp(friendlyWaspPrefab);
-        if (wasp == null)
+        // Resources are taken up front, but the wasp itself arrives after the training time. Higher
+        // skill levels take longer, so specialising a role trades against how fast you can field it.
+        float seconds = definition.GetTrainingSeconds(GetSkillLevel(function));
+        trainingQueue.Add(new TrainingOrder(hive, function, seconds, cost));
+        NotifyWorkforceChanged();
+        return true;
+    }
+
+    /// <summary>A wasp paid for and being raised. Completes once its timer runs out.</summary>
+    private class TrainingOrder
+    {
+        public readonly C_Friendly_Hive_Orc Hive;
+        public readonly WaspFunction Function;
+        public readonly float TotalSeconds;
+        public readonly WaspSkillCost Cost;
+        public float Remaining;
+
+        public TrainingOrder(C_Friendly_Hive_Orc hive, WaspFunction function, float seconds, WaspSkillCost cost)
         {
-            Refund(cost);
-            return false;
+            Hive = hive;
+            Function = function;
+            TotalSeconds = Mathf.Max(0.01f, seconds);
+            Cost = cost;
+            Remaining = TotalSeconds;
+        }
+    }
+
+    private readonly List<TrainingOrder> trainingQueue = new List<TrainingOrder>();
+
+    /// <summary>How many wasps of a role are currently being raised.</summary>
+    public int GetTrainingCount(WaspFunction function)
+    {
+        int count = 0;
+        foreach (TrainingOrder order in trainingQueue)
+            if (order.Function == function)
+                count++;
+        return count;
+    }
+
+    /// <summary>Progress of the nearest-finished wasp of a role, 0 to 1. Returns 0 if none training.</summary>
+    public float GetTrainingProgress(WaspFunction function)
+    {
+        float best = 0f;
+        foreach (TrainingOrder order in trainingQueue)
+        {
+            if (order.Function != function)
+                continue;
+
+            float progress = 1f - Mathf.Clamp01(order.Remaining / order.TotalSeconds);
+            if (progress > best)
+                best = progress;
+        }
+        return best;
+    }
+
+    /// <summary>Seconds left on the nearest-finished wasp of a role, or 0 if none training.</summary>
+    public float GetTrainingSecondsRemaining(WaspFunction function)
+    {
+        float best = 0f;
+        foreach (TrainingOrder order in trainingQueue)
+        {
+            if (order.Function != function)
+                continue;
+
+            if (best <= 0f || order.Remaining < best)
+                best = order.Remaining;
+        }
+        return best;
+    }
+
+    private void UpdateTraining()
+    {
+        if (trainingQueue.Count == 0)
+            return;
+
+        bool anyCompleted = false;
+        for (int index = trainingQueue.Count - 1; index >= 0; index--)
+        {
+            TrainingOrder order = trainingQueue[index];
+            order.Remaining -= Time.deltaTime;
+            if (order.Remaining > 0f)
+                continue;
+
+            trainingQueue.RemoveAt(index);
+            CompleteTraining(order);
+            anyCompleted = true;
         }
 
-        if (!wasp.InitializeFriendlyWasp(hive, function, GetSelectedSpecies(wasp)))
+        if (anyCompleted)
+            NotifyWorkforceChanged();
+    }
+
+    private void CompleteTraining(TrainingOrder order)
+    {
+        // Resources were taken when the order was placed, so anything that stops the wasp arriving
+        // has to give them back - otherwise losing a hive mid-training quietly costs the player
+        // everything they paid with nothing to show for it.
+        if (order.Hive == null)
+        {
+            Refund(order.Cost);
+            return;
+        }
+
+        WaspControl wasp = order.Hive.SpawnWasp(friendlyWaspPrefab);
+        if (wasp == null)
+        {
+            Refund(order.Cost);
+            return;
+        }
+
+        if (!wasp.InitializeFriendlyWasp(order.Hive, order.Function, GetSelectedSpecies(wasp)))
         {
             Destroy(wasp.gameObject);
-            Refund(cost);
-            return false;
+            Refund(order.Cost);
+            return;
         }
 
         RegisterFriendlyWasp(wasp);
         AudioDirector.Play(GameSound.TrainingComplete);
-        return true;
     }
 
     public bool TryDispatchScout(HexTile target)

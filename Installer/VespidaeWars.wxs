@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSI installer for Vespidae Wars.
+
+  Builds a standard Windows install wizard: welcome page, licence, install-location picker,
+  progress, and a finish page that can launch the game. Installs to Program Files, adds Start Menu
+  and desktop shortcuts, and registers a proper uninstaller in Add/Remove Programs.
+
+  The whole player folder is pulled in by the <Files> glob rather than being listed file by file,
+  so rebuilding the game never means editing this.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package
+      Name="Vespidae Wars"
+      Manufacturer="Open Window"
+      Version="1.0.0.0"
+      UpgradeCode="8f3d5b6a-2c41-4e79-9a3d-1b7e4c9f2a58"
+      Scope="perMachine"
+      Compressed="yes">
+
+    <!-- Installing a newer build cleanly replaces an older one instead of stacking up. -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Vespidae Wars is already installed." />
+
+    <!-- Everything is packed into the .msi itself, so the file is self-contained. -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="AppIcon" SourceFile="icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPHELPLINK" Value="https://www.openwindow.co.za" />
+
+    <!-- Ticked by default on the finish page. -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#GameExecutable]" />
+    <!-- x64 build, so the x64 flavour of the Util custom-action library is the one that links. -->
+    <CustomAction Id="LaunchGame" BinaryRef="Wix4UtilCA_X64" DllEntry="WixShellExec" Impersonate="yes" />
+
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+    <UI>
+      <Publish Dialog="ExitDialog"
+               Control="Finish"
+               Event="DoAction"
+               Value="LaunchGame"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed" />
+    </UI>
+    <WixVariable Id="WixUIExitDialogOptionalCheckBoxText" Value="Launch Vespidae Wars" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Vespidae Wars" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ShortcutFolder" Name="Vespidae Wars" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="GameFeature" Title="Vespidae Wars" Level="1" AllowAbsent="no">
+      <ComponentGroupRef Id="PlayerFiles" />
+      <ComponentRef Id="StartMenuShortcuts" />
+      <ComponentRef Id="DesktopShortcutComponent" />
+    </Feature>
+
+    <!--
+      The entire built player, harvested at compile time. The Id on the executable is what the
+      shortcuts and the launch-on-finish action point at.
+    -->
+    <ComponentGroup Id="PlayerFiles" Directory="INSTALLFOLDER">
+      <Files Include="..\Builds\VespidaeWars\**">
+        <Exclude Files="..\Builds\VespidaeWars\**\*.pdb" />
+      </Files>
+    </ComponentGroup>
+
+    <Component Id="StartMenuShortcuts" Directory="ShortcutFolder" Guid="4a1c7e28-93bf-4d15-8c62-5e0a7b3d9f41">
+      <Shortcut Id="StartMenuGame"
+                Name="Vespidae Wars"
+                Description="The Cape Invasion"
+                Target="[INSTALLFOLDER]VespidaeWars.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="AppIcon" />
+      <Shortcut Id="StartMenuUninstall"
+                Name="Uninstall Vespidae Wars"
+                Target="[System64Folder]msiexec.exe"
+                Arguments="/x [ProductCode]" />
+      <RemoveFolder Id="RemoveShortcutFolder" On="uninstall" />
+      <!-- A per-machine install still needs a per-user key so the shortcut has a keypath. -->
+      <RegistryValue Root="HKCU" Key="Software\Open Window\Vespidae Wars"
+                     Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcutComponent" Directory="DesktopFolder" Guid="b62f8d13-7a45-4c90-91e8-3d5c2f7a6b04">
+      <Shortcut Id="DesktopGame"
+                Name="Vespidae Wars"
+                Description="The Cape Invasion"
+                Target="[INSTALLFOLDER]VespidaeWars.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="AppIcon" />
+      <RegistryValue Root="HKCU" Key="Software\Open Window\Vespidae Wars"
+                     Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+  </Package>
+</Wix>

@@ -85,6 +85,13 @@ public class RegionFogController : MonoBehaviour
     [SerializeField, Tooltip("Lift a band the moment the player owns or scouts any hex inside it. Turn off " +
                              "to drive reveals entirely from your own progression rules.")]
     private bool revealBandOnPlayerArrival = true;
+    [SerializeField, Min(0f), Tooltip("How far past a claimed hex a reveal reaches, in world units. A band " +
+                                      "normally waits until the player stands inside it; reaching past the " +
+                                      "claimed hex opens the next band as they arrive at its edge instead. " +
+                                      "Hexes sit roughly 2.7 apart, so 3.2 reaches the ring of six touching " +
+                                      "neighbours and 5.5 reaches two rings - which is most of the map. Set " +
+                                      "to 0 for the old behaviour.")]
+    private float revealReach = 3.2f;
 
     private readonly Dictionary<HexTile, int> hexRegions = new Dictionary<HexTile, int>();
     private readonly List<HexTile> watchedHexes = new List<HexTile>();
@@ -222,6 +229,37 @@ public class RegionFogController : MonoBehaviour
             return;
 
         RevealRegion(RegionOf(tile));
+        RevealBandsWithinReach(tile);
+    }
+
+    /// <summary>
+    /// Also lifts the band of any hex sitting within <see cref="revealReach"/> of the one just taken.
+    ///
+    /// A band otherwise stays walled off until the player physically stands inside it, which meant the
+    /// southern stretch only opened once a wasp had already walked into the dark - the player was
+    /// looking at fog in the exact direction they were expanding. Reaching a little past the claimed
+    /// hex opens the next band as they arrive at its edge, which reads as the map giving way ahead of
+    /// them rather than closing behind them.
+    /// </summary>
+    private void RevealBandsWithinReach(HexTile origin)
+    {
+        if (revealReach <= 0f || origin == null)
+            return;
+
+        Vector3 from = origin.transform.position;
+        float reachSquared = revealReach * revealReach;
+
+        foreach (KeyValuePair<HexTile, int> pair in hexRegions)
+        {
+            if (pair.Key == null || pair.Value == NoRegion)
+                continue;
+
+            Vector3 offset = pair.Key.transform.position - from;
+            offset.y = 0f;      // Height varies across the map and would otherwise eat into the reach.
+
+            if (offset.sqrMagnitude <= reachSquared)
+                RevealRegion(pair.Value);
+        }
     }
 
     private static bool IsPlayerPresence(HexTile tile)

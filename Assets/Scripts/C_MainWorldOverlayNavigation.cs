@@ -547,6 +547,18 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
         if (isPaused)
             return;
 
+        // The pause screen is authored in the scene now. Building a second one here would leave two
+        // stacked on top of each other, which is exactly what happened before this check existed.
+        C_PauseMenu authored = C_PauseMenu.Instance;
+        if (authored != null)
+        {
+            isPaused = true;
+            mapMovementWasEnabled = mapCameraMovement != null && mapCameraMovement.MovementEnabled;
+            mapCameraMovement?.SetMovementEnabled(false);
+            authored.Open();
+            return;
+        }
+
         BindSceneReferences();
         CreatePauseMenu();
         if (pauseMenu == null)
@@ -567,6 +579,11 @@ public class C_MainWorldOverlayNavigation : MonoBehaviour
 
         Time.timeScale = 1f;
         isPaused = false;
+
+        C_PauseMenu authored = C_PauseMenu.Instance;
+        if (authored != null)
+            authored.Close();
+
         if (pauseMenu != null)
             pauseMenu.SetActive(false);
 

@@ -71,6 +71,7 @@ public class WaspCombatant : MonoBehaviour
             return false;
 
         attackCooldownRemaining = 1f / AttacksPerSecond;
+        LungeAt(target.transform.position);
         target.TakeDamage(AttackDamage);
         return true;
     }
@@ -85,8 +86,24 @@ public class WaspCombatant : MonoBehaviour
             return;
 
         attackCooldownRemaining = 1f / AttacksPerSecond;
+        LungeAt(target.transform.position);
         target.TakeDamage(AttackDamage);
     }
+
+    /// <summary>
+    /// Throws this wasp at what it just hit. Resolved damage is unchanged - this is presentation only,
+    /// attached on first use so no prefab has to carry the component up front.
+    /// </summary>
+    private void LungeAt(Vector3 targetPosition)
+    {
+        if (lunge == null)
+            lunge = C_CombatLunge.Attach(this);
+
+        if (lunge != null)
+            lunge.Strike(targetPosition);
+    }
+
+    private C_CombatLunge lunge;
 
     public void ResetAttackCooldown()
     {

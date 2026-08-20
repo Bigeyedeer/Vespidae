@@ -34,8 +34,12 @@ public class C_TutorialManager : MonoBehaviour
     [SerializeField] private float arrowFloatDistance = 10f;
     [SerializeField] private float arrowFloatSpeed = 3f;
 
-    [Header("Debug")]
-    [SerializeField] private bool alwaysShowTutorialInEditor = true;
+    [Header("Tutorial Visibility")]
+    [SerializeField, Tooltip("Show the tutorial on every launch, ignoring whether it has been completed " +
+                             "before. This applies in builds as well as in the Editor - it used to be " +
+                             "Editor-only, which meant the tutorial always ran while testing and silently " +
+                             "never ran in a shipped build once it had been completed once.")]
+    private bool alwaysShowTutorial = true;
 
     private int currentStepIndex = -1;
     private bool tutorialActive;
@@ -193,10 +197,12 @@ public class C_TutorialManager : MonoBehaviour
         if (!tutorialEnabled)
             return false;
 
-#if UNITY_EDITOR
-        if (alwaysShowTutorialInEditor)
+        // Deliberately not wrapped in UNITY_EDITOR. It used to be, and the effect was that the
+        // tutorial ran on every Editor test and never ran in the build: the player fell straight
+        // through to the PlayerPrefs check, which the Editor had already marked complete through the
+        // same registry key.
+        if (alwaysShowTutorial)
             return true;
-#endif
 
         if (!rememberCompletion)
             return true;
